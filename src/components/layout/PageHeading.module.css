@@ -1,0 +1,4 @@
+.heading { display: grid; gap: var(--space-3); margin-bottom: var(--space-10); }
+.heading p:last-child { max-width: 60ch; }
+.back { margin-bottom: var(--space-6); font-size: 0.875rem; }
+.back a { color: var(--color-text-2); text-decoration: underline; text-underline-offset: 3px; }

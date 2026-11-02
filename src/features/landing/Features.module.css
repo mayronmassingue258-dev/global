@@ -1,0 +1,8 @@
+.section { display: grid; gap: var(--space-8); padding-block: var(--space-16) 0; scroll-margin-top: var(--space-6); }
+.copy p { margin: var(--space-3) 0 var(--space-5); max-width: 40ch; }
+.grid { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.item { display: grid; gap: var(--space-1); align-content: start; min-height: 128px; padding: var(--space-4); background: var(--color-ink-2); color: var(--color-on-dark); border-radius: 10px; }
+.item svg { margin-bottom: var(--space-2); }
+.item h3 { font-size: 0.9375rem; font-weight: 500; line-height: 1.3; }
+.item p { font-size: 0.8125rem; color: var(--color-on-dark-2); }
+@media (min-width: 768px) { .section { grid-template-columns: 1fr 1.2fr; align-items: center; } .item { padding: var(--space-5); } }

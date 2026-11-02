@@ -1,0 +1,1 @@
+.saved[aria-pressed="true"]::after { content: "✓"; }

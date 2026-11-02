@@ -1,0 +1,51 @@
+/* Tokens de design (referência ELEVATE). Breakpoints usados: 640px, 768px, 960px. */
+:root {
+  --color-ink: #080808;
+  --color-ink-2: #141414;
+  --color-paper: #f4f3ef;
+  --color-card: #ffffff;
+  --color-surface: #eceae4;
+  --color-border: #dcdad3;
+  --color-border-strong: #8c8b85;
+  --color-text: #111111;
+  --color-text-2: #555550;
+  --color-text-muted: #62625c;
+  --color-on-dark: #ffffff;
+  --color-on-dark-2: #c8c8c3;
+
+  --color-success: #1a7f4b;
+  --color-success-bg: #e7f4ec;
+  --color-warning: #8a5a00;
+  --color-warning-bg: #fbf1da;
+  --color-danger: #b42318;
+  --color-danger-bg: #fdecea;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-raised: 0 1px 2px rgba(8, 8, 8, 0.06), 0 4px 12px rgba(8, 8, 8, 0.06);
+  --focus-ring: 2px solid var(--color-ink);
+
+  --container-max: 1120px;
+  --gutter: var(--space-4);
+  --control-height: 44px;
+  --transition: 150ms ease;
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: var(--space-8); }
+}

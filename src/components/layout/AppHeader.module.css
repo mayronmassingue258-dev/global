@@ -1,0 +1,10 @@
+.header { border-bottom: 1px solid var(--color-border); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 64px; }
+.brand { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.02em; text-decoration: none; }
+.home { font-size: 0.875rem; color: var(--color-text-2); text-decoration: underline; text-underline-offset: 3px; }
+.nav { display: flex; gap: var(--space-6); overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--color-border); }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { flex: none; display: inline-flex; align-items: center; min-height: 48px; border-bottom: 2px solid transparent; color: var(--color-text-2); font-size: 0.9375rem; text-decoration: none; }
+.nav a:hover { color: var(--color-text); }
+.nav a:focus-visible { outline-offset: -2px; }
+.nav a[aria-current="page"] { color: var(--color-text); border-bottom-color: var(--color-ink); font-weight: 500; }

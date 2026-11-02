@@ -1,0 +1,2 @@
+.main { padding-block: var(--space-12) var(--space-16); min-height: 60vh; }
+.demo { background: var(--color-surface); padding: var(--space-2) 0; text-align: center; font-size: 0.8125rem; color: var(--color-text-muted); }

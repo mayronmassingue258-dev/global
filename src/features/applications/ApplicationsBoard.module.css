@@ -1,0 +1,6 @@
+.row { display: grid; gap: var(--space-3); padding-block: var(--space-5); border-top: 1px solid var(--color-border); }
+.row:last-child { border-bottom: 1px solid var(--color-border); }
+.row h2 { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-4); }
+.controls > :first-child { min-width: min(100%, 260px); }
+@media (min-width: 768px) { .row { grid-template-columns: 1fr auto; align-items: end; column-gap: var(--space-8); } }
