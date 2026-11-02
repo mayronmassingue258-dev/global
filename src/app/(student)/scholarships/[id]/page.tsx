@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -10,17 +11,23 @@ import { formatDate } from "@/lib/utils/date";
 import patterns from "@/styles/patterns.module.css";
 import styles from "./page.module.css";
 
+
+/** Uma única chamada à API por pedido, compartilhada entre generateMetadata e a página. */
+const getScholarship = cache((id: string) => scholarshipService.get(id));
+
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const item = await scholarshipService.get(id);
-  return { title: item?.title ?? "Bolsa não encontrada" };
+  const item = await getScholarship(id);
+  // notFound() aqui (antes de a página começar a ser transmitida) garante o status HTTP 404.
+  if (!item) notFound();
+  return { title: item.title, description: item.summary };
 }
 
 export default async function ScholarshipDetailPage({ params }: Props) {
   const { id } = await params;
-  const item = await scholarshipService.get(id);
+  const item = await getScholarship(id);
   if (!item) notFound();
 
   const verified = item.verification.status === "verified";

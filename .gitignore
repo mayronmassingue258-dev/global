@@ -7,3 +7,10 @@ build
 .env.*.local
 .DS_Store
 *.tsbuildinfo
+
+# Testes e ferramentas
+coverage
+playwright-report
+test-results
+.next-e2e
+mock-api/.data

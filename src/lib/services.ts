@@ -1,10 +1,18 @@
 import { DATA_MODE } from "./config";
 import { apiScholarshipService, type ScholarshipService } from "./api/scholarships";
+import { apiApplicationService, type ApplicationService } from "./api/applications";
+import { apiProfileService, type ProfileService } from "./api/profile";
 import { mockScholarshipService } from "@/mocks/scholarshipService";
+import { mockApplicationService } from "@/mocks/applicationService";
+import { mockProfileService } from "@/mocks/profileService";
 
 /**
  * Ponto único de escolha entre dados reais e dados de demonstração.
  * Produção usa a API real por padrão; mocks só com NEXT_PUBLIC_DATA_MODE=mock.
  * Se a API falhar, o erro é exibido: nunca há troca silenciosa por dados fictícios.
  */
-export const scholarshipService: ScholarshipService = DATA_MODE === "mock" ? mockScholarshipService : apiScholarshipService;
+const useMock = DATA_MODE === "mock";
+
+export const scholarshipService: ScholarshipService = useMock ? mockScholarshipService : apiScholarshipService;
+export const applicationService: ApplicationService = useMock ? mockApplicationService : apiApplicationService;
+export const profileService: ProfileService = useMock ? mockProfileService : apiProfileService;

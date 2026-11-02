@@ -1,54 +1,6 @@
 import type { Scholarship } from "@/types";
+import data from "./data/scholarships.json";
 
 // DADOS FICTÍCIOS para desenvolvimento visual. Não representam bolsas reais nem verificadas.
-export const scholarships: Scholarship[] = [
-  {
-    id: "amostra-001", title: "Bolsa de Mestrado em Ciência de Dados", institution: "Universidade Exemplo Internacional",
-    country: "Reino Unido", level: "Mestrado", fundingType: "Integral", funding: "Cobertura integral conforme o regulamento fictício.",
-    deadline: "2027-02-15", summary: "Oportunidade de demonstração para candidatos de pós-graduação com bom histórico acadêmico.",
-    requirements: ["Diploma de graduação", "Histórico acadêmico", "Carta de motivação", "Comprovante de proficiência em inglês"],
-    requiredDocuments: ["Diploma", "Histórico acadêmico", "Carta de motivação", "Certificado de inglês"],
-    applicationProcess: "Processo de exemplo: envio online do formulário e dos documentos antes do prazo.",
-    verification: { status: "unverified" }
-  },
-  {
-    id: "amostra-002", title: "Programa de Doutorado em Energias Renováveis com Cooperação Internacional e Mobilidade Acadêmica",
-    institution: "Instituto Fictício de Tecnologia Aplicada", country: "Alemanha", level: "Doutorado", fundingType: "Parcial",
-    funding: "Mensalidade e auxílio parcial (exemplo).", deadline: "2026-12-03",
-    summary: "Oportunidade de demonstração focada em pesquisa aplicada, com título e instituição longos para testar o layout.",
-    requirements: ["Mestrado concluído", "Projeto de pesquisa", "Duas cartas de recomendação"],
-    requiredDocuments: ["Diploma de mestrado", "Projeto de pesquisa", "Cartas de recomendação"],
-    verification: { status: "unverified" }
-  },
-  {
-    id: "amostra-003", title: "Bolsa de Graduação em Engenharia", institution: "Fundação Modelo de Educação",
-    country: "Canadá", level: "Graduação", fundingType: "Integral", funding: "Cobertura integral (exemplo).", deadline: "2027-03-01",
-    summary: "Oportunidade de demonstração para estudantes que iniciam a graduação.",
-    requirements: ["Certificado de ensino médio", "Histórico escolar", "Redação pessoal"],
-    requiredDocuments: ["Certificado de ensino médio", "Histórico escolar", "Redação pessoal"],
-    verification: { status: "unverified" }
-  },
-  {
-    id: "amostra-004", title: "Intercâmbio de Pesquisa em Biotecnologia", institution: "Centro de Estudos Amostra",
-    country: "Suíça", level: "Mestrado", fundingType: "Auxílio mensal", funding: "Auxílio mensal para despesas (exemplo).", deadline: "2027-02-10",
-    summary: "Oportunidade de demonstração que exige vínculo com uma instituição de origem.",
-    requirements: ["Vínculo com instituição de origem", "Plano de trabalho"],
-    requiredDocuments: ["Declaração de vínculo", "Plano de trabalho"],
-    verification: { status: "unverified" }
-  },
-  {
-    id: "amostra-005", title: "Bolsa de Idiomas e Cultura", institution: "Associação Exemplo",
-    country: "Espanha", level: "Curso livre", fundingType: "Integral", funding: "Curso e hospedagem (exemplo).", deadline: "2027-04-20",
-    summary: "Oportunidade de demonstração de curta duração.",
-    requirements: ["Formulário online", "Carta curta"], requiredDocuments: ["Carta curta"],
-    verification: { status: "unverified" }
-  },
-  {
-    id: "amostra-006", title: "Mestrado em Políticas Públicas", institution: "Escola Fictícia de Governo",
-    country: "Reino Unido", level: "Mestrado", fundingType: "Parcial", funding: "Desconto parcial na mensalidade (exemplo).", deadline: "2027-01-28",
-    summary: "Oportunidade de demonstração para a área de políticas públicas.",
-    requirements: ["Currículo acadêmico", "Ensaio", "Comprovante de idioma"],
-    requiredDocuments: ["Currículo acadêmico", "Ensaio", "Comprovante de idioma"],
-    verification: { status: "unverified" }
-  }
-];
+// A mesma fonte (data/scholarships.json) alimenta o servidor local `npm run mock-api`.
+export const scholarships = data as Scholarship[];

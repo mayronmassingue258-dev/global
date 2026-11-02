@@ -61,3 +61,19 @@ export type EligibilityResult = {
   status: EligibilityStatus;
   reasons: EligibilityReason[];
 };
+
+/** Perfil acadêmico do estudante. Strings vazias significam "não informado". */
+export type Profile = {
+  residence: string;
+  nationality: string;
+  level: string;
+  field: string;
+  grade: string;
+  languages: string;
+  interests: string;
+  updatedAt?: string;
+};
+
+export type ProfileInput = Omit<Profile, "updatedAt">;
+
+export type ApplicationUpdate = { status: ApplicationStatus };

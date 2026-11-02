@@ -8,7 +8,15 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 // Compatível com eslint-config-next 15 (configuração clássica via FlatCompat).
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  { ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"] }
+  {
+    rules: {
+      // Prefixo "_" = descartado de propósito (ex.: tirar um campo com desestruturação).
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true }]
+    }
+  },
+  {
+    ignores: [".next/**", ".next-e2e/**", "out/**", "build/**", "coverage/**", "playwright-report/**", "test-results/**", "mock-api/.data/**", "next-env.d.ts"]
+  }
 ];
 
 export default eslintConfig;

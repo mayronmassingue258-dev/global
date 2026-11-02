@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Um novo push no mesmo branch cancela a execução anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Tipos, lint, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Testes (unitários, componentes e API local) com cobertura
+        run: npm run test:coverage
+      - name: Build de produção
+        run: npm run build
+      - name: Relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  e2e:
+    name: Ponta a ponta (Playwright)
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Testes de ponta a ponta
+        run: npm run test:e2e
+      - name: Relatório do Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

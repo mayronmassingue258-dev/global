@@ -1,0 +1,21 @@
+# Atualizações automáticas de dependências, agrupadas para gerar poucos PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      next-react:
+        patterns: ["next", "react", "react-dom", "eslint-config-next", "@types/react", "@types/react-dom"]
+      testes:
+        patterns: ["vitest", "@vitest/*", "@testing-library/*", "@playwright/test", "jsdom", "@vitejs/*"]
+      outros:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

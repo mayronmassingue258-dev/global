@@ -3,13 +3,27 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { PageHeading } from "@/components/layout/PageHeading";
 import { ScholarshipCard } from "@/features/scholarships/ScholarshipCard";
 import { UpcomingDeadlines } from "@/features/applications/UpcomingDeadlines";
+import { ErrorState } from "@/components/feedback/States";
 import { scholarshipService } from "@/lib/services";
+import type { Scholarship } from "@/types";
 import patterns from "@/styles/patterns.module.css";
 
 export const metadata: Metadata = { title: "Painel" };
 
+// Os dados vêm da API a cada pedido: a página não pode ser pré-gerada no build (a API não existe nessa hora).
+export const dynamic = "force-dynamic";
+
+async function loadRecommended(): Promise<Scholarship[] | null> {
+  try {
+    const { items } = await scholarshipService.list({ sort: "deadline", pageSize: 3 });
+    return items;
+  } catch {
+    return null;
+  }
+}
+
 export default async function DashboardPage() {
-  const { items } = await scholarshipService.list({ sort: "deadline", pageSize: 3 });
+  const items = await loadRecommended();
 
   return (
     <div className={patterns.page}>
@@ -28,7 +42,11 @@ export default async function DashboardPage() {
           <h2 id="d-recommended" className="t-section">Bolsas para avaliar</h2>
           <ButtonLink href="/scholarships" variant="tertiary" size="sm">Ver todas</ButtonLink>
         </div>
-        <ul className={patterns.list}>{items.map((item) => <ScholarshipCard key={item.id} item={item} />)}</ul>
+        {items ? (
+          <ul className={patterns.list}>{items.map((item) => <ScholarshipCard key={item.id} item={item} />)}</ul>
+        ) : (
+          <ErrorState title="Não foi possível carregar as bolsas" description="O servidor não respondeu. Recarregue a página em instantes." />
+        )}
       </section>
 
       <div className={patterns.grid2}>

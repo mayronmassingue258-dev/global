@@ -9,7 +9,7 @@ export interface ScholarshipService {
   eligibility(scholarshipId: string, signal?: AbortSignal): Promise<EligibilityResult | null>;
 }
 
-const unexpected = () => new ApiError(502, "Resposta inesperada do servidor.");
+const unexpected = () => new ApiError(502, "Resposta inesperada do servidor.", "unexpected_response");
 
 // PROVISÓRIO: os caminhos abaixo NÃO estão confirmados. Ajustar quando o contrato do backend existir.
 export const apiScholarshipService: ScholarshipService = {

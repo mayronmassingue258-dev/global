@@ -1,0 +1,45 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec).
+# Cria dois serviços: a API de DEMONSTRAÇÃO (servidor local) e o frontend Next.js.
+# Passo a passo em docs/deploy-render.md.
+services:
+  - type: web
+    name: globalscholar-api-demo
+    runtime: node
+    plan: free
+    region: frankfurt
+    # O servidor local não tem dependências: não é preciso instalar nada.
+    buildCommand: node --version
+    startCommand: node mock-api/server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HOST
+        value: 0.0.0.0
+      # Troque "*" pela URL do frontend depois do primeiro deploy, ex.: https://globalscholar-web.onrender.com
+      - key: CORS_ORIGIN
+        value: "*"
+      # Nunca deixe a rota de reset aberta num servidor público.
+      - key: MOCK_API_ALLOW_RESET
+        value: "0"
+
+  - type: web
+    name: globalscholar-web
+    runtime: node
+    plan: free
+    region: frankfurt
+    # --include=dev: o build precisa de TypeScript e ESLint (devDependencies).
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_DATA_MODE
+        value: api
+      # Preencha no painel do Render com a URL da API + /api, ex.: https://globalscholar-api-demo.onrender.com/api
+      # É lida no BUILD: depois de mudar, faça "Manual Deploy → Clear build cache & deploy".
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false

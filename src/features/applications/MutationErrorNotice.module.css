@@ -1,0 +1,3 @@
+.inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-block: var(--space-2); }
+.wrap { background: var(--color-danger-bg); color: var(--color-danger); font-size: 0.875rem; }
+.inner p { margin: 0; }
