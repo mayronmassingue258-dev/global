@@ -41,10 +41,23 @@ export type ScholarshipPage = { items: Scholarship[]; total: number };
 
 export type ApplicationStatus = "Saved" | "Preparing" | "Ready to submit" | "Submitted" | "Decision received";
 
+export type ApplicationDocument = { name: string; done: boolean };
+
+/** Evento da linha do tempo de uma candidatura (registrado pelo servidor). */
+export type TimelineEvent =
+  | { at: string; kind: "created" }
+  | { at: string; kind: "status"; status: ApplicationStatus }
+  | { at: string; kind: "document"; document: string; done: boolean }
+  | { at: string; kind: "notes" };
+
 export type Application = {
   id: string;
   scholarship: ScholarshipSummary;
   status: ApplicationStatus;
+  /** Checklist criado a partir de `requiredDocuments` da bolsa. */
+  documents: ApplicationDocument[];
+  notes: string;
+  timeline: TimelineEvent[];
   updatedAt: string;
 };
 
@@ -76,4 +89,20 @@ export type Profile = {
 
 export type ProfileInput = Omit<Profile, "updatedAt">;
 
-export type ApplicationUpdate = { status: ApplicationStatus };
+/** Atualização parcial: envie só o que mudou. Em `documents`, só os itens alterados (pelo nome). */
+export type ApplicationUpdate = { status?: ApplicationStatus; notes?: string; documents?: ApplicationDocument[] };
+
+export type DocumentType = "motivation_letter" | "academic_cv" | "personal_statement" | "document_review";
+
+/** Rascunho do assistente de documentos. `sections` mapeia a chave da seção para o texto. */
+export type Draft = {
+  id: string;
+  type: DocumentType;
+  title: string;
+  program: string;
+  sections: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DraftInput = Pick<Draft, "type" | "title" | "program" | "sections">;

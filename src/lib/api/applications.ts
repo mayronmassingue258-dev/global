@@ -5,6 +5,8 @@ import type { Application, ApplicationUpdate, ScholarshipSummary } from "@/types
 /** Candidaturas acompanhadas pelo estudante. "Enviada" é só uma marcação; nada é submetido ao provedor. */
 export interface ApplicationService {
   list(signal?: AbortSignal): Promise<Application[]>;
+  /** null quando não existe. */
+  get(id: string, signal?: AbortSignal): Promise<Application | null>;
   /** Idempotente: salvar uma bolsa já salva devolve o registro existente. */
   save(scholarship: ScholarshipSummary): Promise<Application>;
   update(id: string, update: ApplicationUpdate): Promise<Application>;
@@ -19,6 +21,16 @@ export const apiApplicationService: ApplicationService = {
     const data = await apiRequest<unknown>("/applications", { signal });
     if (!isApplicationList(data)) throw unexpected();
     return data.items;
+  },
+  async get(id, signal) {
+    try {
+      const data = await apiRequest<unknown>(`/applications/${encodeURIComponent(id)}`, { signal });
+      if (!isApplication(data)) throw unexpected();
+      return data;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return null;
+      throw error;
+    }
   },
   async save(scholarship) {
     const data = await apiRequest<unknown>("/applications", { method: "POST", body: { scholarshipId: scholarship.id } });

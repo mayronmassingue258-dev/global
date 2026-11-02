@@ -1,0 +1,10 @@
+.wrap { display: grid; gap: var(--space-3); }
+.summary { font-size: 0.875rem; font-weight: 500; }
+.list { list-style: none; padding: 0; display: grid; gap: var(--space-2); font-size: 0.875rem; line-height: 1.45; color: var(--color-text-2); }
+.list li { display: grid; grid-template-columns: 22px 1fr; gap: var(--space-2); align-items: start; }
+.icon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; margin-top: 1px; }
+.met .icon { background: var(--color-success-bg); color: var(--color-success); }
+.missing .icon { background: var(--color-warning-bg); color: var(--color-warning); }
+.failed .icon { background: var(--color-danger-bg); color: var(--color-danger); }
+.failed { color: var(--color-text); }
+.links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: 0.875rem; }

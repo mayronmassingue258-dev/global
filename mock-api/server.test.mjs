@@ -151,3 +151,71 @@ describe("reset desligado (servidor público)", () => {
     await new Promise((resolve) => other.close(resolve));
   });
 });
+
+describe("detalhe de candidatura (v0.3)", () => {
+  it("cria checklist a partir dos documentos da bolsa e registra a linha do tempo", async () => {
+    const { json } = await call("/applications", { method: "POST", body: { scholarshipId: "amostra-001" } });
+    expect(json.documents).toEqual([
+      { name: "Diploma", done: false },
+      { name: "Histórico acadêmico", done: false },
+      { name: "Carta de motivação", done: false },
+      { name: "Certificado de inglês", done: false }
+    ]);
+    expect(json.timeline.map((e) => e.kind)).toEqual(["created"]);
+
+    const patched = await call("/applications/amostra-001", {
+      method: "PATCH",
+      body: { status: "Preparing", documents: [{ name: "Diploma", done: true }, { name: "Inexistente", done: true }], notes: "Pedir carta ao prof." }
+    });
+    expect(patched.status).toBe(200);
+    expect(patched.json.documents[0]).toEqual({ name: "Diploma", done: true });
+    expect(patched.json.notes).toBe("Pedir carta ao prof.");
+    expect(patched.json.timeline.map((e) => e.kind)).toEqual(["created", "status", "document", "notes"]);
+
+    // Notas editadas de novo logo em seguida não criam outro evento.
+    const again = await call("/applications/amostra-001", { method: "PATCH", body: { notes: "Pedir carta ao prof. Silva." } });
+    expect(again.json.timeline).toHaveLength(4);
+
+    expect((await call("/applications/amostra-001")).json.notes).toBe("Pedir carta ao prof. Silva.");
+    expect((await call("/applications/nao-existe")).status).toBe(404);
+  });
+
+  it("valida a atualização parcial", async () => {
+    await call("/applications", { method: "POST", body: { scholarshipId: "amostra-001" } });
+    const empty = await call("/applications/amostra-001", { method: "PATCH", body: {} });
+    expect(empty.status).toBe(422);
+    const bad = await call("/applications/amostra-001", { method: "PATCH", body: { notes: "x".repeat(5001), documents: "Diploma" } });
+    expect(bad.json.error.fields).toEqual({ notes: "too_long", documents: "invalid_type" });
+  });
+
+  it("completa registros gravados no formato antigo", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(dataFile, JSON.stringify({ version: 1, profile: {}, applications: [{ id: "amostra-005", scholarship: { id: "amostra-005", title: "T", institution: "I", deadline: "2027-04-20" }, status: "Saved", updatedAt: "2026-10-01T00:00:00.000Z" }] }));
+    const { json } = await call("/applications/amostra-005");
+    expect(json).toMatchObject({ documents: [], notes: "", timeline: [{ kind: "created" }] });
+  });
+});
+
+describe("rascunhos", () => {
+  const input = { type: "motivation_letter", title: "  Carta Mestrado  ", program: "Mestrado X", sections: { opening: "Olá" } };
+
+  it("CRUD completo", async () => {
+    const created = await call("/drafts", { method: "POST", body: input });
+    expect(created.status).toBe(201);
+    expect(created.json).toMatchObject({ title: "Carta Mestrado", sections: { opening: "Olá" } });
+    const id = created.json.id;
+
+    const updated = await call(`/drafts/${id}`, { method: "PUT", body: { ...input, sections: { opening: "Olá!", motivation: "Porque…" } } });
+    expect(updated.json.sections).toEqual({ opening: "Olá!", motivation: "Porque…" });
+    expect((await call("/drafts")).json.items).toHaveLength(1);
+    expect((await call(`/drafts/${id}`)).json.id).toBe(id);
+    expect((await call(`/drafts/${id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await call(`/drafts/${id}`)).status).toBe(404);
+  });
+
+  it("valida tipo, título e seções", async () => {
+    const res = await call("/drafts", { method: "POST", body: { type: "poem", title: " ", sections: { "Bad Key": "x" } } });
+    expect(res.status).toBe(422);
+    expect(res.json.error.fields).toEqual({ type: "invalid_option", title: "required", sections: "invalid_type" });
+  });
+});

@@ -4,6 +4,8 @@ import { emptyProfile } from "@/lib/validation/profile";
 import { apiScholarshipService } from "./scholarships";
 import { apiApplicationService } from "./applications";
 import { apiProfileService } from "./profile";
+import { apiDraftService } from "./drafts";
+import { makeDraft } from "@/test/fakes";
 
 const fetchMock = vi.fn<typeof fetch>();
 vi.stubGlobal("fetch", fetchMock);
@@ -87,5 +89,45 @@ describe("apiProfileService", () => {
   it("update rejeita resposta inválida", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ residence: 1 }));
     await expect(apiProfileService.update(emptyProfile)).rejects.toMatchObject({ code: "unexpected_response" });
+  });
+});
+
+describe("apiApplicationService.get", () => {
+  it("devolve a candidatura ou null em 404", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeApplication()));
+    await expect(apiApplicationService.get("s-1")).resolves.toMatchObject({ id: "s-1" });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: "not_found" } }, 404));
+    await expect(apiApplicationService.get("x")).resolves.toBeNull();
+  });
+});
+
+describe("apiDraftService", () => {
+  const input = { type: "motivation_letter" as const, title: "Carta", program: "", sections: {} };
+
+  it("list, get, create, update e remove seguem o contrato", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [makeDraft()] }));
+    await expect(apiDraftService.list()).resolves.toHaveLength(1);
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeDraft()));
+    await apiDraftService.get("d 1");
+    expect(lastCall().url).toBe("http://api.test/api/drafts/d%201");
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeDraft(), 201));
+    await apiDraftService.create(input);
+    expect(lastCall()).toMatchObject({ method: "POST", url: "http://api.test/api/drafts", body: input });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeDraft()));
+    await apiDraftService.update("d-1", input);
+    expect(lastCall()).toMatchObject({ method: "PUT", body: input });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: "not_found" } }, 404));
+    await expect(apiDraftService.remove("d-1")).resolves.toBeUndefined();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: "not_found" } }, 404));
+    await expect(apiDraftService.get("d-1")).resolves.toBeNull();
+  });
+
+  it("rejeita rascunho fora do formato", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ...makeDraft(), type: "poema" }));
+    await expect(apiDraftService.create(input)).rejects.toMatchObject({ code: "unexpected_response" });
   });
 });

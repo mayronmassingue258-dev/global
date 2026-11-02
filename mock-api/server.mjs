@@ -11,6 +11,7 @@
 // NÃO é o backend real: não há autenticação e existe um único "estudante".
 
 import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -25,10 +26,23 @@ const STATUSES = ["Saved", "Preparing", "Ready to submit", "Submitted", "Decisio
 const SORTS = ["deadline", "title"];
 const PROFILE_MAX = { residence: 80, nationality: 80, level: 40, field: 120, grade: 60, languages: 200, interests: 1000 };
 const PROFILE_REQUIRED = ["residence", "level"];
-const MAX_BODY_BYTES = 100 * 1024;
+const MAX_BODY_BYTES = 512 * 1024;
+const NOTES_MAX = 5000;
+const NOTES_MERGE_WINDOW_MS = 10 * 60 * 1000;
+const DOC_TYPES = ["motivation_letter", "academic_cv", "personal_statement", "document_review"];
+const DRAFT_LIMITS = { title: 120, program: 160, section: 20000, sections: 20 };
+const SECTION_KEY = /^[a-z][a-z0-9_]{0,39}$/;
 
 const emptyProfile = () => ({ residence: "", nationality: "", level: "", field: "", grade: "", languages: "", interests: "" });
-const emptyDb = () => ({ version: 1, profile: emptyProfile(), applications: [] });
+const emptyDb = () => ({ version: 2, profile: emptyProfile(), applications: [], drafts: [] });
+
+/** Completa registros gravados por versões anteriores do servidor (antes de documentos/notas/linha do tempo). */
+const normalizeApplication = (a) => ({
+  documents: [],
+  notes: "",
+  timeline: [{ at: a.updatedAt, kind: "created" }],
+  ...a
+});
 
 class HttpError extends Error {
   constructor(status, code, fields) {
@@ -45,7 +59,13 @@ function createStore(file) {
   async function read() {
     try {
       const data = JSON.parse(await readFile(file, "utf8"));
-      return { ...emptyDb(), ...data, profile: { ...emptyProfile(), ...data.profile } };
+      return {
+        ...emptyDb(),
+        ...data,
+        profile: { ...emptyProfile(), ...data.profile },
+        applications: (data.applications ?? []).map(normalizeApplication),
+        drafts: data.drafts ?? []
+      };
     } catch (error) {
       if (error.code === "ENOENT") return emptyDb();
       throw error;
@@ -87,6 +107,71 @@ function validateProfile(body) {
   }
   if (Object.keys(fields).length > 0) throw new HttpError(422, "validation_failed", fields);
   return profile;
+}
+
+/** Aplica uma atualização parcial de candidatura e registra a linha do tempo (mesma regra do frontend). */
+function applyApplicationUpdate(app, body, now = new Date()) {
+  const at = now.toISOString();
+  let changed = false;
+  if (body.status !== undefined && body.status !== app.status) {
+    app.status = body.status;
+    app.timeline.push({ at, kind: "status", status: body.status });
+    changed = true;
+  }
+  if (body.documents) {
+    const wanted = new Map(body.documents.map((d) => [d.name, d.done]));
+    for (const doc of app.documents) {
+      const done = wanted.get(doc.name);
+      if (done === undefined || done === doc.done) continue;
+      doc.done = done;
+      app.timeline.push({ at, kind: "document", document: doc.name, done });
+      changed = true;
+    }
+  }
+  if (body.notes !== undefined && body.notes !== app.notes) {
+    app.notes = body.notes;
+    const last = app.timeline.at(-1);
+    if (last?.kind === "notes" && now.getTime() - Date.parse(last.at) < NOTES_MERGE_WINDOW_MS) last.at = at;
+    else app.timeline.push({ at, kind: "notes" });
+    changed = true;
+  }
+  if (changed) app.updatedAt = at;
+  return changed;
+}
+
+function validateApplicationUpdate(body) {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new HttpError(400, "invalid_body");
+  const fields = {};
+  if (body.status !== undefined && !STATUSES.includes(body.status)) fields.status = "invalid_option";
+  if (body.notes !== undefined) {
+    if (typeof body.notes !== "string") fields.notes = "invalid_type";
+    else if (body.notes.length > NOTES_MAX) fields.notes = "too_long";
+  }
+  if (body.documents !== undefined) {
+    const ok = Array.isArray(body.documents) && body.documents.every((d) => typeof d?.name === "string" && typeof d?.done === "boolean");
+    if (!ok) fields.documents = "invalid_type";
+  }
+  if (body.status === undefined && body.notes === undefined && body.documents === undefined) fields.status = "required";
+  if (Object.keys(fields).length > 0) throw new HttpError(422, "validation_failed", fields);
+}
+
+function validateDraft(body) {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new HttpError(400, "invalid_body");
+  const fields = {};
+  const title = typeof body.title === "string" ? body.title.trim() : null;
+  const program = typeof body.program === "string" ? body.program.trim() : body.program === undefined ? "" : null;
+  if (!DOC_TYPES.includes(body.type)) fields.type = "invalid_option";
+  if (title === null) fields.title = "invalid_type";
+  else if (!title) fields.title = "required";
+  else if (title.length > DRAFT_LIMITS.title) fields.title = "too_long";
+  if (program === null) fields.program = "invalid_type";
+  else if (program.length > DRAFT_LIMITS.program) fields.program = "too_long";
+  const sections = body.sections ?? {};
+  const entries = typeof sections === "object" && sections !== null && !Array.isArray(sections) ? Object.entries(sections) : null;
+  if (!entries || entries.length > DRAFT_LIMITS.sections || entries.some(([k, v]) => !SECTION_KEY.test(k) || typeof v !== "string")) fields.sections = "invalid_type";
+  else if (entries.some(([, v]) => v.length > DRAFT_LIMITS.section)) fields.sections = "too_long";
+  if (Object.keys(fields).length > 0) throw new HttpError(422, "validation_failed", fields);
+  return { type: body.type, title, program, sections: Object.fromEntries(entries) };
 }
 
 function listScholarships(all, params) {
@@ -172,26 +257,72 @@ export async function createMockApi(options = {}) {
       return store.transact((db) => {
         const existing = db.applications.find((a) => a.id === item.id);
         if (existing) return { value: { status: 200, body: existing } };
-        const created = { id: item.id, scholarship: summaryOf(item), status: "Saved", updatedAt: new Date().toISOString() };
+        const now = new Date().toISOString();
+        const created = {
+          id: item.id,
+          scholarship: summaryOf(item),
+          status: "Saved",
+          documents: item.requiredDocuments.map((name) => ({ name, done: false })),
+          notes: "",
+          timeline: [{ at: now, kind: "created" }],
+          updatedAt: now
+        };
         db.applications.push(created);
         return { save: true, value: { status: 201, body: created } };
       });
     }],
+    ["GET", /^\/api\/applications\/([^/]+)$/, async ([id]) => {
+      const app = (await store.read()).applications.find((a) => a.id === id);
+      if (!app) throw new HttpError(404, "not_found");
+      return { body: app };
+    }],
     ["PATCH", /^\/api\/applications\/([^/]+)$/, async ([id], _q, req) => {
       const body = await readJsonBody(req);
-      if (!STATUSES.includes(body?.status)) throw new HttpError(422, "validation_failed", { status: "invalid_option" });
+      validateApplicationUpdate(body);
       return store.transact((db) => {
         const app = db.applications.find((a) => a.id === id);
         if (!app) throw new HttpError(404, "not_found");
-        app.status = body.status;
-        app.updatedAt = new Date().toISOString();
-        return { save: true, value: { body: app } };
+        const changed = applyApplicationUpdate(app, body);
+        return { save: changed, value: { body: app } };
       });
     }],
     ["DELETE", /^\/api\/applications\/([^/]+)$/, async ([id]) => store.transact((db) => {
       const before = db.applications.length;
       db.applications = db.applications.filter((a) => a.id !== id);
       if (db.applications.length === before) throw new HttpError(404, "not_found");
+      return { save: true, value: { status: 204 } };
+    })],
+    ["GET", /^\/api\/drafts$/, async () => {
+      const items = [...(await store.read()).drafts].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      return { body: { items } };
+    }],
+    ["POST", /^\/api\/drafts$/, async (_m, _q, req) => {
+      const input = validateDraft(await readJsonBody(req));
+      return store.transact((db) => {
+        const now = new Date().toISOString();
+        const draft = { id: `d_${randomUUID().slice(0, 8)}`, ...input, createdAt: now, updatedAt: now };
+        db.drafts.push(draft);
+        return { save: true, value: { status: 201, body: draft } };
+      });
+    }],
+    ["GET", /^\/api\/drafts\/([^/]+)$/, async ([id]) => {
+      const draft = (await store.read()).drafts.find((d) => d.id === id);
+      if (!draft) throw new HttpError(404, "not_found");
+      return { body: draft };
+    }],
+    ["PUT", /^\/api\/drafts\/([^/]+)$/, async ([id], _q, req) => {
+      const input = validateDraft(await readJsonBody(req));
+      return store.transact((db) => {
+        const draft = db.drafts.find((d) => d.id === id);
+        if (!draft) throw new HttpError(404, "not_found");
+        Object.assign(draft, input, { updatedAt: new Date().toISOString() });
+        return { save: true, value: { body: draft } };
+      });
+    }],
+    ["DELETE", /^\/api\/drafts\/([^/]+)$/, async ([id]) => store.transact((db) => {
+      const before = db.drafts.length;
+      db.drafts = db.drafts.filter((d) => d.id !== id);
+      if (db.drafts.length === before) throw new HttpError(404, "not_found");
       return { save: true, value: { status: 204 } };
     })],
     // Só para desenvolvimento e testes automatizados. NÃO faz parte do contrato.

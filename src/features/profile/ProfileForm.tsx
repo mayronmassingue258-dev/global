@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextAreaField, TextField } from "@/components/ui/Field";
 import { ErrorState, Notice } from "@/components/feedback/States";
+import { FormSkeleton } from "@/components/feedback/Skeleton";
 import { STUDY_LEVELS } from "@/lib/constants";
 import { IS_MOCK_MODE } from "@/lib/config";
 import { ApiError } from "@/lib/api/client";
@@ -104,7 +105,7 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
     }
   }
 
-  if (loadStatus === "loading") return <p className="t-secondary" role="status">Carregando perfil…</p>;
+  if (loadStatus === "loading") return <FormSkeleton fields={6} label="Carregando perfil…" />;
   if (loadStatus === "error") return <ErrorState title="Não foi possível carregar seu perfil" onRetry={() => setReloadKey((k) => k + 1)} />;
 
   const hasErrors = Object.keys(errors).length > 0;

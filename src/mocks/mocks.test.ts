@@ -70,3 +70,27 @@ describe("mockProfileService", () => {
     expect(await mockProfileService.get()).toMatchObject({ residence: "Angola", level: "Graduação" });
   });
 });
+
+describe("mockDraftService", () => {
+  it("cria, lista do mais recente, atualiza, valida e remove", async () => {
+    const { __resetMockDrafts, mockDraftService } = await import("./draftService");
+    __resetMockDrafts();
+    const a = await mockDraftService.create({ type: "academic_cv", title: " CV ", program: "", sections: {} });
+    expect(a.title).toBe("CV");
+    await new Promise((r) => setTimeout(r, 5));
+    const b = await mockDraftService.create({ type: "motivation_letter", title: "Carta", program: "", sections: {} });
+    expect((await mockDraftService.list()).map((d) => d.id)).toEqual([b.id, a.id]);
+    await expect(mockDraftService.update(a.id, { ...a, title: "" })).rejects.toMatchObject({ status: 422, fields: { title: "required" } });
+    await expect(mockDraftService.update("x", { ...a })).rejects.toMatchObject({ status: 404 });
+    await mockDraftService.remove(a.id);
+    expect(await mockDraftService.get(a.id)).toBeNull();
+  });
+
+  it("candidatura de demonstração nasce com checklist da bolsa", async () => {
+    __resetMockApplications();
+    const created = await mockApplicationService.save(scholarships[0]!);
+    expect(created.documents.map((d) => d.name)).toEqual(scholarships[0]!.requiredDocuments);
+    expect(await mockApplicationService.get(created.id)).toMatchObject({ id: created.id });
+    expect(await mockApplicationService.get("x")).toBeNull();
+  });
+});

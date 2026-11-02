@@ -2,9 +2,11 @@ import { DATA_MODE } from "./config";
 import { apiScholarshipService, type ScholarshipService } from "./api/scholarships";
 import { apiApplicationService, type ApplicationService } from "./api/applications";
 import { apiProfileService, type ProfileService } from "./api/profile";
+import { apiDraftService, type DraftService } from "./api/drafts";
 import { mockScholarshipService } from "@/mocks/scholarshipService";
 import { mockApplicationService } from "@/mocks/applicationService";
 import { mockProfileService } from "@/mocks/profileService";
+import { mockDraftService } from "@/mocks/draftService";
 
 /**
  * Ponto único de escolha entre dados reais e dados de demonstração.
@@ -16,3 +18,4 @@ const useMock = DATA_MODE === "mock";
 export const scholarshipService: ScholarshipService = useMock ? mockScholarshipService : apiScholarshipService;
 export const applicationService: ApplicationService = useMock ? mockApplicationService : apiApplicationService;
 export const profileService: ProfileService = useMock ? mockProfileService : apiProfileService;
+export const draftService: DraftService = useMock ? mockDraftService : apiDraftService;

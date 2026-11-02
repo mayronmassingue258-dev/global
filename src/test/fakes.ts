@@ -1,8 +1,10 @@
 import type { ApplicationService } from "@/lib/api/applications";
+import type { DraftService } from "@/lib/api/drafts";
+import { applyApplicationUpdate } from "@/lib/applications/applyUpdate";
 import type { ProfileService } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { emptyProfile } from "@/lib/validation/profile";
-import type { Application, Profile, Scholarship } from "@/types";
+import type { Application, Draft, Profile, Scholarship } from "@/types";
 
 export function makeScholarship(overrides: Partial<Scholarship> = {}): Scholarship {
   return {
@@ -28,6 +30,9 @@ export function makeApplication(overrides: Partial<Application> = {}): Applicati
     id: s.id,
     scholarship: { id: s.id, title: s.title, institution: s.institution, deadline: s.deadline },
     status: "Saved",
+    documents: [{ name: "Diploma", done: false }, { name: "Histórico", done: true }],
+    notes: "",
+    timeline: [{ at: "2026-10-01T10:00:00.000Z", kind: "created" }],
     updatedAt: "2026-10-01T10:00:00.000Z",
     ...overrides
   };
@@ -40,15 +45,17 @@ export function fakeApplicationService(initial: Application[] = [], opts: { fail
   const service: ApplicationService & { items: () => Application[] } = {
     items: () => items,
     list: () => (opts.failList ? fail() : Promise.resolve([...items])),
+    get: (id) => (opts.failList ? fail() : Promise.resolve(items.find((a) => a.id === id) ?? null)),
     save: (s) => {
       if (opts.failMutations) return fail();
-      const created: Application = { id: s.id, scholarship: s, status: "Saved", updatedAt: new Date().toISOString() };
+      const at = new Date().toISOString();
+      const created: Application = { id: s.id, scholarship: s, status: "Saved", documents: [], notes: "", timeline: [{ at, kind: "created" }], updatedAt: at };
       items = [...items.filter((a) => a.id !== s.id), created];
       return Promise.resolve(created);
     },
     update: (id, update) => {
       if (opts.failMutations) return fail();
-      items = items.map((a) => (a.id === id ? { ...a, ...update } : a));
+      items = items.map((a) => (a.id === id ? applyApplicationUpdate(a, update) : a));
       return Promise.resolve(items.find((a) => a.id === id)!);
     },
     remove: (id) => {
@@ -82,4 +89,48 @@ export function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" }
   });
+}
+
+export function makeDraft(overrides: Partial<Draft> = {}): Draft {
+  return {
+    id: "d-1",
+    type: "motivation_letter",
+    title: "Carta para o Mestrado X",
+    program: "Mestrado X",
+    sections: {},
+    createdAt: "2026-10-01T10:00:00.000Z",
+    updatedAt: "2026-10-01T10:00:00.000Z",
+    ...overrides
+  };
+}
+
+/** Serviço de rascunhos em memória, com registro das chamadas. */
+export function fakeDraftService(initial: Draft[] = [], opts: { failList?: boolean; failUpdate?: boolean } = {}) {
+  let items = [...initial];
+  let n = items.length;
+  const updates: { id: string; sections: Record<string, string>; title: string }[] = [];
+  const service: DraftService & { items: () => Draft[]; updates: typeof updates } = {
+    items: () => items,
+    updates,
+    list: () => (opts.failList ? Promise.reject(new ApiError(500, "x")) : Promise.resolve([...items])),
+    get: (id) => Promise.resolve(items.find((d) => d.id === id) ?? null),
+    create: (input) => {
+      n += 1;
+      const at = new Date().toISOString();
+      const draft: Draft = { ...input, id: `d-${n}`, createdAt: at, updatedAt: at };
+      items = [draft, ...items];
+      return Promise.resolve(draft);
+    },
+    update: (id, input) => {
+      updates.push({ id, sections: input.sections, title: input.title });
+      if (opts.failUpdate) return Promise.reject(new ApiError(503, "x"));
+      items = items.map((d) => (d.id === id ? { ...d, ...input, updatedAt: new Date().toISOString() } : d));
+      return Promise.resolve(items.find((d) => d.id === id)!);
+    },
+    remove: (id) => {
+      items = items.filter((d) => d.id !== id);
+      return Promise.resolve();
+    }
+  };
+  return service;
 }

@@ -1,0 +1,15 @@
+.block {
+  display: block; max-width: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--color-surface) 0%, #f5f4f0 50%, var(--color-surface) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.list { display: grid; }
+.row, .card { padding-block: var(--space-5); border-top: 1px solid var(--color-border); }
+.card { display: grid; grid-template-columns: 48px 1fr; gap: var(--space-4); }
+.lines { display: grid; gap: var(--space-2); align-content: start; }
+.row .lines { gap: var(--space-3); }
+.form { display: grid; gap: var(--space-6); }
+.field { display: grid; gap: var(--space-2); }
+@media (min-width: 768px) { .form { grid-template-columns: 1fr 1fr; } }

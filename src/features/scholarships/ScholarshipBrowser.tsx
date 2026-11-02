@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
+import { SearchX } from "lucide-react";
 import { EmptyState, ErrorState, Notice } from "@/components/feedback/States";
+import { ListSkeleton } from "@/components/feedback/Skeleton";
 import { STUDY_LEVELS } from "@/lib/constants";
 import { IS_MOCK_MODE } from "@/lib/config";
 import { scholarshipService } from "@/lib/services";
@@ -79,6 +81,8 @@ export function ScholarshipBrowser({ initialQuery }: { initialQuery: string }) {
 
       {status === "error" && <ErrorState onRetry={() => setReloadKey((k) => k + 1)} />}
 
+      {status === "loading" && items.length === 0 && <ListSkeleton rows={4} variant="card" />}
+
       {status !== "error" && items.length > 0 && (
         <ul className={patterns.list} aria-busy={status === "loading"}>
           {items.map((item) => <ScholarshipCard key={item.id} item={item} />)}
@@ -87,6 +91,7 @@ export function ScholarshipBrowser({ initialQuery }: { initialQuery: string }) {
 
       {status === "ready" && items.length === 0 && (
         <EmptyState
+          icon={SearchX}
           title="Nenhuma bolsa encontrada"
           description="Tente remover filtros ou buscar por outro termo."
           action={hasFilters ? <Button variant="secondary" size="sm" onClick={clear}>Limpar filtros</Button> : undefined}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 import styles from "./Field.module.css";
 
 type FieldMeta = { label: string; helper?: string; error?: string; optional?: boolean };
@@ -25,7 +25,7 @@ function aria(id: string, meta: FieldMeta) {
   return { "aria-invalid": meta.error ? true : undefined, "aria-describedby": describedBy } as const;
 }
 
-export function TextField({ label, helper, error, optional, id, className, ...rest }: FieldMeta & InputHTMLAttributes<HTMLInputElement>) {
+export function TextField({ label, helper, error, optional, id, className, ...rest }: FieldMeta & ComponentPropsWithRef<"input">) {
   const auto = useId();
   const fieldId = id ?? auto;
   const meta = { label, helper, error, optional };
@@ -36,7 +36,7 @@ export function TextField({ label, helper, error, optional, id, className, ...re
   );
 }
 
-export function SelectField({ label, helper, error, optional, id, className, children, ...rest }: FieldMeta & SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectField({ label, helper, error, optional, id, className, children, ...rest }: FieldMeta & ComponentPropsWithRef<"select">) {
   const auto = useId();
   const fieldId = id ?? auto;
   const meta = { label, helper, error, optional };
@@ -49,7 +49,7 @@ export function SelectField({ label, helper, error, optional, id, className, chi
   );
 }
 
-export function TextAreaField({ label, helper, error, optional, id, className, ...rest }: FieldMeta & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextAreaField({ label, helper, error, optional, id, className, ...rest }: FieldMeta & ComponentPropsWithRef<"textarea">) {
   const auto = useId();
   const fieldId = id ?? auto;
   const meta = { label, helper, error, optional };

@@ -1,0 +1,12 @@
+.wrap { padding-bottom: var(--space-16); }
+.band { position: relative; overflow: hidden; border-radius: 10px; background: var(--color-ink); color: var(--color-on-dark); min-height: 420px; display: grid; align-items: end; }
+.photo { position: absolute; inset: 0; }
+/* Escurece a foto do lado do texto para manter o contraste do título (AA) com qualquer imagem. */
+.band::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8, 8, 8, 0.92) 0%, rgba(8, 8, 8, 0.7) 45%, rgba(8, 8, 8, 0.25) 100%); }
+.copy { position: relative; z-index: 1; display: grid; gap: var(--space-4); padding: var(--space-8) var(--space-5); max-width: 36rem; }
+.copy p { color: var(--color-on-dark-2); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+.link { color: var(--color-on-dark); text-decoration-color: rgba(255, 255, 255, 0.5); }
+.link:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); text-decoration-color: #fff; }
+.band :focus-visible { outline-color: #fff; }
+@media (min-width: 768px) { .band { min-height: 480px; } .copy { padding: var(--space-12) var(--space-10); } }

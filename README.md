@@ -72,8 +72,9 @@ src/
     (marketing)/   landing (hero com foto + seção de recursos)
     (auth)/        login, register, forgot-password
     (student)/     dashboard, scholarships, scholarships/[id], eligibility/[scholarshipId],
-                   applications, profile, assistant
-  components/      ui (Button, ButtonLink, Field, Badge), feedback (Notice, EmptyState, ErrorState), layout
+                   applications, applications/[id], profile, assistant
+  components/      ui (Button, ButtonLink, Field, Badge, DeadlineBadge, DeadlineCard), feedback (Notice, EmptyState,
+                   ErrorState, Skeleton), media (Photo), layout
   features/        landing, auth, scholarships, applications, eligibility, profile, assistant
   lib/             config, constants, services (escolha mock/API), api (client, guards, serviços), validation, utils
   mocks/           dados e serviços de demonstração (data/scholarships.json é compartilhado com a API local)
@@ -90,15 +91,17 @@ Toda resposta da API passa por validação em tempo de execução (`lib/api/guar
 
 ## O que é real e o que é demonstração
 
-- **Funciona com a API (local ou real):** busca, detalhe, elegibilidade (calculada no servidor), perfil e candidaturas, com persistência.
-- **Ainda demonstração:** autenticação (formulários só exibem aviso) e assistente de documentos (roteiro local, **sem IA**).
+- **Funciona com a API (local ou real):** busca, detalhe, elegibilidade (calculada no servidor), perfil, candidaturas
+  (checklist, notas, linha do tempo) e rascunhos do assistente, com persistência.
+- **Ainda demonstração:** autenticação (formulários só exibem aviso). O assistente organiza a estrutura dos documentos, **sem IA**.
 - **Nada é gravado no navegador** (sem `localStorage`).
 - **Elegibilidade:** o frontend só exibe o resultado e os motivos; não calcula nem mostra probabilidades.
 - "Enviada" em candidaturas é só o que o estudante marcou; a plataforma não envia candidaturas.
 
 ## Observações
 
-- `public/images/hero-student-skyline.jpg` tem 768 px de largura; para telas grandes use uma versão em maior resolução
-  (e confirme a licença de uso da imagem).
+- Fotos: veja [`public/images/README.md`](public/images/README.md). Faltam `building.jpg`, `library.jpg` e `campus.jpg`
+  (a interface mostra painéis provisórios até lá) e o hero tem só 768 px de largura.
+- Marca provisória: monograma "G" em `src/app/icon.svg`, `apple-icon.tsx` e imagem de compartilhamento em `src/lib/brand/BrandCard.tsx`.
 - Rotas de detalhe e elegibilidade não têm `loading.tsx` de propósito: assim uma bolsa inexistente devolve **HTTP 404** de verdade.
 - Textos ainda estão nos componentes; a extração para dicionário (português/inglês) é a Fase 3.

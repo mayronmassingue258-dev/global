@@ -49,3 +49,40 @@ test.describe("salvar bolsa e candidaturas", () => {
     await expect(page).toHaveURL(/\/scholarships$/);
   });
 });
+
+test.describe("detalhe da candidatura", () => {
+  test("checklist, notas e linha do tempo persistem", async ({ page, api }) => {
+    await api.post("/applications", { scholarshipId: "amostra-001" });
+    await page.goto("/applications");
+    await page.getByRole("link", { name: "Abrir Bolsa de Mestrado em Ciência de Dados" }).click();
+
+    await expect(page.getByRole("heading", { level: 1, name: "Bolsa de Mestrado em Ciência de Dados" })).toBeVisible();
+    await expect(page.getByText("0 de 4 prontos")).toBeVisible();
+    await page.getByRole("checkbox", { name: "Diploma" }).check();
+    await page.getByRole("checkbox", { name: "Histórico acadêmico" }).check();
+    await expect(page.getByText("2 de 4 prontos")).toBeVisible();
+
+    await page.getByLabel("Suas notas sobre esta candidatura").fill("Pedir carta de recomendação à professora Ana.");
+    await expect(page.getByText("Notas salvas.")).toBeVisible();
+    await page.getByLabel("Status", { exact: true }).selectOption("Preparing");
+    await page.waitForLoadState("networkidle");
+
+    await page.reload();
+    await expect(page.getByRole("checkbox", { name: "Diploma" })).toBeChecked();
+    await expect(page.getByLabel("Suas notas sobre esta candidatura")).toHaveValue(/professora Ana/);
+    const timeline = page.getByRole("list").filter({ hasText: "Bolsa salva para acompanhamento" });
+    await expect(timeline.getByRole("listitem")).toHaveText([
+      /Status alterado para “Preparando”/,
+      /Notas atualizadas/,
+      /Documento pronto: Histórico acadêmico/,
+      /Documento pronto: Diploma/,
+      /Bolsa salva para acompanhamento/
+    ]);
+    await expect(page.getByText("Candidatura · Preparando")).toBeVisible();
+  });
+
+  test("candidatura inexistente mostra estado de não encontrada", async ({ page, api: _api }) => {
+    await page.goto("/applications/nao-existe");
+    await expect(page.getByText("Candidatura não encontrada")).toBeVisible();
+  });
+});

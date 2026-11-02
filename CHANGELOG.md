@@ -1,5 +1,40 @@
 # Registro de mudanças
 
+## 1.3.0 — Fase 2: visual mais premium (2026-11-02)
+
+### Novo
+- **Fotografia com `next/image`** (AVIF/WebP, tamanhos responsivos). Espaços prontos para `building.jpg`, `library.jpg` e `campus.jpg`:
+  basta colocar os arquivos em `public/images/` (veja o README dessa pasta). Sem eles, aparece um painel editorial no lugar.
+- **Landing**: a grade de blocos deu lugar a uma seção editorial "Como funciona" (foto + quatro passos numerados) e a um fechamento com foto de campus.
+- **Detalhe da bolsa**: aside fixo com o prazo em destaque ("Faltam 31 dias"), resumo, ação de salvar e o checklist
+  **"O que falta no seu perfil"**, vindo da avaliação do servidor.
+- **Assistente** virou um espaço de documento: rascunhos salvos (lista + URL `?draft=`), estrutura de seções por tipo
+  (carta de motivação, currículo acadêmico, declaração pessoal, revisão), orientação por seção, contagem de palavras com faixa
+  de referência, salvamento automático e "copiar documento". Continua **sem IA**.
+- **Detalhe da candidatura** (`/applications/{id}`): checklist de documentos com progresso, notas com salvamento automático,
+  linha do tempo, status, prazo e atalho para escrever um documento para aquela bolsa.
+- **Polimento**: esqueletos de carregamento, estados vazios com ícone, selo de prazo próximo nos cartões, microinterações discretas
+  (respeitam "reduzir movimento").
+- **Marca provisória**: favicon e ícone Apple com monograma "G", imagem de compartilhamento (Open Graph/Twitter) com o nome de trabalho.
+- **Contrato 0.3**: candidatura com `documents`, `notes`, `timeline`; `GET /applications/{id}`; `PATCH` parcial; `/drafts`.
+  A API local implementa tudo e converte dados gravados na versão anterior.
+
+### Corrigido
+- Caixas de seleção e cartões de rádio personalizados: o desenho ficava por cima do controle nativo e bloqueava o clique direto.
+- "Doutorado" quebrava no meio da palavra no resumo da bolsa.
+
+### Como testar esta entrega
+
+```bash
+npm run dev:api
+```
+
+1. Página inicial: role até "Como funciona" e o fechamento.
+2. **Bolsas → Programa de Doutorado…**: veja o prazo em destaque e "O que falta no seu perfil". Preencha nota e idiomas no perfil e volte: as pendências somem.
+3. Salve a bolsa → **Candidaturas → Abrir**: marque documentos, escreva notas, mude o status; recarregue e veja a linha do tempo.
+4. "Escrever um documento para esta bolsa" → crie uma carta, escreva em duas seções, recarregue: o texto continua lá.
+5. Para ver os esqueletos de carregamento, deixe a API lenta: crie `.env.development.local` com `NEXT_PUBLIC_DATA_MODE=api` e `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api`, rode `MOCK_API_DELAY_MS=1500 npm run mock-api` em um terminal e `npm run dev` em outro.
+
 ## 1.2.0 — Fase 1: base sólida (2026-11-02)
 
 ### Novo

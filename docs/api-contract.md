@@ -1,6 +1,6 @@
 # Contrato da API — GlobalScholar (PROVISÓRIO)
 
-> **Versão 0.2 · 2026-11-02 · Status: aguardando confirmação do backend.**
+> **Versão 0.3 · 2026-11-02 · Status: aguardando confirmação do backend.**
 > Este documento descreve o que o **frontend espera hoje**. Nada aqui está decidido até o backend confirmar.
 > Para cada item, responda **OK**, **mudar para…** ou **não vamos ter**. Mudanças entram por pull request neste arquivo.
 
@@ -177,22 +177,47 @@ Resposta `200` com o `Profile` salvo. Erros: `422 validation_failed` com `fields
 | `id` | string | Hoje é igual ao `id` da bolsa (uma candidatura por bolsa). **A confirmar** se o backend terá ID próprio. |
 | `scholarship` | `{ id, title, institution, deadline }` | Resumo da bolsa, para listar sem buscar cada uma. |
 | `status` | string | `Saved`, `Preparing`, `Ready to submit`, `Submitted`, `Decision received`. |
+| `documents` | `{ name: string, done: boolean }[]` | Checklist criado a partir de `requiredDocuments` da bolsa no momento em que foi salva. `name` identifica o item. |
+| `notes` | string | Notas livres do estudante (máx. 5000). Vazio = sem notas. |
+| `timeline` | `TimelineEvent[]` | Histórico em ordem cronológica (mais antigo primeiro), registrado **pelo servidor**. |
 | `updatedAt` | string | ISO 8601. |
+
+`TimelineEvent` (sempre com `at`, ISO 8601):
+
+| `kind` | Campos extras | Quando |
+|---|---|---|
+| `created` | — | Bolsa salva. |
+| `status` | `status` | Status mudou. |
+| `document` | `document` (nome), `done` | Item do checklist marcado/desmarcado. |
+| `notes` | — | Notas mudaram. Edições seguidas em até **10 minutos** atualizam o `at` do último evento `notes` em vez de criar outro. |
 
 ### `GET /applications`
 
 `200` → `{ "items": [Application, …] }`. Ordem livre (o frontend ordena por prazo).
 
+### `GET /applications/{id}`
+
+`200` + `Application`, ou `404 not_found`.
+
 ### `POST /applications`
 
 Corpo: `{ "scholarshipId": "amostra-001" }`.
-- `201` + `Application` criada (status `Saved`).
+- `201` + `Application` criada (status `Saved`, checklist com todos os documentos `done: false`, evento `created`).
 - `200` + `Application` existente, se já estava salva (**idempotente**: clicar duas vezes não duplica).
 - `422 validation_failed` com `fields.scholarshipId` = `required` ou `not_found`.
 
 ### `PATCH /applications/{id}`
 
-Corpo: `{ "status": "Preparing" }`. `200` + `Application` atualizada. `404` se não existir; `422` com `fields.status = "invalid_option"`.
+Atualização **parcial**: envie só o que mudou. Pelo menos um campo é obrigatório.
+
+```json
+{ "status": "Preparing", "documents": [{ "name": "Diploma", "done": true }], "notes": "Pedir carta à professora Ana." }
+```
+
+- `documents` contém só os itens alterados, identificados por `name`; nomes desconhecidos são ignorados.
+- Só mudanças reais geram eventos na linha do tempo (enviar o mesmo status não cria evento).
+- `200` + `Application` atualizada. `404` se não existir. `422` com `fields`: `status: invalid_option`, `notes: too_long | invalid_type`,
+  `documents: invalid_type`, ou `status: required` se o corpo vier vazio.
 
 ### `DELETE /applications/{id}`
 
@@ -200,7 +225,38 @@ Corpo: `{ "status": "Preparing" }`. `200` + `Application` atualizada. `404` se n
 
 ---
 
-## 6. Decisões pendentes (precisamos da sua resposta)
+## 6. Rascunhos do assistente de documentos
+
+O assistente **não usa IA** nesta versão: o frontend oferece a estrutura de seções por tipo de documento e o estudante escreve.
+O backend só guarda os rascunhos. As seções de cada tipo são definidas no frontend (`src/features/assistant/templates.ts`).
+
+### Objeto `Draft`
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| `id` | string | Gerado pelo servidor. |
+| `type` | string | `motivation_letter`, `academic_cv`, `personal_statement`, `document_review`. |
+| `title` | string | Obrigatório, máx. 120 (com `trim`). |
+| `program` | string | Opcional, máx. 160. |
+| `sections` | objeto `chave → texto` | Até 20 chaves no formato `^[a-z][a-z0-9_]{0,39}$`; cada texto com máx. 20 000 caracteres. |
+| `createdAt`, `updatedAt` | string | ISO 8601. |
+
+### Rotas
+
+| Método e caminho | Corpo | Resposta |
+|---|---|---|
+| `GET /drafts` | — | `200 { "items": [Draft] }`, mais recente primeiro |
+| `POST /drafts` | `{ type, title, program, sections }` | `201` + `Draft` |
+| `GET /drafts/{id}` | — | `200` + `Draft` ou `404` |
+| `PUT /drafts/{id}` | `{ type, title, program, sections }` (substitui tudo) | `200` + `Draft` ou `404` |
+| `DELETE /drafts/{id}` | — | `204` ou `404` |
+
+Validação: `422 validation_failed` com `fields` (`type: invalid_option`, `title: required | too_long`, `program: too_long`, `sections: invalid_type | too_long`).
+O frontend salva automaticamente cerca de 1 segundo após o estudante parar de digitar, então espere `PUT` frequentes.
+
+---
+
+## 7. Decisões pendentes (precisamos da sua resposta)
 
 1. **Autenticação.** Cookie de sessão `HttpOnly` (recomendado para Next.js, exige `credentials: "include"` e CORS com origem fixa) ou token `Bearer`? Quais rotas: `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/forgot-password`, `GET /auth/me`?
 2. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz? Códigos facilitam o inglês da Fase 3.
@@ -208,11 +264,11 @@ Corpo: `{ "status": "Preparing" }`. `200` + `Application` atualizada. `404` se n
 4. **Idioma dos dados.** Bolsas e motivos de elegibilidade virão em mais de um idioma (`Accept-Language`)?
 5. **ID de candidatura** próprio ou igual ao da bolsa?
 6. **Documentos (Fase 3).** Upload direto para a API (`multipart/form-data`) ou URL pré-assinada para armazenamento (S3 e afins)? Tipos e tamanho máximo aceitos?
-7. **Assistente de IA.** Endpoint futuro (ex.: `POST /assistant/drafts`) com resposta em streaming? A chave da IA fica **só** no backend.
+7. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming? A chave da IA fica **só** no backend.
 8. **Limites.** Haverá limite de requisições (`429`) e com qual cabeçalho (`Retry-After`)?
 9. **Versão.** Prefixo `/v1` na URL?
 
-## 7. Fora do contrato
+## 8. Fora do contrato
 
 - `POST /__reset` existe só no servidor local para os testes automáticos. Não implementar no backend real.
 - `mock-api/criteria.json` são regras fictícias para o servidor local calcular elegibilidade; o backend real terá as suas.
@@ -221,5 +277,6 @@ Corpo: `{ "status": "Preparing" }`. `200` + `Application` atualizada. `404` se n
 
 | Versão | Data | Mudança |
 |---|---|---|
+| 0.3 | 2026-11-02 | Candidatura com `documents`, `notes` e `timeline`; `GET /applications/{id}`; `PATCH` parcial; rascunhos (`/drafts`). |
 | 0.2 | 2026-11-02 | Envelope de erro, perfil, candidaturas, validação da busca, elegibilidade baseada no perfil. |
 | 0.1 | — | Caminhos iniciais de bolsas e elegibilidade (só no código). |

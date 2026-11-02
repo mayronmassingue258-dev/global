@@ -1,0 +1,11 @@
+.intro { display: grid; gap: var(--space-6); margin-bottom: var(--space-10); align-items: end; }
+.copy { display: grid; gap: var(--space-3); max-width: 40rem; }
+.photo { aspect-ratio: 21 / 9; border-radius: 10px; }
+/* Sem a foto real, o painel provisório só aparece no desktop (no celular ocuparia espaço sem informar nada). */
+.photo[data-photo-fallback] { display: none; }
+.mark { font-family: var(--font-serif); font-size: 3rem; line-height: 1; color: rgba(255, 255, 255, 0.85); }
+@media (min-width: 960px) {
+  .intro { grid-template-columns: minmax(0, 1fr) 420px; gap: var(--space-12); }
+  .photo { aspect-ratio: 4 / 3; }
+  .photo[data-photo-fallback] { display: grid; }
+}

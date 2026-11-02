@@ -43,3 +43,6 @@ services:
       # É lida no BUILD: depois de mudar, faça "Manual Deploy → Clear build cache & deploy".
       - key: NEXT_PUBLIC_API_BASE_URL
         sync: false
+      # URL pública do próprio frontend (metadados, sitemap, imagens de compartilhamento), ex.: https://globalscholar-web.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false

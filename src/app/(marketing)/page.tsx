@@ -1,11 +1,13 @@
 import { Hero } from "@/features/landing/Hero";
-import { Features } from "@/features/landing/Features";
+import { HowItWorks } from "@/features/landing/HowItWorks";
+import { Closing } from "@/features/landing/Closing";
 
 export default function LandingPage() {
   return (
     <>
       <Hero />
-      <Features />
+      <HowItWorks />
+      <Closing />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
 import type { BadgeTone } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils/date";
 import type { Scholarship } from "@/types";
@@ -28,6 +29,7 @@ export function ScholarshipCard({ item }: { item: Scholarship }) {
         <div className={patterns.meta}>
           <Badge tone={fundingTone(item.fundingType)}>{item.fundingType}</Badge>
           <span>Prazo: {formatDate(item.deadline)}</span>
+          <DeadlineBadge deadline={item.deadline} />
           <Badge tone="outline">{item.verification.status === "verified" ? "Verificada" : "Não verificada"}</Badge>
         </div>
       </div>
