@@ -13,11 +13,21 @@ import type { DraftService } from "@/lib/api/drafts";
 import { draftService } from "@/lib/services";
 import { formatDateTime } from "@/lib/utils/date";
 import { DRAFT_LIMITS } from "@/lib/validation/draft";
+import { clearFormDraft, readFormDraft, writeFormDraft } from "@/lib/formDrafts";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import type { DocumentType, Draft, DraftInput } from "@/types";
-import { TEMPLATES, TEMPLATE_LIST, countWords, toPlainText } from "./templates";
+import { useT } from "@/i18n/I18nProvider";
+import { DOCUMENT_TYPE_ORDER, countWords, getTemplate, toPlainText } from "./templates";
 import styles from "./AssistantWorkspace.module.css";
 
 const AUTOSAVE_MS = 1000;
+
+const isDraftInput = (v: unknown): v is DraftInput => {
+  if (typeof v !== "object" || v === null) return false;
+  const r = v as Record<string, unknown>;
+  return typeof r.type === "string" && typeof r.title === "string" && typeof r.program === "string" &&
+    typeof r.sections === "object" && r.sections !== null && Object.values(r.sections).every((x) => typeof x === "string");
+};
 type LoadStatus = "loading" | "ready" | "error";
 type SaveState = "saved" | "pending" | "saving" | "failed";
 
@@ -26,6 +36,7 @@ type SaveState = "saved" | "pending" | "saving" | "failed";
  * O assistente organiza; quem escreve é o estudante. Nenhum serviço de IA está conectado.
  */
 export function AssistantWorkspace({ service = draftService }: { service?: DraftService }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname() ?? "/assistant";
   const params = useSearchParams();
@@ -69,29 +80,29 @@ export function AssistantWorkspace({ service = draftService }: { service?: Draft
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.sidebar} aria-label="Rascunhos">
+      <aside className={styles.sidebar} aria-label={t.assistant.drafts}>
         <div className={styles.sidebarHead}>
-          <h2 className={styles.sidebarTitle}>Rascunhos</h2>
+          <h2 className={styles.sidebarTitle}>{t.assistant.drafts}</h2>
           <Button size="sm" variant="secondary" onClick={() => { setCreating(true); router.replace(pathname, { scroll: false }); }}>
-            <FilePlus2 size={16} aria-hidden="true" /> Novo
+            <FilePlus2 size={16} aria-hidden="true" /> {t.assistant.new}
           </Button>
         </div>
-        {status === "loading" && <ListSkeleton rows={2} label="Carregando rascunhos…" />}
-        {status === "error" && <ErrorState title="Não foi possível carregar os rascunhos" onRetry={() => setReloadKey((k) => k + 1)} />}
-        {status === "ready" && drafts.length === 0 && <p className="t-meta">Nenhum rascunho ainda.</p>}
+        {status === "loading" && <ListSkeleton rows={2} label={t.assistant.loadingDrafts} />}
+        {status === "error" && <ErrorState title={t.assistant.draftsFailed} onRetry={() => setReloadKey((k) => k + 1)} />}
+        {status === "ready" && drafts.length === 0 && <p className="t-meta">{t.assistant.noDrafts}</p>}
         {status === "ready" && drafts.length > 0 && (
           <ul className={styles.draftList}>
             {drafts.map((d) => (
               <li key={d.id}>
                 <button type="button" className={styles.draftItem} aria-current={d.id === selectedId ? "true" : undefined} onClick={() => select(d.id)}>
                   <span className={styles.draftTitle}>{d.title}</span>
-                  <span className="t-meta">{TEMPLATES[d.type].label} · {formatDateTime(d.updatedAt)}</span>
+                  <span className="t-meta">{t.templates[d.type].label} · {formatDateTime(d.updatedAt, t.meta.dateLocale)}</span>
                 </button>
               </li>
             ))}
           </ul>
         )}
-        {IS_MOCK_MODE && <p className="t-meta">Demonstração: os rascunhos ficam só nesta aba.</p>}
+        {IS_MOCK_MODE && <p className="t-meta">{t.assistant.demo}</p>}
       </aside>
 
       <div className={styles.main}>
@@ -110,9 +121,9 @@ export function AssistantWorkspace({ service = draftService }: { service?: Draft
         {status === "ready" && !showForm && !selected && (
           <EmptyState
             icon={FileText}
-            title={selectedId ? "Rascunho não encontrado" : "Escolha um rascunho"}
-            description="Abra um rascunho na lista ou comece um documento novo."
-            action={<Button size="sm" onClick={() => setCreating(true)}>Novo documento</Button>}
+            title={selectedId ? t.assistant.notFound : t.assistant.choose}
+            description={t.assistant.chooseText}
+            action={<Button size="sm" onClick={() => setCreating(true)}>{t.assistant.newDocument}</Button>}
           />
         )}
       </div>
@@ -126,6 +137,7 @@ function NewDraftForm({ service, initialProgram, onCreated, onCancel }: {
   onCreated: (draft: Draft) => void;
   onCancel?: () => void;
 }) {
+  const t = useT();
   const [type, setType] = useState<DocumentType>("motivation_letter");
   const [title, setTitle] = useState("");
   const [program, setProgram] = useState(initialProgram);
@@ -135,14 +147,14 @@ function NewDraftForm({ service, initialProgram, onCreated, onCancel }: {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const finalTitle = title.trim() || `${TEMPLATES[type].label}${program.trim() ? ` — ${program.trim()}` : ""}`;
+    const finalTitle = title.trim() || `${t.templates[type].label}${program.trim() ? ` — ${program.trim()}` : ""}`;
     setBusy(true);
     setError("");
     try {
       const draft = await service.create({ type, title: finalTitle.slice(0, DRAFT_LIMITS.title), program: program.trim(), sections: {} });
       onCreated(draft);
     } catch {
-      setError("Não foi possível criar o rascunho. Tente novamente.");
+      setError(t.assistant.createFailed);
       setBusy(false);
       titleRef.current?.focus();
     }
@@ -151,30 +163,33 @@ function NewDraftForm({ service, initialProgram, onCreated, onCancel }: {
   return (
     <form className={styles.newForm} onSubmit={submit} aria-labelledby="new-draft-title">
       <div>
-        <p className="t-label">Novo documento</p>
-        <h2 id="new-draft-title" className="t-section">O que você vai escrever?</h2>
+        <p className="t-label">{t.assistant.newDocument}</p>
+        <h2 id="new-draft-title" className="t-section">{t.assistant.whatToWrite}</h2>
       </div>
       <fieldset className={styles.types}>
-        <legend className="visually-hidden">Tipo de documento</legend>
-        {TEMPLATE_LIST.map((t) => (
-          <label key={t.type} className={styles.typeCard}>
-            <input type="radio" name="type" value={t.type} checked={type === t.type} onChange={() => setType(t.type)} />
-            <span className={styles.typeBody}>
-              <span className={styles.typeLabel}>{t.label}</span>
-              <span className="t-meta">{t.description}</span>
-              <span className="t-meta">{t.sections.length} seções</span>
-            </span>
-          </label>
-        ))}
+        <legend className="visually-hidden">{t.assistant.docType}</legend>
+        {DOCUMENT_TYPE_ORDER.map((code) => {
+          const tpl = getTemplate(t, code);
+          return (
+            <label key={code} className={styles.typeCard}>
+              <input type="radio" name="type" value={code} checked={type === code} onChange={() => setType(code)} />
+              <span className={styles.typeBody}>
+                <span className={styles.typeLabel}>{tpl.label}</span>
+                <span className="t-meta">{tpl.description}</span>
+                <span className="t-meta">{t.assistant.sectionsCount(tpl.sections.length)}</span>
+              </span>
+            </label>
+          );
+        })}
       </fieldset>
       <div className={styles.fields}>
-        <TextField ref={titleRef} label="Título do rascunho" optional value={title} maxLength={DRAFT_LIMITS.title} onChange={(e) => setTitle(e.target.value)} placeholder={TEMPLATES[type].label} />
-        <TextField label="Bolsa ou programa" optional value={program} maxLength={DRAFT_LIMITS.program} onChange={(e) => setProgram(e.target.value)} placeholder="Ex.: Mestrado em Ciência de Dados" />
+        <TextField ref={titleRef} label={t.assistant.draftTitle} optional value={title} maxLength={DRAFT_LIMITS.title} onChange={(e) => setTitle(e.target.value)} placeholder={t.templates[type].label} />
+        <TextField label={t.assistant.program} optional value={program} maxLength={DRAFT_LIMITS.program} onChange={(e) => setProgram(e.target.value)} placeholder={t.assistant.programPlaceholder} />
       </div>
       {error && <Notice role="alert">{error}</Notice>}
       <div className={styles.formActions}>
-        <Button type="submit" loading={busy}>Criar rascunho</Button>
-        {onCancel && <Button variant="tertiary" onClick={onCancel}>Cancelar</Button>}
+        <Button type="submit" loading={busy}>{t.assistant.create}</Button>
+        {onCancel && <Button variant="tertiary" onClick={onCancel}>{t.common.cancel}</Button>}
       </div>
     </form>
   );
@@ -186,11 +201,20 @@ function Editor({ draft, service, onSaved, onDeleted }: {
   onSaved: (draft: Draft) => void;
   onDeleted: (id: string) => void;
 }) {
-  const template = TEMPLATES[draft.type];
-  const [values, setValues] = useState<DraftInput>({ type: draft.type, title: draft.title, program: draft.program, sections: draft.sections });
-  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const t = useT();
+  const template = getTemplate(t, draft.type);
+  const backupKey = `draft:${draft.id}`;
+  // Cópia de segurança na aba: se uma gravação falhou e a página foi recarregada, o texto volta.
+  const [initial] = useState(() => {
+    const server: DraftInput = { type: draft.type, title: draft.title, program: draft.program, sections: draft.sections };
+    const backup = readFormDraft(backupKey, isDraftInput);
+    const differs = backup && backup.type === draft.type && JSON.stringify(backup) !== JSON.stringify(server);
+    return { values: differs ? backup : server, restored: Boolean(differs) };
+  });
+  const [values, setValues] = useState<DraftInput>(initial.values);
+  const [saveState, setSaveState] = useState<SaveState>(initial.restored ? "pending" : "saved");
   const [savedAt, setSavedAt] = useState(draft.updatedAt);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initial.restored ? t.assistant.restored : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const latest = useRef(values);
@@ -205,7 +229,7 @@ function Editor({ draft, service, onSaved, onDeleted }: {
     const input = latest.current;
     if (!input.title.trim()) {
       setSaveState("failed");
-      setMessage("Dê um título ao rascunho para salvar.");
+      setMessage(t.assistant.needTitle);
       return;
     }
     setSaveState("saving");
@@ -216,16 +240,21 @@ function Editor({ draft, service, onSaved, onDeleted }: {
       if (latest.current === input) {
         setSaveState("saved");
         setMessage("");
+        clearFormDraft(backupKey);
       }
       savedCallback.current(saved);
     } catch {
       setSaveState("failed");
-      setMessage("Não foi possível salvar. Suas alterações continuam na tela; tentaremos de novo na próxima edição.");
+      setMessage(t.assistant.saveFailed);
     }
-  }, [draft.id, service]);
+  }, [draft.id, service, t, backupKey]);
 
   const change = (next: Partial<DraftInput>) => {
-    setValues((v) => ({ ...v, ...next }));
+    setValues((v) => {
+      const updated = { ...v, ...next };
+      writeFormDraft(backupKey, updated);
+      return updated;
+    });
     setSaveState("pending");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void save(), AUTOSAVE_MS);
@@ -239,12 +268,21 @@ function Editor({ draft, service, onSaved, onDeleted }: {
     }
   }, [draft.id, service]);
 
+  // Rascunho recuperado: tenta salvar logo ao abrir.
+  useEffect(() => {
+    if (initial.restored) void save();
+    // Só na montagem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useUnsavedChangesWarning(saveState !== "saved");
+
   async function copy() {
     try {
-      await navigator.clipboard.writeText(toPlainText(values.title, values.type, values.sections));
-      setMessage("Documento copiado.");
+      await navigator.clipboard.writeText(toPlainText(template, values.title, values.sections));
+      setMessage(t.assistant.copied);
     } catch {
-      setMessage("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.");
+      setMessage(t.assistant.copyFailed);
     }
   }
 
@@ -253,7 +291,7 @@ function Editor({ draft, service, onSaved, onDeleted }: {
       await service.remove(draft.id);
       onDeleted(draft.id);
     } catch {
-      setMessage("Não foi possível excluir o rascunho.");
+      setMessage(t.assistant.deleteFailed);
       setConfirmDelete(false);
     }
   }
@@ -262,8 +300,8 @@ function Editor({ draft, service, onSaved, onDeleted }: {
 
   return (
     <div className={styles.editor}>
-      <nav className={styles.outline} aria-label="Estrutura do documento">
-        <p className="t-label">Estrutura</p>
+      <nav className={styles.outline} aria-label={t.assistant.outline}>
+        <p className="t-label">{t.assistant.outlineLabel}</p>
         <ol>
           {template.sections.map((s) => {
             const words = countWords(values.sections[s.key] ?? "");
@@ -273,38 +311,38 @@ function Editor({ draft, service, onSaved, onDeleted }: {
                 <a href={`#sec-${s.key}`} className={done ? styles.outlineDone : undefined}>
                   <span className={styles.outlineMark} aria-hidden="true">{done && <Check size={12} strokeWidth={3} />}</span>
                   <span>{s.title}</span>
-                  <span className={styles.outlineCount}>{words}<span className="visually-hidden"> palavras{done ? ", seção iniciada" : ""}</span></span>
+                  <span className={styles.outlineCount}>{words}<span className="visually-hidden">{t.assistant.wordsSr(done)}</span></span>
                 </a>
               </li>
             );
           })}
         </ol>
-        <p className="t-meta">{totalWords} palavras no total</p>
+        <p className="t-meta">{t.assistant.totalWords(totalWords)}</p>
       </nav>
 
-      <article className={styles.document} aria-label={values.title || "Rascunho"}>
+      <article className={styles.document} aria-label={values.title || t.assistant.draftFallback}>
         <header className={styles.docHeader}>
           <p className="t-label">{template.label}</p>
-          <label className="visually-hidden" htmlFor="draft-title">Título do rascunho</label>
+          <label className="visually-hidden" htmlFor="draft-title">{t.assistant.draftTitle}</label>
           <input id="draft-title" className={styles.titleInput} value={values.title} maxLength={DRAFT_LIMITS.title}
             onChange={(e) => change({ title: e.target.value })} aria-invalid={!values.title.trim() || undefined} />
-          <TextField label="Bolsa ou programa" optional value={values.program} maxLength={DRAFT_LIMITS.program} onChange={(e) => change({ program: e.target.value })} />
+          <TextField label={t.assistant.program} optional value={values.program} maxLength={DRAFT_LIMITS.program} onChange={(e) => change({ program: e.target.value })} />
           <div className={styles.toolbar}>
             <p className={styles.saveState} role="status" data-state={saveState}>
-              {saveState === "saved" && `Salvo · ${formatDateTime(savedAt)}`}
-              {saveState === "pending" && "Alterações não salvas…"}
-              {saveState === "saving" && "Salvando…"}
-              {saveState === "failed" && "Não salvo"}
+              {saveState === "saved" && t.assistant.saved(formatDateTime(savedAt, t.meta.dateLocale))}
+              {saveState === "pending" && t.assistant.pending}
+              {saveState === "saving" && t.assistant.saving}
+              {saveState === "failed" && t.assistant.failed}
             </p>
             <div className={styles.toolbarActions}>
-              <Button size="sm" variant="secondary" onClick={() => void copy()}>Copiar documento</Button>
+              <Button size="sm" variant="secondary" onClick={() => void copy()}>{t.assistant.copy}</Button>
               {confirmDelete ? (
                 <>
-                  <Button size="sm" variant="destructive" onClick={() => void remove()}>Confirmar exclusão</Button>
-                  <Button size="sm" variant="tertiary" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+                  <Button size="sm" variant="destructive" onClick={() => void remove()}>{t.assistant.confirmDelete}</Button>
+                  <Button size="sm" variant="tertiary" onClick={() => setConfirmDelete(false)}>{t.common.cancel}</Button>
                 </>
               ) : (
-                <Button size="sm" variant="tertiary" onClick={() => setConfirmDelete(true)}>Excluir</Button>
+                <Button size="sm" variant="tertiary" onClick={() => setConfirmDelete(true)}>{t.assistant.delete}</Button>
               )}
             </div>
           </div>
@@ -333,14 +371,14 @@ function Editor({ draft, service, onSaved, onDeleted }: {
                 onBlur={() => { if (timer.current) void save(); }}
               />
               <p id={`${id}-count`} className={`t-meta ${words > max ? styles.over : ""}`}>
-                {words} {words === 1 ? "palavra" : "palavras"} · referência {min > 0 ? `${min}–${max}` : `até ${max}`}
-                {words > max ? " (acima da referência)" : ""}
+                {t.assistant.words(words)} · {t.assistant.reference(min, max)}
+                {words > max ? t.assistant.over : ""}
               </p>
             </section>
           );
         })}
 
-        <Notice>Quem escreve é você: o assistente só organiza a estrutura e não usa IA. Inclua apenas informações verdadeiras e confira o limite do edital.</Notice>
+        <Notice>{t.assistant.honesty}</Notice>
       </article>
     </div>
   );

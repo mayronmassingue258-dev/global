@@ -1,3 +1,5 @@
+import pt from "@/i18n/dictionaries/pt";
+
 export type DeadlineTone = "closed" | "urgent" | "soon" | "normal" | "unknown";
 export type DeadlineInfo = { days: number | null; tone: DeadlineTone; label: string };
 
@@ -15,11 +17,11 @@ export function daysUntil(iso: string, now: Date = new Date()): number | null {
  * Situação do prazo para exibir. Os limites (14 e 45 dias) são de interface, não regras do provedor.
  * O texto evita falsa precisão: o fuso do provedor pode mudar o último dia.
  */
-export function deadlineInfo(iso: string, now: Date = new Date()): DeadlineInfo {
+export function deadlineInfo(iso: string, now: Date = new Date(), text: typeof pt.deadline = pt.deadline): DeadlineInfo {
   const days = daysUntil(iso, now);
-  if (days === null) return { days, tone: "unknown", label: "Prazo não informado" };
-  if (days < 0) return { days, tone: "closed", label: "Prazo encerrado" };
-  if (days === 0) return { days, tone: "urgent", label: "Termina hoje" };
-  if (days === 1) return { days, tone: "urgent", label: "Termina amanhã" };
-  return { days, tone: days <= 14 ? "urgent" : days <= 45 ? "soon" : "normal", label: `Faltam ${days} dias` };
+  if (days === null) return { days, tone: "unknown", label: text.unknown };
+  if (days < 0) return { days, tone: "closed", label: text.closed };
+  if (days === 0) return { days, tone: "urgent", label: text.today };
+  if (days === 1) return { days, tone: "urgent", label: text.tomorrow };
+  return { days, tone: days <= 14 ? "urgent" : days <= 45 ? "soon" : "normal", label: text.daysLeft(days) };
 }

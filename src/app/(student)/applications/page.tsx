@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { PageHeading } from "@/components/layout/PageHeading";
 import { ApplicationsBoard } from "@/features/applications/ApplicationsBoard";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Candidaturas" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.titles.applications, robots: { index: false } };
+}
 
-export default function ApplicationsPage() {
+export default async function ApplicationsPage() {
+  const t = await getT();
   return (
     <>
-      <PageHeading eyebrow="Acompanhamento" title="Mantenha cada etapa visível." description="Organize as bolsas que você salvou, atualize o andamento e acompanhe os prazos." />
+      <PageHeading eyebrow={t.applications.eyebrow} title={t.applications.title} description={t.applications.text} />
       <ApplicationsBoard />
     </>
   );

@@ -1,0 +1,9 @@
+.group { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+.option { min-width: 36px; min-height: 28px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-text-2); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: background-color var(--transition), color var(--transition); }
+.option:hover { color: var(--color-text); }
+.option[aria-pressed="true"] { background: var(--color-ink); color: #fff; }
+.dark { border-color: rgba(255, 255, 255, 0.25); }
+.dark .option { color: var(--color-on-dark-2); }
+.dark .option:hover { color: #fff; }
+.dark .option[aria-pressed="true"] { background: #fff; color: var(--color-ink); }
+.dark .option:focus-visible { outline-color: #fff; }

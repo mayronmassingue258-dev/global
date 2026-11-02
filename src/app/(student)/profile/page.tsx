@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import { PageHeading } from "@/components/layout/PageHeading";
 import { ProfileForm } from "@/features/profile/ProfileForm";
 import { IS_MOCK_MODE } from "@/lib/config";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Perfil acadêmico" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.titles.profile, robots: { index: false } };
+}
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const t = await getT();
   return (
     <>
-      <PageHeading eyebrow="Perfil acadêmico" title="Conte sobre sua formação." description={`Estas informações apoiam a avaliação de elegibilidade.${IS_MOCK_MODE ? " Nesta demonstração, o perfil fica só nesta aba e não vai para nenhum servidor." : ""}`} />
+      <PageHeading eyebrow={t.profile.eyebrow} title={t.profile.title} description={`${t.profile.text}${IS_MOCK_MODE ? t.profile.demoText : ""}`} />
       <ProfileForm />
     </>
   );

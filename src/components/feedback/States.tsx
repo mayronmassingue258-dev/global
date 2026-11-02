@@ -1,5 +1,8 @@
+"use client";
+
 import type { ComponentType, ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/i18n/I18nProvider";
 import styles from "./States.module.css";
 
 type IconType = ComponentType<{ size?: number; "aria-hidden"?: boolean | "true" }>;
@@ -8,6 +11,7 @@ export function Notice({ children, role }: { children: ReactNode; role?: "status
   return <p className={styles.notice} role={role}>{children}</p>;
 }
 
+/** `icon` só pode ser passado por componentes de cliente (funções não atravessam do servidor). */
 export function EmptyState({ title, description, action, icon: Icon }: { title: string; description?: string; action?: ReactNode; icon?: IconType }) {
   return (
     <div className={styles.state}>
@@ -19,12 +23,13 @@ export function EmptyState({ title, description, action, icon: Icon }: { title: 
   );
 }
 
-export function ErrorState({ title = "Não foi possível carregar", description = "Verifique sua conexão e tente novamente.", onRetry }: { title?: string; description?: string; onRetry?: () => void }) {
+export function ErrorState({ title, description, onRetry }: { title?: string; description?: string; onRetry?: () => void }) {
+  const t = useT();
   return (
     <div className={`${styles.state} ${styles.error}`} role="alert">
-      <p className="t-component">{title}</p>
-      <p className="t-secondary">{description}</p>
-      {onRetry && <div className={styles.action}><Button variant="secondary" onClick={onRetry}>Tentar novamente</Button></div>}
+      <p className="t-component">{title ?? t.states.loadFailedTitle}</p>
+      <p className="t-secondary">{description ?? t.states.loadFailedText}</p>
+      {onRetry && <div className={styles.action}><Button variant="secondary" onClick={onRetry}>{t.common.retry}</Button></div>}
     </div>
   );
 }

@@ -131,3 +131,24 @@ describe("apiDraftService", () => {
     await expect(apiDraftService.create(input)).rejects.toMatchObject({ code: "unexpected_response" });
   });
 });
+
+describe("uploadApplicationDocument", () => {
+  it("envia multipart com o campo file, sem forçar Content-Type JSON", async () => {
+    const { uploadApplicationDocument } = await import("./uploads");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ name: "d.pdf", size: 3, type: "application/pdf", uploadedAt: "2026-11-02T00:00:00Z" }));
+    const file = new File(["abc"], "d.pdf", { type: "application/pdf" });
+    await expect(uploadApplicationDocument("s 1", "Diploma de mestrado", file)).resolves.toMatchObject({ name: "d.pdf" });
+    const [url, init] = fetchMock.mock.calls.at(-1)!;
+    expect(String(url)).toBe("http://api.test/api/applications/s%201/documents/Diploma%20de%20mestrado/file");
+    expect(init?.method).toBe("PUT");
+    expect(init?.body).toBeInstanceOf(FormData);
+    expect((init?.body as FormData).get("file")).toBeInstanceOf(File);
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+  });
+
+  it("rejeita resposta fora do formato", async () => {
+    const { uploadApplicationDocument } = await import("./uploads");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+    await expect(uploadApplicationDocument("a", "b", new File(["x"], "x.pdf"))).rejects.toMatchObject({ code: "unexpected_response" });
+  });
+});

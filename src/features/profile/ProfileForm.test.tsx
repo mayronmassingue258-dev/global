@@ -66,3 +66,41 @@ describe("ProfileForm", () => {
     expect(await screen.findByText("Não foi possível carregar seu perfil")).toBeInTheDocument();
   });
 });
+
+describe("ProfileForm — não perder o que foi digitado", () => {
+  it("guarda a edição não salva na aba e recupera ao voltar, com opção de descartar", async () => {
+    const service = fakeProfileService({ residence: "Angola", level: "Mestrado" });
+    const first = render(<ProfileForm service={service} />);
+    const field = await screen.findByLabelText("País de residência");
+    await userEvent.clear(field);
+    await userEvent.type(field, "Moçambique");
+    expect(screen.getByText("Há alterações não salvas.")).toBeInTheDocument();
+    first.unmount();
+
+    render(<ProfileForm service={service} />);
+    expect(await screen.findByLabelText("País de residência")).toHaveValue("Moçambique");
+    expect(screen.getByText(/Recuperamos o que você tinha digitado/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(screen.getByLabelText("País de residência")).toHaveValue("Angola");
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("salvar apaga a cópia de segurança", async () => {
+    const service = fakeProfileService({ residence: "Angola", level: "Mestrado" });
+    render(<ProfileForm service={service} />);
+    await userEvent.type(await screen.findByLabelText("Nacionalidade (opcional)"), "Angolana");
+    expect(window.sessionStorage.length).toBe(1);
+    await userEvent.click(screen.getByRole("button", { name: "Salvar perfil" }));
+    await screen.findByText("Perfil salvo.");
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("avisa o navegador ao fechar a aba com alterações pendentes", async () => {
+    render(<ProfileForm service={fakeProfileService()} />);
+    await userEvent.type(await screen.findByLabelText("País de residência"), "X");
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
+});

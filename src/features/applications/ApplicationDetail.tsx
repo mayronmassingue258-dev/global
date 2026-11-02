@@ -11,45 +11,50 @@ import { SelectField, TextAreaField } from "@/components/ui/Field";
 import { EmptyState, ErrorState } from "@/components/feedback/States";
 import { FormSkeleton, Skeleton } from "@/components/feedback/Skeleton";
 import { BackLink } from "@/components/layout/PageHeading";
-import { APPLICATION_STATUSES, statusLabel } from "@/lib/constants";
+import { APPLICATION_STATUSES } from "@/lib/constants";
+import { useT } from "@/i18n/I18nProvider";
+import type { Dictionary } from "@/i18n/config";
 import { documentProgress } from "@/lib/applications/applyUpdate";
 import { formatDateTime } from "@/lib/utils/date";
 import type { Application, ApplicationStatus, TimelineEvent } from "@/types";
 import { useApplications } from "./ApplicationsProvider";
+import { DocumentUpload } from "./DocumentUpload";
 import styles from "./ApplicationDetail.module.css";
 
 const NOTES_DEBOUNCE_MS = 800;
 type SaveState = "idle" | "pending" | "saving" | "saved" | "failed";
 
-function describe(event: TimelineEvent): string {
+function describe(t: Dictionary, event: TimelineEvent): string {
+  const e = t.application.events;
   switch (event.kind) {
-    case "created": return "Bolsa salva para acompanhamento";
-    case "status": return `Status alterado para “${statusLabel(event.status)}”`;
-    case "document": return `${event.done ? "Documento pronto" : "Documento desmarcado"}: ${event.document}`;
-    case "notes": return "Notas atualizadas";
+    case "created": return e.created;
+    case "status": return e.status(t.status[event.status]);
+    case "document": return event.done ? e.docDone(event.document) : e.docUndone(event.document);
+    case "notes": return e.notes;
   }
 }
 
 export function ApplicationDetail({ id }: { id: string }) {
   const { applications, status, reload } = useApplications();
+  const t = useT();
   const app = applications.find((a) => a.id === id);
 
   return (
     <>
-      <BackLink href="/applications">Voltar às candidaturas</BackLink>
+      <BackLink href="/applications">{t.application.back}</BackLink>
       {status === "loading" && (
         <div className={styles.loading}>
           <Skeleton width="60%" height={40} />
-          <FormSkeleton fields={2} label="Carregando candidatura…" />
+          <FormSkeleton fields={2} label={t.application.loading} />
         </div>
       )}
-      {status === "error" && <ErrorState title="Não foi possível carregar a candidatura" onRetry={reload} />}
+      {status === "error" && <ErrorState title={t.application.loadFailed} onRetry={reload} />}
       {status === "ready" && !app && (
         <EmptyState
           icon={FileQuestion}
-          title="Candidatura não encontrada"
-          description="Ela pode ter sido removida. Salve a bolsa de novo para voltar a acompanhá-la."
-          action={<ButtonLink href="/applications" variant="secondary" size="sm">Ver candidaturas</ButtonLink>}
+          title={t.application.notFound}
+          description={t.application.notFoundText}
+          action={<ButtonLink href="/applications" variant="secondary" size="sm">{t.application.seeAll}</ButtonLink>}
         />
       )}
       {status === "ready" && app && <Workspace app={app} />}
@@ -59,6 +64,7 @@ export function ApplicationDetail({ id }: { id: string }) {
 
 function Workspace({ app }: { app: Application }) {
   const { update, remove } = useApplications();
+  const t = useT();
   const router = useRouter();
   const progress = documentProgress(app);
 
@@ -103,33 +109,33 @@ function Workspace({ app }: { app: Application }) {
   return (
     <>
       <header className={styles.header}>
-        <p className="t-label">Candidatura · {statusLabel(app.status)}</p>
+        <p className="t-label">{t.application.eyebrow(t.status[app.status])}</p>
         <h1 className="t-title">{app.scholarship.title}</h1>
         <p className="t-secondary">{app.scholarship.institution}</p>
       </header>
 
       <div className={styles.grid}>
-        <aside className={styles.aside} aria-label="Status e prazo">
+        <aside className={styles.aside} aria-label={t.application.asideLabel}>
           <DeadlineCard deadline={app.scholarship.deadline} />
           <div className={styles.panel}>
-            <SelectField label="Status" value={app.status} onChange={(e) => void update(app.id, { status: e.target.value as ApplicationStatus })}>
-              {APPLICATION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            <SelectField label={t.applications.status} value={app.status} onChange={(e) => void update(app.id, { status: e.target.value as ApplicationStatus })}>
+              {APPLICATION_STATUSES.map((s) => <option key={s.value} value={s.value}>{t.status[s.value]}</option>)}
             </SelectField>
-            <p className="t-meta">“Enviada” é só uma marcação sua. Confirme o envio no site oficial.</p>
+            <p className="t-meta">{t.application.submittedNote}</p>
             <div className={styles.links}>
-              <Link href={`/scholarships/${app.scholarship.id}`}>Ver detalhes da bolsa</Link>
-              <Link href={`/assistant?program=${encodeURIComponent(app.scholarship.title)}`}>Escrever um documento para esta bolsa</Link>
+              <Link href={`/scholarships/${app.scholarship.id}`}>{t.application.seeScholarship}</Link>
+              <Link href={`/assistant?program=${encodeURIComponent(app.scholarship.title)}`}>{t.application.writeDocument}</Link>
             </div>
             {confirmRemove ? (
-              <div className={styles.confirm} role="group" aria-label="Confirmar remoção">
-                <p>Remover esta candidatura, com notas e checklist?</p>
+              <div className={styles.confirm} role="group" aria-label={t.application.removeConfirmGroup}>
+                <p>{t.application.removeQuestion}</p>
                 <div className={styles.links}>
-                  <Button variant="destructive" size="sm" onClick={() => void removeAndLeave()}>Sim, remover</Button>
-                  <Button variant="tertiary" size="sm" onClick={() => setConfirmRemove(false)}>Cancelar</Button>
+                  <Button variant="destructive" size="sm" onClick={() => void removeAndLeave()}>{t.application.removeYes}</Button>
+                  <Button variant="tertiary" size="sm" onClick={() => setConfirmRemove(false)}>{t.common.cancel}</Button>
                 </div>
               </div>
             ) : (
-              <div><Button variant="tertiary" size="sm" onClick={() => setConfirmRemove(true)}>Remover candidatura</Button></div>
+              <div><Button variant="tertiary" size="sm" onClick={() => setConfirmRemove(true)}>{t.application.remove}</Button></div>
             )}
           </div>
         </aside>
@@ -137,23 +143,24 @@ function Workspace({ app }: { app: Application }) {
         <div className={styles.main}>
           <section className={styles.section} aria-labelledby="ad-docs">
             <div className={styles.sectionHead}>
-              <h2 id="ad-docs" className="t-section">Documentos</h2>
-              {progress.total > 0 && <p className="t-meta" aria-live="polite">{progress.done} de {progress.total} prontos</p>}
+              <h2 id="ad-docs" className="t-section">{t.application.documents}</h2>
+              {progress.total > 0 && <p className="t-meta" aria-live="polite">{t.application.ready(progress.done, progress.total)}</p>}
             </div>
             {progress.total > 0 && (
               <div className={styles.progress} aria-hidden="true"><span style={{ width: `${(progress.done / progress.total) * 100}%` }} /></div>
             )}
             {app.documents.length === 0 ? (
-              <p className="t-secondary">Esta bolsa não lista documentos. Confira o site oficial.</p>
+              <p className="t-secondary">{t.application.noDocuments}</p>
             ) : (
               <ul className={styles.checklist}>
                 {app.documents.map((doc) => (
-                  <li key={doc.name}>
+                  <li key={doc.name} className={styles.docRow}>
                     <label className={styles.check}>
                       <input type="checkbox" checked={doc.done} onChange={(e) => void update(app.id, { documents: [{ name: doc.name, done: e.target.checked }] })} />
                       <span className={styles.box} aria-hidden="true" />
                       <span className={styles.docName}>{doc.name}</span>
                     </label>
+                    <DocumentUpload applicationId={app.id} documentName={doc.name} />
                   </li>
                 ))}
               </ul>
@@ -161,10 +168,10 @@ function Workspace({ app }: { app: Application }) {
           </section>
 
           <section className={styles.section} aria-labelledby="ad-notes">
-            <h2 id="ad-notes" className="t-section">Notas</h2>
+            <h2 id="ad-notes" className="t-section">{t.application.notes}</h2>
             <TextAreaField
-              label="Suas notas sobre esta candidatura"
-              helper="Contatos, perguntas para o provedor, lembretes. Salvas automaticamente."
+              label={t.application.notesLabel}
+              helper={t.application.notesHelper}
               value={notes}
               maxLength={5000}
               onChange={(e) => onNotesChange(e.target.value)}
@@ -172,20 +179,20 @@ function Workspace({ app }: { app: Application }) {
               className={styles.notes}
             />
             <p className="t-meta" role="status">
-              {notesState === "pending" && "Alterações não salvas…"}
-              {notesState === "saving" && "Salvando…"}
-              {notesState === "saved" && "Notas salvas."}
-              {notesState === "failed" && "Não foi possível salvar as notas. Continue editando para tentar de novo."}
+              {notesState === "pending" && t.application.notesPending}
+              {notesState === "saving" && t.application.notesSaving}
+              {notesState === "saved" && t.application.notesSaved}
+              {notesState === "failed" && t.application.notesFailed}
             </p>
           </section>
 
           <section className={styles.section} aria-labelledby="ad-timeline">
-            <h2 id="ad-timeline" className="t-section">Linha do tempo</h2>
+            <h2 id="ad-timeline" className="t-section">{t.application.timeline}</h2>
             <ol className={styles.timeline}>
               {timeline.map((event, i) => (
                 <li key={`${event.at}-${i}`}>
-                  <time dateTime={event.at} className="t-meta">{formatDateTime(event.at)}</time>
-                  <span>{describe(event)}</span>
+                  <time dateTime={event.at} className="t-meta">{formatDateTime(event.at, t.meta.dateLocale)}</time>
+                  <span>{describe(t, event)}</span>
                 </li>
               ))}
             </ol>

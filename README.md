@@ -55,6 +55,34 @@ Para simular rede lenta ou instável com a API local (macOS/Linux):
 MOCK_API_DELAY_MS=800 MOCK_API_FAIL_RATE=0.2 npm run mock-api
 ```
 
+## Idiomas (português e inglês)
+
+- Textos da interface ficam em `src/i18n/dictionaries/pt.ts` (fonte da verdade) e `en.ts`. O TypeScript e um teste garantem que o
+  inglês tem exatamente as mesmas chaves. Componentes de cliente usam `useT()`; de servidor, `await getT()`.
+- O idioma escolhido fica no cookie `gs_locale` (preferência, não identifica ninguém). Padrão: português.
+- **Troca consciente:** as URLs são as mesmas nos dois idiomas. É simples e não exige reorganizar rotas, mas os buscadores indexam só
+  o português. Se o inglês precisar aparecer no Google, migrar para rotas `/en/...` (Next.js `[locale]`).
+- Dados vindos da API (bolsas, motivos de elegibilidade) aparecem como publicados; em inglês há um aviso. Ver decisão pendente 4 do contrato.
+
+## Formulários
+
+- Erros aparecem junto ao campo (ligados por `aria-describedby`) e o foco vai para o primeiro campo inválido (perfil, login, cadastro).
+- **Não perder o que foi digitado:** edições ainda não salvas do perfil e dos rascunhos do assistente ficam no `sessionStorage`
+  **da aba** e são recuperadas ao voltar (com opção de descartar). A cópia some ao salvar, ao descartar ou ao fechar a aba.
+  Fechar a aba com alterações pendentes pede confirmação. Senhas nunca são guardadas.
+
+## Upload de documentos
+
+A interface de anexar arquivo (em cada item do checklist da candidatura) valida tipo (PDF, JPG, PNG, DOCX) e tamanho (10 MB).
+O envio real está **desligado** (`NEXT_PUBLIC_UPLOADS_ENABLED`) até o backend definir o armazenamento; enquanto isso, a tela diz
+claramente que o arquivo não saiu do computador. Proposta de endpoint em `docs/api-contract.md` ("Arquivos").
+
+## SEO
+
+`robots.txt` (bloqueia a área pessoal), `sitemap.xml` (páginas públicas + uma entrada por bolsa, lida da API a cada pedido),
+título/descrição/canonical por página, Open Graph, e dados estruturados `MonetaryGrant` (schema.org) na página de cada bolsa.
+Defina `NEXT_PUBLIC_SITE_URL` em produção para os endereços absolutos ficarem corretos.
+
 ## Contrato com o backend
 
 [`docs/api-contract.md`](docs/api-contract.md) descreve endpoints, campos, erros e as **decisões pendentes** (autenticação, níveis,
@@ -76,7 +104,9 @@ src/
   components/      ui (Button, ButtonLink, Field, Badge, DeadlineBadge, DeadlineCard), feedback (Notice, EmptyState,
                    ErrorState, Skeleton), media (Photo), layout
   features/        landing, auth, scholarships, applications, eligibility, profile, assistant
-  lib/             config, constants, services (escolha mock/API), api (client, guards, serviços), validation, utils
+  i18n/            dicionários pt/en, provider, seletor de idioma, leitura do idioma no servidor
+  lib/             config, constants, services (escolha mock/API), api (client, guards, serviços), validation, utils,
+                   searchParams (filtros na URL), formDrafts, uploads, seo
   mocks/           dados e serviços de demonstração (data/scholarships.json é compartilhado com a API local)
   styles/          tokens.css, typography.css, patterns.module.css
   test/            setup e dublês de teste
@@ -94,7 +124,8 @@ Toda resposta da API passa por validação em tempo de execução (`lib/api/guar
 - **Funciona com a API (local ou real):** busca, detalhe, elegibilidade (calculada no servidor), perfil, candidaturas
   (checklist, notas, linha do tempo) e rascunhos do assistente, com persistência.
 - **Ainda demonstração:** autenticação (formulários só exibem aviso). O assistente organiza a estrutura dos documentos, **sem IA**.
-- **Nada é gravado no navegador** (sem `localStorage`).
+- **No navegador:** só o cookie de idioma e cópias temporárias de formulários não salvos no `sessionStorage` da aba (ver "Formulários").
+  Nada vai para o `localStorage`.
 - **Elegibilidade:** o frontend só exibe o resultado e os motivos; não calcula nem mostra probabilidades.
 - "Enviada" em candidaturas é só o que o estudante marcou; a plataforma não envia candidaturas.
 
@@ -104,4 +135,3 @@ Toda resposta da API passa por validação em tempo de execução (`lib/api/guar
   (a interface mostra painéis provisórios até lá) e o hero tem só 768 px de largura.
 - Marca provisória: monograma "G" em `src/app/icon.svg`, `apple-icon.tsx` e imagem de compartilhamento em `src/lib/brand/BrandCard.tsx`.
 - Rotas de detalhe e elegibilidade não têm `loading.tsx` de propósito: assim uma bolsa inexistente devolve **HTTP 404** de verdade.
-- Textos ainda estão nos componentes; a extração para dicionário (português/inglês) é a Fase 3.

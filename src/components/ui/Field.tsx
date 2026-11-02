@@ -2,20 +2,22 @@
 
 import { useId } from "react";
 import type { ComponentPropsWithRef, ReactNode } from "react";
+import { useT } from "@/i18n/I18nProvider";
 import styles from "./Field.module.css";
 
 type FieldMeta = { label: string; helper?: string; error?: string; optional?: boolean };
 
 function Shell({ id, meta, children }: { id: string; meta: FieldMeta; children: ReactNode }) {
+  const t = useT();
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={styles.label}>
         {meta.label}
-        {meta.optional && <span className={styles.optional}> (opcional)</span>}
+        {meta.optional && <span className={styles.optional}> {t.common.optional}</span>}
       </label>
       {children}
       {meta.helper && <p id={`${id}-helper`} className={styles.helper}>{meta.helper}</p>}
-      {meta.error && <p id={`${id}-error`} className={styles.error}>Erro: {meta.error}</p>}
+      {meta.error && <p id={`${id}-error`} className={styles.error}>{t.common.errorPrefix} {meta.error}</p>}
     </div>
   );
 }

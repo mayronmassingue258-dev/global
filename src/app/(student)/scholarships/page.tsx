@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PageHeading } from "@/components/layout/PageHeading";
+import { ListSkeleton } from "@/components/feedback/Skeleton";
 import { ScholarshipBrowser } from "@/features/scholarships/ScholarshipBrowser";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Bolsas" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.meta.titles.scholarships, description: t.scholarships.text, alternates: { canonical: "/scholarships" } };
+}
 
-export default async function ScholarshipsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
-  const { q } = await searchParams;
-  const initialQuery = Array.isArray(q) ? (q[0] ?? "") : (q ?? "");
-
+export default async function ScholarshipsPage() {
+  const t = await getT();
   return (
     <>
-      <PageHeading eyebrow="Explorar" title="Encontre sua oportunidade." description="Pesquise por nome, instituição, país e nível de estudo. Confirme sempre os detalhes no site oficial do provedor." />
-      <ScholarshipBrowser initialQuery={initialQuery} />
+      <PageHeading eyebrow={t.scholarships.eyebrow} title={t.scholarships.title} description={t.scholarships.text} />
+      {/* Os filtros vêm da URL (useSearchParams), o que exige um limite de Suspense. */}
+      <Suspense fallback={<ListSkeleton rows={4} variant="card" label={t.common.loading} />}>
+        <ScholarshipBrowser />
+      </Suspense>
     </>
   );
 }

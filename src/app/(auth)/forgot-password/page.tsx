@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/features/auth/AuthForm";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Recuperar senha" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.meta.titles.forgot, robots: { index: false } };
+}
 
-export default function ForgotPasswordPage() {
+export default async function Page() {
+  const t = await getT();
   return (
     <>
-      <p className="t-label">Recuperação de acesso</p>
-      <h1 className="t-title">Esqueceu sua senha?</h1>
-      <p className="t-secondary">Informe seu e-mail e enviaremos as instruções quando o serviço estiver conectado.</p>
+      <p className="t-label">{t.auth.forgotLabel}</p>
+      <h1 className="t-title">{t.auth.forgotTitle}</h1>
+      <p className="t-secondary">{t.auth.forgotText}</p>
       <AuthForm mode="forgot" />
     </>
   );

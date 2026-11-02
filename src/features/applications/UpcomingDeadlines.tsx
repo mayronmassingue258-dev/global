@@ -7,17 +7,18 @@ import { EmptyState, ErrorState } from "@/components/feedback/States";
 import { ListSkeleton } from "@/components/feedback/Skeleton";
 import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
 import { Badge } from "@/components/ui/Badge";
-import { statusLabel } from "@/lib/constants";
 import { formatDate } from "@/lib/utils/date";
 import patterns from "@/styles/patterns.module.css";
+import { useT } from "@/i18n/I18nProvider";
 import { useApplications } from "./ApplicationsProvider";
 import styles from "./UpcomingDeadlines.module.css";
 
 export function UpcomingDeadlines() {
   const { applications, status, reload } = useApplications();
+  const t = useT();
 
-  if (status === "loading") return <ListSkeleton rows={2} label="Carregando prazos…" />;
-  if (status === "error") return <ErrorState title="Não foi possível carregar seus prazos" onRetry={reload} />;
+  if (status === "loading") return <ListSkeleton rows={2} label={t.dashboard.loadingDeadlines} />;
+  if (status === "error") return <ErrorState title={t.dashboard.deadlinesFailed} onRetry={reload} />;
 
   const upcoming = [...applications].sort((a, b) => a.scholarship.deadline.localeCompare(b.scholarship.deadline)).slice(0, 3);
 
@@ -25,9 +26,9 @@ export function UpcomingDeadlines() {
     return (
       <EmptyState
         icon={CalendarClock}
-        title="Nenhum prazo para acompanhar"
-        description="Salve uma bolsa para ver o prazo aqui."
-        action={<ButtonLink href="/scholarships" variant="secondary" size="sm">Buscar bolsas</ButtonLink>}
+        title={t.dashboard.noDeadlines}
+        description={t.dashboard.noDeadlinesText}
+        action={<ButtonLink href="/scholarships" variant="secondary" size="sm">{t.dashboard.searchScholarships}</ButtonLink>}
       />
     );
   }
@@ -38,9 +39,9 @@ export function UpcomingDeadlines() {
         <li key={app.id} className={styles.row}>
           <Link href={`/applications/${app.id}`}>{app.scholarship.title}</Link>
           <div className={patterns.meta}>
-            <span>Prazo: {formatDate(app.scholarship.deadline)}</span>
+            <span>{t.deadline.prefix} {formatDate(app.scholarship.deadline, t.meta.dateLocale, t.common.dateInvalid)}</span>
             <DeadlineBadge deadline={app.scholarship.deadline} />
-            <Badge tone="outline">{statusLabel(app.status)}</Badge>
+            <Badge tone="outline">{t.status[app.status]}</Badge>
           </div>
         </li>
       ))}

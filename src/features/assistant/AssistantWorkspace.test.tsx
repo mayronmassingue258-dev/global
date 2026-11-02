@@ -99,3 +99,16 @@ describe("AssistantWorkspace", () => {
     expect(await screen.findByText("Não foi possível carregar os rascunhos")).toBeInTheDocument();
   });
 });
+
+describe("AssistantWorkspace — recuperação", () => {
+  it("recupera texto não salvo da aba e tenta salvar ao abrir", async () => {
+    window.sessionStorage.setItem("gs:unsaved:draft:d-1", JSON.stringify({ type: "motivation_letter", title: "Carta para o Mestrado X", program: "Mestrado X", sections: { opening: "Texto que não foi salvo" } }));
+    setupTestRouter("/assistant?draft=d-1");
+    const service = fakeDraftService([makeDraft()]);
+    render(<AssistantWorkspace service={service} />);
+    expect(await screen.findByRole("textbox", { name: /Abertura/ })).toHaveValue("Texto que não foi salvo");
+    await waitFor(() => expect(service.updates[0]?.sections).toEqual({ opening: "Texto que não foi salvo" }));
+    expect(await screen.findByText(/^Salvo ·/)).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("gs:unsaved:draft:d-1")).toBeNull();
+  });
+});

@@ -18,7 +18,8 @@ export class ApiError extends Error {
   }
 }
 
-type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
+/** `body` é enviado como JSON; `rawBody` (ex.: FormData) vai como está, e o navegador define o Content-Type. */
+type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; rawBody?: BodyInit };
 
 export function safeMessage(status: number): string {
   if (status === 0) return "Não foi possível conectar ao servidor.";
@@ -59,10 +60,10 @@ async function readErrorEnvelope(response: Response): Promise<{ code?: string; f
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (!API_BASE_URL) throw new ApiError(0, "A URL da API não está configurada.", "config_missing");
 
-  const { body, ...init } = options;
+  const { body, rawBody, ...init } = options;
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  if (body !== undefined) headers.set("Content-Type", "application/json");
+  if (body !== undefined && rawBody === undefined) headers.set("Content-Type", "application/json");
 
   let response: Response;
   try {
@@ -70,7 +71,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       cache: "no-store",
       ...init,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body)
+      body: rawBody ?? (body === undefined ? undefined : JSON.stringify(body))
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;

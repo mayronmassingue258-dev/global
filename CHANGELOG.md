@@ -1,5 +1,31 @@
 # Registro de mudanças
 
+## 1.4.0 — Fase 3: funcionalidade (2026-11-02)
+
+### Novo
+- **Busca compartilhável**: filtros na URL (`/scholarships?q=…&level=…&country=…&sort=title`), chips de filtros ativos com remoção
+  individual, "Limpar tudo" e "Copiar link desta busca". Escolher um filtro cria entrada no histórico (voltar desfaz); digitar não.
+- **Formulários**: perfil e rascunhos do assistente recuperam edições não salvas (sessionStorage da aba, com "Descartar") e pedem
+  confirmação ao fechar a aba com alterações pendentes. Login e cadastro agora validam com mensagens por campo e foco no primeiro erro.
+- **Upload de documentos**: "Anexar arquivo" em cada item do checklist, com validação de tipo e tamanho e função de envio pronta
+  para o contrato proposto. Envio real desligado até o backend definir (`NEXT_PUBLIC_UPLOADS_ENABLED`).
+- **Dois idiomas**: português (padrão) e inglês, com seletor no cabeçalho, no rodapé, na landing e nas telas de login.
+  Todos os textos em dicionário (`src/i18n`), inclusive orientações do assistente, datas e plurais.
+- **SEO**: `robots.txt`, `sitemap.xml` dinâmico, canonical, Open Graph por bolsa e dados estruturados (schema.org `MonetaryGrant`).
+- **Contrato 0.4**: proposta de envio de arquivos e de idioma dos dados.
+
+### Como testar esta entrega
+
+```bash
+npm run dev:api
+```
+
+1. **Bolsas**: digite "Mestrado", escolha "Título (A–Z)". Copie o link e abra em outra aba: a busca é a mesma. Use "voltar" do navegador.
+2. Clique em **EN** no cabeçalho: tudo muda para inglês e continua assim ao navegar. Volte para **PT**.
+3. **Perfil**: digite algo sem salvar, vá para Bolsas e volte: o texto está lá, com o aviso e o botão "Descartar".
+4. **Candidaturas → Abrir → Anexar arquivo**: tente um `.exe` (recusado) e um PDF (aceito, com aviso de envio desligado).
+5. Abra http://localhost:3000/robots.txt e http://localhost:3000/sitemap.xml.
+
 ## 1.3.0 — Fase 2: visual mais premium (2026-11-02)
 
 ### Novo

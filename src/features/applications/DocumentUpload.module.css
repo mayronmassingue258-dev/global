@@ -1,0 +1,10 @@
+.wrap { display: grid; gap: var(--space-2); justify-items: start; }
+.input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.trigger { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 0 var(--space-3); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-pill); font-size: 0.8125rem; color: var(--color-text-2); cursor: pointer; transition: border-color var(--transition), color var(--transition), background-color var(--transition); }
+.trigger:hover { border-color: var(--color-ink); color: var(--color-text); background: var(--color-card); }
+.input:focus-visible + .trigger { outline: var(--focus-ring); outline-offset: 3px; }
+.feedback:empty { display: none; }
+.file { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--color-surface); font-size: 0.8125rem; }
+.muted { color: var(--color-text-2); }
+.error { color: var(--color-danger); font-size: 0.8125rem; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

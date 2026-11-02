@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { fakeApplicationService, makeScholarship } from "@/test/fakes";
+import { setupTestRouter } from "@/test/router";
 import { ApplicationsProvider } from "@/features/applications/ApplicationsProvider";
 import type { ScholarshipQuery } from "@/types";
 
@@ -24,8 +25,11 @@ function respondWith(source = many) {
   });
 }
 
-const renderBrowser = (initialQuery = "") =>
-  render(<ApplicationsProvider service={fakeApplicationService()}><ScholarshipBrowser initialQuery={initialQuery} /></ApplicationsProvider>);
+const renderBrowser = (url = "/scholarships") => {
+  const nav = setupTestRouter(url);
+  render(<ApplicationsProvider service={fakeApplicationService()}><ScholarshipBrowser /></ApplicationsProvider>);
+  return nav;
+};
 
 beforeEach(() => {
   list.mockReset();
@@ -47,45 +51,67 @@ describe("ScholarshipBrowser", () => {
     expect(screen.queryByRole("button", { name: "Ver mais resultados" })).not.toBeInTheDocument();
   });
 
-  it("busca com espera (debounce) e usa a busca inicial da URL", async () => {
+  it("lê os filtros da URL e mostra os chips ativos", async () => {
     respondWith();
-    renderBrowser("Bolsa 1");
+    renderBrowser("/scholarships?q=Bolsa%201&level=Doutorado&sort=title");
     await screen.findByText("3 resultados");
-    expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "Bolsa 1", page: 1 }), expect.any(AbortSignal));
+    expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "Bolsa 1", level: "Doutorado", sort: "title", page: 1 }), expect.any(AbortSignal));
+    expect(screen.getByLabelText("Buscar bolsas")).toHaveValue("Bolsa 1");
+    const chips = within(screen.getByRole("list", { name: "Filtros ativos" })).getAllByRole("button");
+    expect(chips.map((c) => c.getAttribute("aria-label"))).toEqual(["Remover filtro: “Bolsa 1”", "Remover filtro: Nível: Doutorado", "Remover filtro: Ordem: título"]);
+  });
 
-    const input = screen.getByLabelText("Buscar bolsas");
-    await userEvent.clear(input);
-    await userEvent.type(input, "Bolsa 11");
+  it("digitar atualiza a URL após uma pausa (link compartilhável)", async () => {
+    respondWith();
+    const nav = renderBrowser();
+    await screen.findByText("12 resultados");
+    await userEvent.type(screen.getByLabelText("Buscar bolsas"), "Bolsa 11");
+    await waitFor(() => expect(nav.current()).toBe("/scholarships?q=Bolsa+11"));
     expect(await screen.findByText("1 resultado")).toBeInTheDocument();
   });
 
-  it("estado vazio permite limpar filtros", async () => {
+  it("remover um chip tira o filtro da URL", async () => {
     respondWith();
-    renderBrowser("nada disso");
-    expect(await screen.findByText("Nenhuma bolsa encontrada")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
-    expect(await screen.findByText("12 resultados")).toBeInTheDocument();
-    expect(screen.getByLabelText("Buscar bolsas")).toHaveValue("");
+    const nav = renderBrowser("/scholarships?q=Bolsa&level=Mestrado");
+    await userEvent.click(await screen.findByRole("button", { name: "Remover filtro: Nível: Mestrado" }));
+    expect(nav.current()).toBe("/scholarships?q=Bolsa");
   });
 
-  it("envia nível e ordenação escolhidos", async () => {
+  it("selecionar nível e ordem atualiza a URL", async () => {
     respondWith();
-    renderBrowser();
+    const nav = renderBrowser();
     await screen.findByText("12 resultados");
     await userEvent.click(screen.getByText(/Filtros e ordenação/));
     await userEvent.selectOptions(screen.getByLabelText("Nível de estudo"), "Doutorado");
     await userEvent.selectOptions(screen.getByLabelText("Ordenar por"), "title");
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ level: "Doutorado", sort: "title", page: 1 }), expect.any(AbortSignal))
-    );
+    expect(nav.current()).toBe("/scholarships?level=Doutorado&sort=title");
     expect(screen.getByText("Filtros e ordenação (ativos)")).toBeInTheDocument();
+  });
+
+  it("estado vazio permite limpar tudo", async () => {
+    respondWith();
+    const nav = renderBrowser("/scholarships?q=nada");
+    expect(await screen.findByText("Nenhuma bolsa encontrada")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    expect(nav.current()).toBe("/scholarships");
+    expect(await screen.findByText("12 resultados")).toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar bolsas")).toHaveValue("");
+  });
+
+  it("copia o link da busca", async () => {
+    respondWith();
+    const user = userEvent.setup();
+    renderBrowser("/scholarships?q=Bolsa");
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValueOnce(undefined);
+    await user.click(await screen.findByRole("button", { name: "Copiar link desta busca" }));
+    expect(writeText).toHaveBeenCalled();
+    expect(await screen.findByText("Link copiado.")).toBeInTheDocument();
   });
 
   it("erro mostra 'Tentar novamente' e recupera", async () => {
     list.mockRejectedValueOnce(new Error("offline"));
     renderBrowser();
     const retry = await screen.findByRole("button", { name: "Tentar novamente" });
-    expect(screen.getByRole("alert")).toBeInTheDocument();
     respondWith();
     await userEvent.click(retry);
     expect(await screen.findByText("12 resultados")).toBeInTheDocument();

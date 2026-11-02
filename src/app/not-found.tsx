@@ -1,13 +1,15 @@
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { getT } from "@/i18n/server";
 import styles from "./status-page.module.css";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getT();
   return (
     <main id="main" className={`container ${styles.page}`}>
-      <p className="t-label">404 · Página não encontrada</p>
-      <h1 className="t-title">Esta página não existe.</h1>
-      <p className="t-secondary">O endereço pode ter mudado ou estar incorreto.</p>
-      <div><ButtonLink href="/">Voltar ao início</ButtonLink></div>
+      <p className="t-label">{t.notFound.label}</p>
+      <h1 className="t-title">{t.notFound.title}</h1>
+      <p className="t-secondary">{t.notFound.text}</p>
+      <div><ButtonLink href="/">{t.notFound.back}</ButtonLink></div>
     </main>
   );
 }

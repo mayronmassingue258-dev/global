@@ -28,7 +28,8 @@ type ApplicationsContextValue = {
 
 const ApplicationsContext = createContext<ApplicationsContextValue | null>(null);
 
-const FAILED = "Não foi possível salvar a alteração. Tente novamente.";
+/** Código do erro de alteração; o texto vem do dicionário (MutationErrorNotice). */
+const FAILED = "mutation_failed";
 
 /**
  * Candidaturas do estudante. A tela atualiza na hora (otimista) e volta ao estado anterior se o servidor recusar.

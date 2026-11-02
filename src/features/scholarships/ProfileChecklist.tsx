@@ -1,18 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { Check, Minus, X } from "lucide-react";
 import type { EligibilityResult } from "@/types";
+import { useT } from "@/i18n/I18nProvider";
 import styles from "./ProfileChecklist.module.css";
 
 const icon = { met: Check, missing: Minus, failed: X } as const;
-const srLabel = { met: "Atendido", missing: "Falta informar", failed: "Não atendido" } as const;
 
 /**
  * "O que falta no seu perfil": lista os motivos da avaliação do servidor, pendências primeiro.
  * O frontend não calcula nada; só ordena e apresenta.
  */
 export function ProfileChecklist({ result, scholarshipId }: { result: EligibilityResult | null; scholarshipId: string }) {
+  const t = useT();
   if (!result) {
-    return <p className="t-meta">A avaliação do seu perfil não está disponível agora.</p>;
+    return <p className="t-meta">{t.checklist.unavailable}</p>;
   }
   const order = { failed: 0, missing: 1, met: 2 } as const;
   const reasons = [...result.reasons].sort((a, b) => order[a.kind] - order[b.kind]);
@@ -21,7 +24,7 @@ export function ProfileChecklist({ result, scholarshipId }: { result: Eligibilit
   return (
     <div className={styles.wrap}>
       <p className={styles.summary}>
-        {pending === 0 ? "Nada pendente no seu perfil para esta bolsa." : `${pending} ${pending === 1 ? "item pendente" : "itens pendentes"} no seu perfil.`}
+        {pending === 0 ? t.checklist.nonePending : t.checklist.pending(pending)}
       </p>
       <ul className={styles.list}>
         {reasons.map((reason) => {
@@ -29,14 +32,14 @@ export function ProfileChecklist({ result, scholarshipId }: { result: Eligibilit
           return (
             <li key={`${reason.kind}-${reason.text}`} className={styles[reason.kind]}>
               <span className={styles.icon} aria-hidden="true"><Icon size={14} strokeWidth={2.5} /></span>
-              <span><span className="visually-hidden">{srLabel[reason.kind]}: </span>{reason.text}</span>
+              <span><span className="visually-hidden">{t.eligibility.kind[reason.kind]}: </span>{reason.text}</span>
             </li>
           );
         })}
       </ul>
       <div className={styles.links}>
-        {pending > 0 && <Link href="/profile">Completar perfil</Link>}
-        <Link href={`/eligibility/${scholarshipId}`}>Ver avaliação completa</Link>
+        {pending > 0 && <Link href="/profile">{t.checklist.complete}</Link>}
+        <Link href={`/eligibility/${scholarshipId}`}>{t.checklist.seeFull}</Link>
       </div>
     </div>
   );

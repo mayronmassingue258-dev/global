@@ -2,35 +2,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
+import { getT } from "@/i18n/server";
 import styles from "./Hero.module.css";
 
-const facts = ["Para estudantes\nde qualquer país", "Gratuito\npara estudantes", "Todos os níveis\nde estudo", "Descoberta, perfil\ne candidaturas"];
-
-export function Hero() {
+export async function Hero() {
+  const t = await getT();
   return (
     <section className={`container ${styles.wrap}`} aria-labelledby="hero-title">
       <div className={styles.card}>
         <header className={styles.header}>
-          <Link href="/" className={styles.brand}>GlobalScholar</Link>
-          <nav className={styles.nav} aria-label="Principal">
-            <Link href="/scholarships">Explorar</Link>
-            <a href="#como-funciona">Como funciona</a>
+          <Link href="/" className={styles.brand}>{t.common.brand}</Link>
+          <nav className={styles.nav} aria-label={t.nav.main}>
+            <Link href="/scholarships">{t.nav.explore}</Link>
+            <a href="#como-funciona">{t.nav.howItWorks}</a>
           </nav>
-          <Link href="/login" className={styles.signIn}>Entrar</Link>
-          <ButtonLink href="/register" variant="inverse" size="sm">Começar</ButtonLink>
+          <span className={styles.lang}><LanguageSwitcher tone="dark" /></span>
+          <Link href="/login" className={styles.signIn}>{t.nav.signIn}</Link>
+          <ButtonLink href="/register" variant="inverse" size="sm">{t.nav.getStarted}</ButtonLink>
         </header>
 
-        <h1 id="hero-title" className={`t-display ${styles.title}`}>Plataforma Global de Bolsas</h1>
-        <p className={styles.tagline}>Descubra. Prepare. Candidate-se. Conquiste.</p>
+        <h1 id="hero-title" className={`t-display ${styles.title}`}>{t.landing.title}</h1>
+        <p className={styles.tagline}>{t.landing.tagline}</p>
 
         <form action="/scholarships" method="get" role="search" className={styles.search}>
-          <label htmlFor="hero-q" className="visually-hidden">Buscar bolsas</label>
-          <input id="hero-q" name="q" type="search" placeholder="Busque bolsas ou universidades…" />
-          <button type="submit" className={styles.submit} aria-label="Buscar"><Search size={18} aria-hidden="true" /></button>
+          <label htmlFor="hero-q" className="visually-hidden">{t.landing.searchLabel}</label>
+          <input id="hero-q" name="q" type="search" placeholder={t.landing.searchPlaceholder} />
+          <button type="submit" className={styles.submit} aria-label={t.landing.searchSubmit}><Search size={18} aria-hidden="true" /></button>
         </form>
 
         <ul className={styles.facts}>
-          {facts.map((fact) => <li key={fact}>{fact}</li>)}
+          {t.landing.facts.map((fact) => <li key={fact}>{fact}</li>)}
         </ul>
 
         <div className={styles.photoWrap}>

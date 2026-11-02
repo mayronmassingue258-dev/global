@@ -6,38 +6,38 @@ import { Button } from "@/components/ui/Button";
 import { SelectField, TextAreaField, TextField } from "@/components/ui/Field";
 import { ErrorState, Notice } from "@/components/feedback/States";
 import { FormSkeleton } from "@/components/feedback/Skeleton";
+import { useT } from "@/i18n/I18nProvider";
 import { STUDY_LEVELS } from "@/lib/constants";
 import { IS_MOCK_MODE } from "@/lib/config";
 import { ApiError } from "@/lib/api/client";
 import type { ProfileService } from "@/lib/api/profile";
 import { profileService } from "@/lib/services";
+import { clearFormDraft, readFormDraft, writeFormDraft } from "@/lib/formDrafts";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import { PROFILE_MAX_LENGTH, emptyProfile, validateProfile } from "@/lib/validation/profile";
 import type { ProfileErrorCode, ProfileErrors, ProfileField } from "@/lib/validation/profile";
 import type { ProfileInput } from "@/types";
 import styles from "./ProfileForm.module.css";
 
-const REQUIRED_MESSAGE: Partial<Record<ProfileField, string>> = {
-  residence: "Informe o país de residência.",
-  level: "Selecione o nível de estudo atual."
-};
-
-function messageFor(field: ProfileField, code: ProfileErrorCode | undefined): string | undefined {
-  if (!code) return undefined;
-  if (code === "required") return REQUIRED_MESSAGE[field] ?? "Campo obrigatório.";
-  return `Use no máximo ${PROFILE_MAX_LENGTH[field]} caracteres.`;
-}
-
 /** Ordem visual dos campos, usada para focar o primeiro com erro. */
 const FIELD_ORDER: ProfileField[] = ["residence", "nationality", "level", "field", "grade", "languages", "interests"];
+const DRAFT_KEY = "profile";
+
+const isProfileInput = (v: unknown): v is ProfileInput =>
+  typeof v === "object" && v !== null && FIELD_ORDER.every((k) => typeof (v as Record<string, unknown>)[k] === "string");
+const sameProfile = (a: ProfileInput, b: ProfileInput) => FIELD_ORDER.every((k) => a[k] === b[k]);
 
 type LoadStatus = "loading" | "ready" | "error";
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
 
 export function ProfileForm({ service = profileService }: { service?: ProfileService }) {
+  const t = useT();
   const [values, setValues] = useState<ProfileInput>(emptyProfile);
+  const [serverValues, setServerValues] = useState<ProfileInput>(emptyProfile);
   const [errors, setErrors] = useState<ProfileErrors>({});
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [restored, setRestored] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -48,7 +48,17 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
       .get(controller.signal)
       .then((profile) => {
         const { updatedAt: _ignored, ...input } = profile;
-        setValues({ ...emptyProfile, ...input });
+        const fromServer = { ...emptyProfile, ...input };
+        setServerValues(fromServer);
+        // Edição não salva de uma visita anterior nesta aba? Recupera e avisa.
+        const unsaved = readFormDraft(DRAFT_KEY, isProfileInput);
+        if (unsaved && !sameProfile(unsaved, fromServer)) {
+          setValues(unsaved);
+          setRestored(true);
+        } else {
+          setValues(fromServer);
+          clearFormDraft(DRAFT_KEY);
+        }
         setLoadStatus("ready");
       })
       .catch(() => {
@@ -56,6 +66,21 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
       });
     return () => controller.abort();
   }, [service, reloadKey]);
+
+  const dirty = loadStatus === "ready" && !sameProfile(values, serverValues);
+  useUnsavedChangesWarning(dirty);
+
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    if (dirty) writeFormDraft(DRAFT_KEY, values);
+    else clearFormDraft(DRAFT_KEY);
+  }, [values, dirty, loadStatus]);
+
+  const messageFor = (field: ProfileField, code: ProfileErrorCode | undefined): string | undefined => {
+    if (!code) return undefined;
+    if (code === "required") return field === "residence" ? t.profile.required.residence : field === "level" ? t.profile.required.level : t.profile.required.other;
+    return t.profile.tooLong(PROFILE_MAX_LENGTH[field]);
+  };
 
   const focusFirstError = (next: ProfileErrors) => {
     const first = FIELD_ORDER.find((key) => next[key]);
@@ -76,6 +101,13 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
     }
   });
 
+  const discard = () => {
+    setValues(serverValues);
+    setErrors({});
+    setRestored(false);
+    clearFormDraft(DRAFT_KEY);
+  };
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next = validateProfile(values);
@@ -89,7 +121,11 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
     try {
       const saved = await service.update(values);
       const { updatedAt: _ignored, ...input } = saved;
-      setValues({ ...emptyProfile, ...input });
+      const fromServer = { ...emptyProfile, ...input };
+      setServerValues(fromServer);
+      setValues(fromServer);
+      setRestored(false);
+      clearFormDraft(DRAFT_KEY);
       setSaveStatus("saved");
     } catch (error) {
       if (error instanceof ApiError && error.status === 422 && error.fields) {
@@ -105,48 +141,57 @@ export function ProfileForm({ service = profileService }: { service?: ProfileSer
     }
   }
 
-  if (loadStatus === "loading") return <FormSkeleton fields={6} label="Carregando perfil…" />;
-  if (loadStatus === "error") return <ErrorState title="Não foi possível carregar seu perfil" onRetry={() => setReloadKey((k) => k + 1)} />;
+  if (loadStatus === "loading") return <FormSkeleton fields={6} label={t.profile.loading} />;
+  if (loadStatus === "error") return <ErrorState title={t.profile.loadFailed} onRetry={() => setReloadKey((k) => k + 1)} />;
 
   const hasErrors = Object.keys(errors).length > 0;
+  const levelLabel = (value: string) => t.levels[value] ?? value;
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={submit} noValidate aria-label="Perfil acadêmico">
+    <form ref={formRef} className={styles.form} onSubmit={submit} noValidate aria-label={t.profile.formLabel}>
+      {restored && (
+        <div className={styles.restored} role="status">
+          <p>{t.profile.restored}</p>
+          <Button variant="tertiary" size="sm" onClick={discard}>{t.profile.discard}</Button>
+        </div>
+      )}
+
       <section className={styles.section} aria-labelledby="p-origin">
-        <div><p className="t-label">01 · Origem</p><h2 id="p-origin" className="t-section">Onde você está agora</h2></div>
+        <div><p className="t-label">{t.profile.s1}</p><h2 id="p-origin" className="t-section">{t.profile.s1Title}</h2></div>
         <div className={styles.fields}>
-          <TextField label="País de residência" placeholder="Ex.: Moçambique" helper="Usado para avaliar a elegibilidade." autoComplete="country-name" required {...bind("residence")} />
-          <TextField label="Nacionalidade" optional {...bind("nationality")} />
+          <TextField label={t.profile.residence} placeholder={t.profile.residencePlaceholder} helper={t.profile.residenceHelper} autoComplete="country-name" required {...bind("residence")} />
+          <TextField label={t.profile.nationality} optional {...bind("nationality")} />
         </div>
       </section>
 
       <section className={styles.section} aria-labelledby="p-edu">
-        <div><p className="t-label">02 · Formação</p><h2 id="p-edu" className="t-section">Sua trajetória acadêmica</h2></div>
+        <div><p className="t-label">{t.profile.s2}</p><h2 id="p-edu" className="t-section">{t.profile.s2Title}</h2></div>
         <div className={styles.fields}>
-          <SelectField label="Nível de estudo atual" required {...bind("level")}>
-            <option value="">Selecione</option>
-            {STUDY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+          <SelectField label={t.profile.level} required {...bind("level")}>
+            <option value="">{t.profile.select}</option>
+            {STUDY_LEVELS.map((l) => <option key={l} value={l}>{levelLabel(l)}</option>)}
           </SelectField>
-          <TextField label="Área de estudo" optional placeholder="Ex.: Ciência da Computação" {...bind("field")} />
-          <TextField label="Resultado acadêmico e escala" optional placeholder="Ex.: 16 em 20" helper="Inclua a escala de notas da sua instituição." {...bind("grade")} />
-          <TextField label="Idiomas e níveis" optional placeholder="Ex.: Português nativo, Inglês B2" {...bind("languages")} />
+          <TextField label={t.profile.field} optional placeholder={t.profile.fieldPlaceholder} {...bind("field")} />
+          <TextField label={t.profile.grade} optional placeholder={t.profile.gradePlaceholder} helper={t.profile.gradeHelper} {...bind("grade")} />
+          <TextField label={t.profile.languages} optional placeholder={t.profile.languagesPlaceholder} {...bind("languages")} />
         </div>
       </section>
 
       <section className={styles.section} aria-labelledby="p-goals">
-        <div><p className="t-label">03 · Objetivos</p><h2 id="p-goals" className="t-section">O que você procura</h2></div>
-        <TextAreaField label="Países e áreas de interesse" optional placeholder="Descreva seus objetivos e destinos preferidos." {...bind("interests")} />
+        <div><p className="t-label">{t.profile.s3}</p><h2 id="p-goals" className="t-section">{t.profile.s3Title}</h2></div>
+        <TextAreaField label={t.profile.interests} optional placeholder={t.profile.interestsPlaceholder} {...bind("interests")} />
       </section>
 
-      {hasErrors && <Notice role="alert">Corrija os campos destacados para continuar.</Notice>}
-      {saveStatus === "failed" && !hasErrors && <Notice role="alert">Não foi possível salvar o perfil. Tente novamente.</Notice>}
+      {hasErrors && <Notice role="alert">{t.profile.fixErrors}</Notice>}
+      {saveStatus === "failed" && !hasErrors && <Notice role="alert">{t.profile.saveFailed}</Notice>}
       <div className={styles.foot}>
-        <Button type="submit" loading={saveStatus === "saving"}>Salvar perfil</Button>
+        <Button type="submit" loading={saveStatus === "saving"}>{t.profile.save}</Button>
         <span className="t-secondary" role="status">
-          {saveStatus === "saved" && (IS_MOCK_MODE ? "Demonstração: perfil guardado só nesta aba, sem servidor." : "Perfil salvo.")}
+          {saveStatus === "saved" && (IS_MOCK_MODE ? t.profile.savedDemo : t.profile.saved)}
+          {saveStatus !== "saved" && dirty && <span className="t-meta">{t.profile.unsaved}</span>}
         </span>
       </div>
-      {IS_MOCK_MODE && <p className="t-meta">Não insira informações sensíveis neste formulário de demonstração.</p>}
+      {IS_MOCK_MODE && <p className="t-meta">{t.profile.demoWarning}</p>}
     </form>
   );
 }

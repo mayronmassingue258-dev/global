@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { PageHeading } from "@/components/layout/PageHeading";
+import { ErrorState } from "@/components/feedback/States";
 import { ScholarshipCard } from "@/features/scholarships/ScholarshipCard";
 import { UpcomingDeadlines } from "@/features/applications/UpcomingDeadlines";
-import { ErrorState } from "@/components/feedback/States";
+import { getT } from "@/i18n/server";
 import { scholarshipService } from "@/lib/services";
 import type { Scholarship } from "@/types";
 import patterns from "@/styles/patterns.module.css";
 
-export const metadata: Metadata = { title: "Painel" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.titles.dashboard, robots: { index: false } };
+}
 
 // Os dados vêm da API a cada pedido: a página não pode ser pré-gerada no build (a API não existe nessa hora).
 export const dynamic = "force-dynamic";
@@ -23,43 +26,43 @@ async function loadRecommended(): Promise<Scholarship[] | null> {
 }
 
 export default async function DashboardPage() {
-  const items = await loadRecommended();
+  const [t, items] = await Promise.all([getT(), loadRecommended()]);
 
   return (
     <div className={patterns.page}>
-      <PageHeading eyebrow="Seu espaço de trabalho" title="Seus próximos passos." description="Acompanhe prazos, avalie oportunidades e avance nas suas candidaturas." />
+      <PageHeading eyebrow={t.dashboard.eyebrow} title={t.dashboard.title} description={t.dashboard.text} />
 
       <section className={patterns.section} aria-labelledby="d-deadlines">
         <div className={patterns.sectionHead}>
-          <h2 id="d-deadlines" className="t-section">Próximos prazos</h2>
-          <ButtonLink href="/applications" variant="tertiary" size="sm">Ver candidaturas</ButtonLink>
+          <h2 id="d-deadlines" className="t-section">{t.dashboard.deadlines}</h2>
+          <ButtonLink href="/applications" variant="tertiary" size="sm">{t.dashboard.seeApplications}</ButtonLink>
         </div>
         <UpcomingDeadlines />
       </section>
 
       <section className={patterns.section} aria-labelledby="d-recommended">
         <div className={patterns.sectionHead}>
-          <h2 id="d-recommended" className="t-section">Bolsas para avaliar</h2>
-          <ButtonLink href="/scholarships" variant="tertiary" size="sm">Ver todas</ButtonLink>
+          <h2 id="d-recommended" className="t-section">{t.dashboard.toEvaluate}</h2>
+          <ButtonLink href="/scholarships" variant="tertiary" size="sm">{t.dashboard.seeAll}</ButtonLink>
         </div>
         {items ? (
           <ul className={patterns.list}>{items.map((item) => <ScholarshipCard key={item.id} item={item} />)}</ul>
         ) : (
-          <ErrorState title="Não foi possível carregar as bolsas" description="O servidor não respondeu. Recarregue a página em instantes." />
+          <ErrorState title={t.dashboard.loadFailed} description={t.states.serverDown} />
         )}
       </section>
 
       <div className={patterns.grid2}>
         <div className={patterns.dark}>
-          <p className="t-label">Próxima ação</p>
-          <h2 className="t-section">Complete seu perfil acadêmico</h2>
-          <p>Com mais informações, a avaliação de elegibilidade fica mais útil.</p>
-          <ButtonLink href="/profile" variant="inverse" size="sm">Continuar perfil</ButtonLink>
+          <p className="t-label">{t.dashboard.nextAction}</p>
+          <h2 className="t-section">{t.dashboard.completeProfile}</h2>
+          <p>{t.dashboard.completeProfileText}</p>
+          <ButtonLink href="/profile" variant="inverse" size="sm">{t.dashboard.continueProfile}</ButtonLink>
         </div>
         <div className={patterns.panel}>
-          <h2 className="t-section">Documentos</h2>
-          <p className="t-secondary">Prepare roteiros de carta de motivação, currículo acadêmico e declaração pessoal.</p>
-          <div><ButtonLink href="/assistant" variant="secondary" size="sm">Abrir assistente</ButtonLink></div>
+          <h2 className="t-section">{t.dashboard.documents}</h2>
+          <p className="t-secondary">{t.dashboard.documentsText}</p>
+          <div><ButtonLink href="/assistant" variant="secondary" size="sm">{t.dashboard.openAssistant}</ButtonLink></div>
         </div>
       </div>
     </div>

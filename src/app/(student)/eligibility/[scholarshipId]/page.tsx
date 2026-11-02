@@ -7,6 +7,7 @@ import { BackLink } from "@/components/layout/PageHeading";
 import { EligibilityResult } from "@/features/eligibility/EligibilityResult";
 import { IS_MOCK_MODE } from "@/lib/config";
 import { scholarshipService } from "@/lib/services";
+import { getT } from "@/i18n/server";
 import patterns from "@/styles/patterns.module.css";
 
 
@@ -20,33 +21,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { scholarshipId } = await params;
   const item = await getScholarship(scholarshipId);
   if (!item) notFound();
-  return { title: `Elegibilidade · ${item.title}`, robots: { index: false } };
+  const t = await getT();
+  return { title: `${t.meta.titles.eligibility} · ${item.title}`, robots: { index: false } };
 }
 
 export default async function EligibilityPage({ params }: Props) {
   const { scholarshipId } = await params;
   const item = await getScholarship(scholarshipId);
   if (!item) notFound();
-  const result = await scholarshipService.eligibility(scholarshipId);
+  const [result, t] = await Promise.all([scholarshipService.eligibility(scholarshipId), getT()]);
 
   return (
     <div className={patterns.page}>
       <div>
-        <BackLink href={`/scholarships/${item.id}`}>Voltar à bolsa</BackLink>
-        <p className="t-label">Elegibilidade</p>
+        <BackLink href={`/scholarships/${item.id}`}>{t.eligibility.back}</BackLink>
+        <p className="t-label">{t.eligibility.label}</p>
         <h1 className="t-title">{item.title}</h1>
       </div>
 
-      {result ? <EligibilityResult result={result} /> : <Notice>O resultado de elegibilidade não está disponível para esta bolsa.</Notice>}
+      {result ? <EligibilityResult result={result} /> : <Notice>{t.eligibility.unavailable}</Notice>}
 
       <Notice>
-        {IS_MOCK_MODE ? "Resultado fictício de demonstração. " : ""}
-        A avaliação é feita pelo servidor com base nas informações do seu perfil e nos critérios publicados. Ela não garante aprovação nem financiamento.
+        {IS_MOCK_MODE ? t.eligibility.demo : ""}
+        {t.eligibility.disclaimer}
       </Notice>
 
       <div className={patterns.actions}>
-        {result?.status === "possible" && <ButtonLink href="/profile">Completar perfil</ButtonLink>}
-        <ButtonLink href={`/scholarships/${item.id}`} variant="secondary">Ver requisitos</ButtonLink>
+        {result?.status === "possible" && <ButtonLink href="/profile">{t.eligibility.completeProfile}</ButtonLink>}
+        <ButtonLink href={`/scholarships/${item.id}`} variant="secondary">{t.eligibility.seeRequirements}</ButtonLink>
       </div>
     </div>
   );

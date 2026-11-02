@@ -2,7 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  if (typeof window !== "undefined") window.sessionStorage.clear();
+});
 
 // next/navigation precisa do roteador do App Router; nos testes de componente basta uma versão simples.
 vi.mock("next/navigation", () => ({

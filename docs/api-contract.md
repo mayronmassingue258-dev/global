@@ -1,6 +1,6 @@
 # Contrato da API — GlobalScholar (PROVISÓRIO)
 
-> **Versão 0.3 · 2026-11-02 · Status: aguardando confirmação do backend.**
+> **Versão 0.4 · 2026-11-02 · Status: aguardando confirmação do backend.**
 > Este documento descreve o que o **frontend espera hoje**. Nada aqui está decidido até o backend confirmar.
 > Para cada item, responda **OK**, **mudar para…** ou **não vamos ter**. Mudanças entram por pull request neste arquivo.
 
@@ -223,6 +223,23 @@ Atualização **parcial**: envie só o que mudou. Pelo menos um campo é obrigat
 
 `204` sem corpo. `404` se não existir (o frontend trata como já removida).
 
+### Arquivos dos documentos — PROPOSTA (desligada no frontend)
+
+A interface de anexar arquivo já existe e valida no navegador, mas **não envia nada** enquanto `NEXT_PUBLIC_UPLOADS_ENABLED` não for `true`.
+Esta é a proposta do frontend; o backend decide a forma final (ver decisão pendente 6).
+
+`PUT /applications/{id}/documents/{name}/file` — `multipart/form-data` com o campo `file`. `{name}` é o `name` do item do checklist, codificado na URL.
+
+| Regra | Valor esperado |
+|---|---|
+| Tipos | PDF, JPG/JPEG, PNG, DOCX. O servidor deve verificar o **conteúdo** (assinatura do arquivo), não só a extensão. |
+| Tamanho | Até 10 MB. Acima disso: `413 payload_too_large`. |
+| Tipo inválido | `422 validation_failed` com `fields.file = "invalid_type"`. |
+| Sucesso | `200` + `{ "name": "diploma.pdf", "size": 2048, "type": "application/pdf", "uploadedAt": "…" }`. Substitui o arquivo anterior do item. |
+
+A ser definido junto: `GET` para baixar (link temporário?), `DELETE` do arquivo, se `Application.documents[]` ganha um campo `file`,
+antivírus, retenção e quem pode ver o arquivo.
+
 ---
 
 ## 6. Rascunhos do assistente de documentos
@@ -261,7 +278,9 @@ O frontend salva automaticamente cerca de 1 segundo após o estudante parar de d
 1. **Autenticação.** Cookie de sessão `HttpOnly` (recomendado para Next.js, exige `credentials: "include"` e CORS com origem fixa) ou token `Bearer`? Quais rotas: `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/forgot-password`, `GET /auth/me`?
 2. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz? Códigos facilitam o inglês da Fase 3.
 3. **Paginação.** `page`/`pageSize` + `total` atende? Ou cursor?
-4. **Idioma dos dados.** Bolsas e motivos de elegibilidade virão em mais de um idioma (`Accept-Language`)?
+4. **Idioma dos dados.** A interface já tem português e inglês (cookie `gs_locale`). Bolsas e motivos de elegibilidade virão em mais de um
+   idioma? Proposta: o frontend envia `Accept-Language: pt` ou `en` e a API responde no idioma disponível. Hoje, em inglês, a interface
+   avisa que os detalhes da bolsa aparecem como publicados, em português.
 5. **ID de candidatura** próprio ou igual ao da bolsa?
 6. **Documentos (Fase 3).** Upload direto para a API (`multipart/form-data`) ou URL pré-assinada para armazenamento (S3 e afins)? Tipos e tamanho máximo aceitos?
 7. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming? A chave da IA fica **só** no backend.
@@ -277,6 +296,7 @@ O frontend salva automaticamente cerca de 1 segundo após o estudante parar de d
 
 | Versão | Data | Mudança |
 |---|---|---|
+| 0.4 | 2026-11-02 | Proposta de envio de arquivos (desligada); proposta de idioma dos dados. |
 | 0.3 | 2026-11-02 | Candidatura com `documents`, `notes` e `timeline`; `GET /applications/{id}`; `PATCH` parcial; rascunhos (`/drafts`). |
 | 0.2 | 2026-11-02 | Envelope de erro, perfil, candidaturas, validação da busca, elegibilidade baseada no perfil. |
 | 0.1 | — | Caminhos iniciais de bolsas e elegibilidade (só no código). |

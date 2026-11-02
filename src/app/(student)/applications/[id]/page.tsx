@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { ApplicationDetail } from "@/features/applications/ApplicationDetail";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Candidatura", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.titles.application, robots: { index: false } };
+}
 
 /**
  * Os dados vêm do ApplicationsProvider (no navegador): no modo demonstração eles só existem na memória da aba,

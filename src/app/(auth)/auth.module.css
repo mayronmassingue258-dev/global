@@ -1,3 +1,4 @@
 .wrap { width: min(100% - 2 * var(--gutter), 460px); margin: var(--space-12) auto var(--space-24); }
 .brand { font-weight: 600; font-size: 1.125rem; letter-spacing: -0.02em; text-decoration: none; }
 .intro { display: grid; gap: var(--space-3); margin-top: var(--space-12); }
+.top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); }
