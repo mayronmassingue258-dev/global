@@ -169,7 +169,7 @@ export function ScholarshipBrowser() {
 
       {status !== "error" && !(status === "loading" && page === 1) && items.length > 0 && (
         <ul className={patterns.list} aria-busy={status === "loading"}>
-          {items.map((item) => <ScholarshipCard key={item.id} item={item} />)}
+          {items.map((item) => <ScholarshipCard key={item.id} item={item} headingLevel={2} />)}
         </ul>
       )}
 

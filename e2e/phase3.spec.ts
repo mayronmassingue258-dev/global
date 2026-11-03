@@ -33,7 +33,7 @@ test.describe("idiomas", () => {
   test("trocar para inglês vale para todo o site e fica guardado", async ({ page, api: _api }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "pt-BR");
-    await page.getByRole("group", { name: "Idioma" }).first().getByRole("button", { name: "English" }).click();
+    await page.getByRole("group", { name: "Idioma" }).first().getByRole("button", { name: "EN · English" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Global Scholarship Platform");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
@@ -46,7 +46,7 @@ test.describe("idiomas", () => {
     await page.getByRole("button", { name: "Save profile" }).click();
     await expect(page.getByLabel("Country of residence")).toHaveAccessibleDescription(/Error: Enter your country of residence/);
 
-    await page.getByRole("button", { name: "Português" }).first().click();
+    await page.getByRole("button", { name: "PT · Português" }).first().click();
     await expect(page.getByRole("button", { name: "Salvar perfil" })).toBeVisible();
   });
 });
@@ -100,4 +100,13 @@ test("robots.txt e sitemap.xml", async ({ request, api: _api }) => {
   const xml = await sitemap.text();
   expect(xml).toContain("/scholarships/amostra-001");
   expect(xml.match(/<url>/g)).toHaveLength(9);
+});
+
+test("cabeçalhos de segurança em produção", async ({ request, api: _api }) => {
+  const res = await request.get("/");
+  const h = res.headers();
+  expect(h["content-security-policy"]).toContain("connect-src 'self' http://127.0.0.1:4010");
+  expect(h["x-frame-options"]).toBe("DENY");
+  expect(h["x-content-type-options"]).toBe("nosniff");
+  expect(h["x-powered-by"]).toBeUndefined();
 });

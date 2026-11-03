@@ -3,6 +3,6 @@
 .label { font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-on-dark-2); }
 .date { font-family: var(--font-serif); font-size: 1.75rem; line-height: 1.15; margin: var(--space-1) 0; }
 .left { font-size: 0.875rem; color: var(--color-on-dark-2); }
-.urgent .left { color: #ffb4a8; font-weight: 500; }
-.soon .left { color: #f5d28c; }
+.urgent .left { color: var(--color-urgent-on-dark); font-weight: 500; }
+.soon .left { color: var(--color-soon-on-dark); }
 .closed .date { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--color-on-dark-2); }

@@ -21,14 +21,16 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }
 
-export function ScholarshipCard({ item }: { item: Scholarship }) {
+/** `headingLevel`: 3 quando o cartão está sob uma seção com h2 (painel); 2 quando está logo abaixo do h1 (busca). */
+export function ScholarshipCard({ item, headingLevel = 3 }: { item: Scholarship; headingLevel?: 2 | 3 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const t = useT();
   return (
     <li className={styles.row}>
       <span className={styles.mono} aria-hidden="true">{initials(item.institution)}</span>
       <div className={styles.body}>
         <p className="t-label">{item.country} · {t.levels[item.level] ?? item.level}</p>
-        <h3 className={styles.title}><Link href={`/scholarships/${item.id}`}>{item.title}</Link></h3>
+        <Heading className={styles.title}><Link href={`/scholarships/${item.id}`}>{item.title}</Link></Heading>
         <p className="t-secondary">{item.institution}</p>
         <div className={patterns.meta}>
           <Badge tone={fundingTone(item.fundingType)}>{item.fundingType}</Badge>

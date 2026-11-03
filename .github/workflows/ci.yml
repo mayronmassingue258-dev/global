@@ -33,10 +33,14 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Contraste de cores (WCAG AA)
+        run: npm run contrast
       - name: Testes (unitários, componentes e API local) com cobertura
         run: npm run test:coverage
       - name: Build de produção
         run: npm run build
+      - name: Orçamento de tamanho (JS/CSS por página)
+        run: npm run size
       - name: Relatório de cobertura
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,7 +63,7 @@ jobs:
       - run: npm ci
       - name: Navegador do Playwright
         run: npx playwright install --with-deps chromium
-      - name: Testes de ponta a ponta
+      - name: Testes de ponta a ponta (fluxos, acessibilidade com axe, teclado, segurança)
         run: npm run test:e2e
       - name: Relatório do Playwright
         if: ${{ !cancelled() }}

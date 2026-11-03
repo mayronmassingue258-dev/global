@@ -1,10 +1,16 @@
-# GlobalScholar — Frontend (ELEVATE)
+# GlobalScholar — Frontend
 
-Frontend em **Next.js 15 (App Router) + React 19 + TypeScript + CSS Modules**, com a linguagem visual ELEVATE:
-preto e branco, serifa editorial (Playfair Display) + sans-serif (Inter), cartões escuros pontuais, fotografia no hero.
-Idioma da interface: **português**. Nome de marca provisório: **GlobalScholar**.
+Plataforma para estudantes descobrirem bolsas de estudo, entenderem o que cada uma exige e organizarem suas candidaturas.
+**Next.js 15 (App Router) + React 19 + TypeScript + CSS Modules**, linguagem visual ELEVATE (preto e branco, Playfair Display + Inter,
+fotografia editorial). Interface em **português** (principal) e **inglês**. Nome de marca provisório: **GlobalScholar**.
 
-## Como rodar
+| | |
+|---|---|
+| Qualidade | testes unitários/componentes e de ponta a ponta (fluxos, axe em 14 telas × 2 idiomas, teclado, segurança) rodando no CI · cobertura ~94% |
+| Lighthouse | Performance 95–100 · Acessibilidade 100 · Boas práticas 100 · SEO 100 ([relatório](docs/lighthouse-report.md)) |
+| Deploy | Render, via [`render.yaml`](render.yaml) ([guia](docs/deploy-render.md) · [checklist](docs/deploy-checklist.md)) |
+
+## Começar
 
 Requer **Node.js 20.9+** (recomendado 22).
 
@@ -12,126 +18,105 @@ Requer **Node.js 20.9+** (recomendado 22).
 npm install
 ```
 
+```bash
+npm run dev:api
+```
+
+Abre http://localhost:3000 com a **API local** (http://localhost:4000/api): perfil, candidaturas e rascunhos ficam gravados em
+`mock-api/.data/db.json`. Para só olhar o visual, sem servidor: `npm run dev` (dados fictícios em memória).
+
+### Comandos
+
 | Comando | O que faz |
 |---|---|
-| `npm run dev` | Frontend em http://localhost:3000 com **dados fictícios em memória** (nada é salvo). |
-| `npm run dev:api` | Sobe **API local + frontend** juntos, em modo API real. Perfil e candidaturas ficam gravados em arquivo. |
-| `npm run mock-api` | Só a API local, em http://localhost:4000/api. |
-| `npm run mock-api:reset` | Apaga os dados gravados pela API local. |
+| `npm run dev` | Frontend com dados fictícios em memória (aviso visível na tela). |
+| `npm run dev:api` | API local + frontend em modo API real, juntos. |
+| `npm run mock-api` / `mock-api:reset` | Só a API local / apagar os dados dela. |
 | `npm run build` / `npm start` | Build e servidor de produção. |
-
-## Qualidade
-
-| Comando | O que verifica |
-|---|---|
-| `npm run typecheck` | Tipos (TypeScript estrito). |
-| `npm run lint` | ESLint (falha com qualquer aviso). |
-| `npm test` | Testes unitários, de componentes e da API local (Vitest + Testing Library). |
-| `npm run test:coverage` | O mesmo, com relatório de cobertura em `coverage/index.html`. |
+| `npm run check` | Tipos + lint + contraste + testes + build + orçamento de tamanho. **Rode antes de abrir um PR.** |
+| `npm test` / `test:watch` / `test:coverage` | Testes unitários, de componentes e do contrato da API local (Vitest). |
 | `npm run test:e2e` | Ponta a ponta no navegador (Playwright). Primeira vez: `npx playwright install chromium`. |
-| `npm run check` | Tipos + lint + testes + build: rode antes de abrir um PR. |
-
-Os testes de ponta a ponta fazem um **build de produção em modo API real** (pasta `.next-e2e`) e sobem a API local na porta 4010
-com um arquivo de dados próprio, zerado antes de cada teste. Eles cobrem: busca e filtros, detalhe e 404, salvar bolsa e persistência,
-status e remoção de candidaturas, validação do perfil com foco, perfil → elegibilidade calculada pelo servidor, assistente,
-e uma checagem de todas as telas em desktop e celular (sem erros no console e sem rolagem horizontal).
-
-Cada push e pull request roda tudo isso no GitHub Actions (`.github/workflows/ci.yml`). Veja o [guia de Git](docs/git-guide.md).
+| `npm run contrast` | Contraste WCAG dos pares de cor da paleta. |
+| `npm run size` | Orçamento de JS/CSS por página (depois do build). |
+| `npm run lighthouse -- <url>` | Lighthouse em celular e desktop; gera `docs/lighthouse-report.md`. |
 
 ## Modos de dados
 
 | Modo | Como ativar | Dados |
 |---|---|---|
-| Demonstração | `npm run dev` (`.env.development` define `NEXT_PUBLIC_DATA_MODE=mock`) | Fictícios, em memória, com aviso visível na interface. |
-| API local | `npm run dev:api` | Servidor `mock-api/` seguindo o contrato; grava em `mock-api/.data/db.json`. |
-| API real | Build/produção (padrão) com `NEXT_PUBLIC_API_BASE_URL` | Backend do sócio. |
+| Demonstração | `npm run dev` (`.env.development` define `NEXT_PUBLIC_DATA_MODE=mock`) | Fictícios, em memória, com aviso na interface. |
+| API local | `npm run dev:api` | `mock-api/`, seguindo o contrato; grava em arquivo. |
+| API real | Build/produção (padrão) + `NEXT_PUBLIC_API_BASE_URL` | Backend do sócio. |
 
-Se a API falhar, a interface mostra erro com "Tentar novamente". **Nunca** há troca silenciosa por dados fictícios.
-Alterações em candidaturas aparecem na hora e são revertidas, com aviso, se o servidor recusar.
+Se a API falhar, a interface mostra o erro com "Tentar novamente". **Nunca** troca silenciosamente por dados fictícios.
+Variáveis: veja [`.env.example`](.env.example).
 
-Para simular rede lenta ou instável com a API local (macOS/Linux):
+## O que o produto faz hoje
 
-```bash
-MOCK_API_DELAY_MS=800 MOCK_API_FAIL_RATE=0.2 npm run mock-api
-```
+- **Busca** com filtros na URL (link compartilhável, "voltar" funciona), chips de filtros ativos, paginação.
+- **Detalhe da bolsa** com prazo em destaque, "o que falta no seu perfil" (avaliação feita **pelo servidor**), requisitos, documentos e fonte.
+- **Perfil acadêmico** com validação, foco no primeiro erro e recuperação do que foi digitado.
+- **Candidaturas**: lista com progresso e prazos; detalhe com checklist de documentos, anexar arquivo (validação; envio desligado),
+  notas com salvamento automático e linha do tempo.
+- **Assistente de documentos**: carta de motivação, currículo, declaração pessoal e revisão, com estrutura por seções, orientação,
+  contagem de palavras, salvamento automático e rascunhos. **Sem IA**: quem escreve é o estudante.
+- **Dois idiomas**, SEO (sitemap, robots, Open Graph, schema.org), marca provisória (favicon, imagem de compartilhamento).
 
-## Idiomas (português e inglês)
+### O que ainda é demonstração
 
-- Textos da interface ficam em `src/i18n/dictionaries/pt.ts` (fonte da verdade) e `en.ts`. O TypeScript e um teste garantem que o
-  inglês tem exatamente as mesmas chaves. Componentes de cliente usam `useT()`; de servidor, `await getT()`.
-- O idioma escolhido fica no cookie `gs_locale` (preferência, não identifica ninguém). Padrão: português.
-- **Troca consciente:** as URLs são as mesmas nos dois idiomas. É simples e não exige reorganizar rotas, mas os buscadores indexam só
-  o português. Se o inglês precisar aparecer no Google, migrar para rotas `/en/...` (Next.js `[locale]`).
-- Dados vindos da API (bolsas, motivos de elegibilidade) aparecem como publicados; em inglês há um aviso. Ver decisão pendente 4 do contrato.
+- **Autenticação**: formulários validam, mas não criam sessão (aguarda decisão 1 do contrato).
+- **Envio de arquivos**: desligado (`NEXT_PUBLIC_UPLOADS_ENABLED`) até o backend definir o armazenamento.
+- **API local**: um único "estudante", sem login. Serve para desenvolver e demonstrar, não para produção.
+- "Enviada" em candidaturas é só uma marcação do estudante; a plataforma não envia nada aos provedores.
 
-## Formulários
+## Documentação
 
-- Erros aparecem junto ao campo (ligados por `aria-describedby`) e o foco vai para o primeiro campo inválido (perfil, login, cadastro).
-- **Não perder o que foi digitado:** edições ainda não salvas do perfil e dos rascunhos do assistente ficam no `sessionStorage`
-  **da aba** e são recuperadas ao voltar (com opção de descartar). A cópia some ao salvar, ao descartar ou ao fechar a aba.
-  Fechar a aba com alterações pendentes pede confirmação. Senhas nunca são guardadas.
+| Documento | Para quê |
+|---|---|
+| [`docs/api-contract.md`](docs/api-contract.md) | Contrato com o backend: endpoints, campos, erros e **decisões pendentes**. Para o seu sócio. |
+| [`docs/git-guide.md`](docs/git-guide.md) | GitHub, branches, PRs e como ler o CI. |
+| [`docs/deploy-render.md`](docs/deploy-render.md) · [`docs/deploy-checklist.md`](docs/deploy-checklist.md) | Primeira publicação e verificação a cada deploy. |
+| [`docs/accessibility.md`](docs/accessibility.md) | O que é testado, contraste medido, correções e testes manuais pendentes. |
+| [`docs/performance.md`](docs/performance.md) · [`docs/lighthouse-report.md`](docs/lighthouse-report.md) | Orçamento de tamanho, imagens e Lighthouse. |
+| [`public/images/README.md`](public/images/README.md) | Quais fotos faltam e como adicioná-las. |
+| [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada fase, com roteiro de teste. |
 
-## Upload de documentos
-
-A interface de anexar arquivo (em cada item do checklist da candidatura) valida tipo (PDF, JPG, PNG, DOCX) e tamanho (10 MB).
-O envio real está **desligado** (`NEXT_PUBLIC_UPLOADS_ENABLED`) até o backend definir o armazenamento; enquanto isso, a tela diz
-claramente que o arquivo não saiu do computador. Proposta de endpoint em `docs/api-contract.md` ("Arquivos").
-
-## SEO
-
-`robots.txt` (bloqueia a área pessoal), `sitemap.xml` (páginas públicas + uma entrada por bolsa, lida da API a cada pedido),
-título/descrição/canonical por página, Open Graph, e dados estruturados `MonetaryGrant` (schema.org) na página de cada bolsa.
-Defina `NEXT_PUBLIC_SITE_URL` em produção para os endereços absolutos ficarem corretos.
-
-## Contrato com o backend
-
-[`docs/api-contract.md`](docs/api-contract.md) descreve endpoints, campos, erros e as **decisões pendentes** (autenticação, níveis,
-documentos, IA). A API local (`mock-api/server.mjs`) é a implementação de referência e tem testes próprios (`mock-api/server.test.mjs`).
-
-## Deploy
-
-Render: [`docs/deploy-render.md`](docs/deploy-render.md) e o blueprint [`render.yaml`](render.yaml) (frontend + API de demonstração).
-
-## Estrutura
+## Arquitetura
 
 ```
 src/
-  app/
-    (marketing)/   landing (hero com foto + seção de recursos)
-    (auth)/        login, register, forgot-password
-    (student)/     dashboard, scholarships, scholarships/[id], eligibility/[scholarshipId],
-                   applications, applications/[id], profile, assistant
-  components/      ui (Button, ButtonLink, Field, Badge, DeadlineBadge, DeadlineCard), feedback (Notice, EmptyState,
-                   ErrorState, Skeleton), media (Photo), layout
-  features/        landing, auth, scholarships, applications, eligibility, profile, assistant
-  i18n/            dicionários pt/en, provider, seletor de idioma, leitura do idioma no servidor
-  lib/             config, constants, services (escolha mock/API), api (client, guards, serviços), validation, utils,
-                   searchParams (filtros na URL), formDrafts, uploads, seo
-  mocks/           dados e serviços de demonstração (data/scholarships.json é compartilhado com a API local)
-  styles/          tokens.css, typography.css, patterns.module.css
-  test/            setup e dublês de teste
-  types/           contratos PROVISÓRIOS
-mock-api/          API local (Node puro, sem dependências) + testes do contrato
-e2e/               testes de ponta a ponta (Playwright)
-docs/              contrato da API, guia de Git, deploy no Render
+  app/            rotas: (marketing) landing · (auth) login/cadastro · (student) painel, bolsas, elegibilidade,
+                  candidaturas, perfil, assistente · robots, sitemap, ícones e imagem de compartilhamento
+  components/     ui (botões, campos, selos, prazo), feedback (avisos, estados, esqueletos), media (Photo), layout
+  features/       landing, auth, scholarships, applications, eligibility, profile, assistant
+  i18n/           dicionários pt/en, provider, seletor, leitura do idioma no servidor
+  lib/            config, services (mock ou API), api (cliente HTTP, validação das respostas, serviços), validation,
+                  searchParams, formDrafts, uploads, seo, securityHeaders, utils
+  mocks/          dados e serviços de demonstração (data/scholarships.json é compartilhado com a API local)
+  styles/         tokens (cores, espaçamentos), tipografia, padrões
+  types/          tipos do contrato (provisório)
+mock-api/         API local em Node puro, sem dependências, com testes do contrato
+e2e/              Playwright: fluxos, acessibilidade (axe), teclado, idiomas, segurança
+scripts/          dev-api, contraste, orçamento de tamanho, Lighthouse
+docs/             documentação acima
 ```
 
-Fluxo: página → componente de feature → serviço (`lib/services.ts`) → cliente HTTP (`lib/api/client.ts`) → API.
-Toda resposta da API passa por validação em tempo de execução (`lib/api/guards.ts`).
+Fluxo de dados: página → componente de feature → serviço (`lib/services.ts`) → cliente HTTP (`lib/api/client.ts`) → API.
+Toda resposta da API é validada em tempo de execução (`lib/api/guards.ts`) antes de chegar à tela.
 
-## O que é real e o que é demonstração
+### Decisões que vale conhecer
 
-- **Funciona com a API (local ou real):** busca, detalhe, elegibilidade (calculada no servidor), perfil, candidaturas
-  (checklist, notas, linha do tempo) e rascunhos do assistente, com persistência.
-- **Ainda demonstração:** autenticação (formulários só exibem aviso). O assistente organiza a estrutura dos documentos, **sem IA**.
-- **No navegador:** só o cookie de idioma e cópias temporárias de formulários não salvos no `sessionStorage` da aba (ver "Formulários").
-  Nada vai para o `localStorage`.
-- **Elegibilidade:** o frontend só exibe o resultado e os motivos; não calcula nem mostra probabilidades.
-- "Enviada" em candidaturas é só o que o estudante marcou; a plataforma não envia candidaturas.
+- **Idioma por cookie** (`gs_locale`), mesmas URLs. Simples, mas só o português é indexado; para indexar o inglês, migrar para `/en/...`.
+  Textos em `src/i18n/dictionaries/pt.ts` (fonte da verdade) e `en.ts`; um teste garante que as chaves são idênticas.
+- **No navegador** ficam apenas o cookie de idioma e cópias temporárias de formulários não salvos no `sessionStorage` da aba
+  (apagadas ao salvar, descartar ou fechar a aba). Nada vai para o `localStorage`; senhas nunca são guardadas.
+- **Elegibilidade** é sempre calculada pelo backend; o frontend só apresenta, sem probabilidades.
+- **404 real**: rotas de detalhe não têm `loading.tsx` e os metadados são resolvidos antes de a página ser transmitida.
+- **Segurança**: Content Security Policy (libera só a origem da API), HSTS, `X-Frame-Options: DENY`, `nosniff`, sem `X-Powered-By`
+  (`src/lib/securityHeaders.ts`).
 
-## Observações
+## Pendências fora do frontend
 
-- Fotos: veja [`public/images/README.md`](public/images/README.md). Faltam `building.jpg`, `library.jpg` e `campus.jpg`
-  (a interface mostra painéis provisórios até lá) e o hero tem só 768 px de largura.
-- Marca provisória: monograma "G" em `src/app/icon.svg`, `apple-icon.tsx` e imagem de compartilhamento em `src/lib/brand/BrandCard.tsx`.
-- Rotas de detalhe e elegibilidade não têm `loading.tsx` de propósito: assim uma bolsa inexistente devolve **HTTP 404** de verdade.
+1. Respostas do backend às decisões do contrato (autenticação, níveis, idioma dos dados, arquivos, IA).
+2. Fotos `building.jpg`, `library.jpg`, `campus.jpg` e hero em alta resolução, com licença confirmada.
+3. Logo definitivo, páginas de privacidade/termos, domínio próprio.

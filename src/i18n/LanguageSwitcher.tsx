@@ -29,7 +29,8 @@ export function LanguageSwitcher({ tone = "light" }: { tone?: "light" | "dark" }
           lang={code === "pt" ? "pt-BR" : "en"}
           className={styles.option}
           aria-pressed={code === locale}
-          aria-label={t.common.languageNames[code]}
+          // O nome acessível começa pelo texto visível ("PT"), para quem usa comando de voz (WCAG 2.5.3).
+          aria-label={`${code.toUpperCase()} · ${t.common.languageNames[code]}`}
           onClick={() => choose(code)}
         >
           {code.toUpperCase()}

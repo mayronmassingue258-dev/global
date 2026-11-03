@@ -11,7 +11,7 @@ updates:
       next-react:
         patterns: ["next", "react", "react-dom", "eslint-config-next", "@types/react", "@types/react-dom"]
       testes:
-        patterns: ["vitest", "@vitest/*", "@testing-library/*", "@playwright/test", "jsdom", "@vitejs/*"]
+        patterns: ["vitest", "@vitest/*", "@testing-library/*", "@playwright/test", "playwright-core", "@axe-core/*", "jsdom", "@vitejs/*"]
       outros:
         patterns: ["*"]
         update-types: ["minor", "patch"]

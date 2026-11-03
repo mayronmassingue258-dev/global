@@ -4,7 +4,7 @@ import { getT } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
-  return { title: t.meta.titles.register, robots: { index: false } };
+  return { title: t.meta.titles.register, description: t.auth.registerText };
 }
 
 export default async function Page() {

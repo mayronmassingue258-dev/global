@@ -36,7 +36,7 @@ export async function Hero() {
         </ul>
 
         <div className={styles.photoWrap}>
-          <Image className={styles.photo} src="/images/hero-student-skyline.jpg" alt="" fill priority sizes="(min-width: 1152px) 700px, 100vw" />
+          <Image className={styles.photo} src="/images/hero-student-skyline.jpg" alt="" fill priority fetchPriority="high" sizes="(min-width: 1152px) 700px, 100vw" />
         </div>
       </div>
     </section>

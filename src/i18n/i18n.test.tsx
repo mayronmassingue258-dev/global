@@ -66,14 +66,14 @@ describe("LanguageSwitcher", () => {
     const refresh = vi.fn();
     vi.mocked(useRouter).mockReturnValue({ refresh, push: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() });
     render(<I18nProvider locale="pt"><LanguageSwitcher /></I18nProvider>);
-    expect(screen.getByRole("button", { name: "Português" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "PT · Português" })).toHaveAttribute("aria-pressed", "true");
 
-    await userEvent.click(screen.getByRole("button", { name: "English" }));
+    await userEvent.click(screen.getByRole("button", { name: "EN · English" }));
     expect(document.cookie).toContain("gs_locale=en");
     expect(document.documentElement.lang).toBe("en");
     expect(refresh).toHaveBeenCalledOnce();
 
-    await userEvent.click(screen.getByRole("button", { name: "Português" }));
+    await userEvent.click(screen.getByRole("button", { name: "PT · Português" }));
     expect(refresh).toHaveBeenCalledOnce();
   });
 });

@@ -15,8 +15,11 @@ Este guia publica **duas** aplicações no [Render](https://render.com), na regi
 
 1. Suba o projeto para o GitHub (veja [git-guide.md](./git-guide.md)) com o arquivo `render.yaml` na raiz.
 2. No Render: **New → Blueprint**, conecte o GitHub e escolha o repositório. O Render lê o `render.yaml` e mostra os dois serviços.
-3. Ele pede o valor de `NEXT_PUBLIC_API_BASE_URL`. Como a URL da API só existe depois do deploy, use o nome previsto:
-   `https://globalscholar-api-demo.onrender.com/api` → **Apply**.
+3. Ele pede dois valores. Como as URLs só existem depois do deploy, use os nomes previstos:
+   - `NEXT_PUBLIC_API_BASE_URL` = `https://globalscholar-api-demo.onrender.com/api`
+   - `NEXT_PUBLIC_SITE_URL` = `https://globalscholar-web.onrender.com`
+
+   → **Apply**.
 4. Quando os dois ficarem *Live*, abra a URL da API + `/api/health`. Deve aparecer `{"ok":true}`.
    - Se o Render tiver dado outro endereço à API (ex.: com sufixo), copie a URL real, atualize `NEXT_PUBLIC_API_BASE_URL` em
      **globalscholar-web → Environment** e faça **Manual Deploy → Clear build cache & deploy** (a variável entra no build).
@@ -36,5 +39,6 @@ A interface exibe o aviso "Modo demonstração" e nada é gravado.
 | Funciona no servidor, falha no navegador (erro de CORS no console) | `CORS_ORIGIN` diferente da URL do frontend (sem barra no fim). |
 | Mudei a variável e nada mudou | Variáveis `NEXT_PUBLIC_*` são gravadas no build: faça *Clear build cache & deploy*. |
 | Build falha com "Cannot find module 'typescript'" | O comando de build precisa de `npm ci --include=dev`. |
+| Mudei a URL da API e as páginas dão erro de rede no console ("Content Security Policy") | A CSP libera só a origem configurada no build: faça *Clear build cache & deploy* depois de mudar a variável. |
 
-A lista completa de verificação para produção (domínio, monitoramento, cabeçalhos de segurança, Lighthouse) entra na Fase 4.
+A verificação a cada publicação (e antes do lançamento público) está em [deploy-checklist.md](./deploy-checklist.md).

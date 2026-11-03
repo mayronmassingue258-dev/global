@@ -1,5 +1,40 @@
 # Registro de mudanças
 
+## 1.5.0 — Fase 4: qualidade de produção (2026-11-02)
+
+### Novo
+- **Acessibilidade automática**: axe-core (WCAG 2.2 A/AA) em 14 telas × 2 idiomas e 5 estados difíceis; teste de **navegação só com
+  teclado** com verificação de foco visível; `npm run contrast` mede os pares de cor da paleta. Tudo no CI. Ver `docs/accessibility.md`.
+- **Performance**: orçamento de JS/CSS por página (`npm run size`, no CI), Lighthouse documentado (`npm run lighthouse`,
+  `docs/lighthouse-report.md`): 95–100 em performance e 100 em acessibilidade, boas práticas e SEO.
+- **Segurança**: Content Security Policy, HSTS, `X-Frame-Options`, `nosniff`, `Permissions-Policy`, sem `X-Powered-By`.
+- **Entrega**: README final, `docs/deploy-checklist.md` (Render) e guia do Render atualizado.
+
+### Corrigido
+- Contraste do verde dos selos (4,44:1 → 5,42:1).
+- Seletor de idioma: nome acessível não continha o texto visível (comando de voz).
+- Ordem de títulos na busca (h1 → h3).
+- `<meta name="description">` era transmitida depois do `</head>` (Next 15): pré-visualizações de links e Lighthouse não a viam.
+- Foto do hero sem `fetchpriority=high` (landing no celular: Lighthouse 84 → 95).
+- `/register` estava no sitemap e marcado como não indexável ao mesmo tempo.
+- Versões duplicadas do `playwright-core` (axe e Playwright) alinhadas.
+
+### Como testar esta entrega
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+npm run check
+```
+
+```bash
+npm run test:e2e
+```
+
+Depois, siga `docs/deploy-render.md` para publicar e `docs/deploy-checklist.md` para conferir.
+
 ## 1.4.0 — Fase 3: funcionalidade (2026-11-02)
 
 ### Novo
