@@ -5,7 +5,8 @@
 .photo[data-photo-fallback] { display: none; }
 .mark { font-family: var(--font-serif); font-size: 3rem; line-height: 1; color: rgba(255, 255, 255, 0.85); }
 @media (min-width: 960px) {
-  .intro { grid-template-columns: minmax(0, 1fr) 420px; gap: var(--space-12); }
-  .photo { aspect-ratio: 4 / 3; }
+  /* Coluna estreita e foto quadrada: compatível com a foto da biblioteca (≈300 px de largura no arquivo) sem deixar vazio ao lado do título. */
+  .intro { grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-12); }
+  .photo { aspect-ratio: 1 / 1; }
   .photo[data-photo-fallback] { display: grid; }
 }

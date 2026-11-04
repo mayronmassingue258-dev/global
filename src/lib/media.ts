@@ -6,9 +6,9 @@
  */
 export const PHOTOS = {
   hero: { file: "hero-student-skyline.jpg", alt: "", position: "50% 40%" },
-  building: { file: "building.jpg", alt: "Fachada de um prédio universitário", position: "50% 50%" },
-  library: { file: "library.jpg", alt: "Mesa de estudo em uma biblioteca", position: "50% 50%" },
-  campus: { file: "campus.jpg", alt: "Estudantes caminhando por um campus universitário", position: "50% 60%" }
+  building: { file: "building.jpg", alt: "Fachada curva de um prédio universitário moderno", position: "40% 50%" },
+  library: { file: "library.jpg", alt: "Estudantes trabalhando numa biblioteca com janelas altas", position: "45% 60%" },
+  campus: { file: "campus.jpg", alt: "Estudantes caminhando pelo gramado de um campus universitário ao pôr do sol", position: "50% 45%" }
 } as const;
 
 export type PhotoKey = keyof typeof PHOTOS;

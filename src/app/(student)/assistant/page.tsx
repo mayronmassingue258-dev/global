@@ -20,7 +20,7 @@ export default async function AssistantPage() {
           <h1 className="t-title">{t.assistant.title}</h1>
           <p className="t-secondary">{t.assistant.text}</p>
         </div>
-        <Photo name="library" alt="" className={styles.photo} sizes="(min-width: 960px) 420px, 100vw" priority fallback={<span className={styles.mark}>Aa</span>} />
+        <Photo name="library" alt="" className={styles.photo} sizes="(min-width: 960px) 320px, 100vw" priority fallback={<span className={styles.mark}>Aa</span>} />
       </div>
       {/* useSearchParams (rascunho aberto na URL) exige um limite de Suspense. */}
       <Suspense fallback={<ListSkeleton rows={3} label={t.assistant.loading} />}>

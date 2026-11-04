@@ -112,7 +112,7 @@ const pt = {
     closingCta: "Criar conta gratuita"
   },
   photos: {
-    building: "Fachada de um prédio universitário",
+    building: "Fachada curva de um prédio universitário moderno",
     library: "Mesa de estudo em uma biblioteca",
     campus: "Estudantes caminhando por um campus universitário"
   },

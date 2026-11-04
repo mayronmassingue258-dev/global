@@ -8,7 +8,7 @@ export async function Closing() {
   return (
     <section className={`container ${styles.wrap}`} aria-labelledby="closing-title">
       <div className={styles.band}>
-        <Photo name="campus" alt="" className={styles.photo} sizes="(min-width: 1152px) 1088px, 100vw" />
+        <Photo name="campus" alt="" className={styles.photo} sizes="(min-width: 768px) 420px, 100vw" />
         <div className={styles.copy}>
           <h2 id="closing-title" className="t-title">{t.landing.closingTitle}</h2>
           <p>{t.landing.closingText}</p>

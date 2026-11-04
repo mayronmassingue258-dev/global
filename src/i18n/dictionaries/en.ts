@@ -110,7 +110,7 @@ const en: Dictionary = {
     closingCta: "Create a free account"
   },
   photos: {
-    building: "Front of a university building",
+    building: "Curved facade of a modern university building",
     library: "Study desk in a library",
     campus: "Students walking across a university campus"
   },

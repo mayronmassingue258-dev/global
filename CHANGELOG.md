@@ -1,5 +1,13 @@
 # Registro de mudanças
 
+## 1.5.1 — Fotos (2026-11-04)
+
+- Fotos do mosaico do projeto em uso: prédio curvo em "Como funciona", campus ao pôr do sol no fechamento da landing,
+  biblioteca no assistente (`public/images/`).
+- Fechamento da landing em duas colunas (texto + foto), em vez de foto de fundo atrás do texto: contraste garantido e a foto
+  aparece num tamanho compatível com o arquivo. Foto do assistente em coluna quadrada mais estreita.
+- As fotos foram recortadas de um mosaico (≈300–380 px de largura): substituir pelos originais deixa tudo mais nítido, sem mudar código.
+
 ## 1.5.0 — Fase 4: qualidade de produção (2026-11-02)
 
 ### Novo
