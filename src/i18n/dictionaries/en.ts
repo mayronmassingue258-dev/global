@@ -31,6 +31,7 @@ const en: Dictionary = {
     cancel: "Cancel",
     optional: "(optional)",
     errorPrefix: "Error:",
+    showPassword: "Show password",
     newTab: "(opens in a new tab)",
     dateInvalid: "Date not provided",
     demoBanner: "Demo mode · sample data, no server",

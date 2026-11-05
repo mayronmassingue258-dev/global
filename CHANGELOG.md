@@ -1,5 +1,11 @@
 # Registro de mudanças
 
+## 1.5.2 — Senha (2026-11-05)
+
+- Campo de senha (login e cadastro) sempre oculto por padrão, com botão de olho para mostrar/ocultar quando a pessoa quiser.
+  A senha volta a ficar oculta ao enviar o formulário; com ela visível, corretor e maiúscula automática ficam desligados.
+  Funciona pelo teclado e é anunciado por leitores de tela ("Mostrar senha, pressionado").
+
 ## 1.5.1 — Fotos (2026-11-04)
 
 - Fotos do mosaico do projeto em uso: prédio curvo em "Como funciona", campus ao pôr do sol no fechamento da landing,

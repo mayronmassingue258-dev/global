@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/Field";
+import { PasswordField, TextField } from "@/components/ui/Field";
 import { Notice } from "@/components/feedback/States";
 import { useT } from "@/i18n/I18nProvider";
 import { validateAuth, type AuthErrors, type AuthField, type AuthMode } from "@/lib/validation/auth";
@@ -60,9 +60,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       {mode === "register" && <TextField label={t.auth.name} autoComplete="name" required {...bind("name")} />}
       <TextField label={t.auth.email} type="email" autoComplete="email" required {...bind("email")} />
       {mode !== "forgot" && (
-        <TextField
+        <PasswordField
           label={t.auth.password}
-          type="password"
           autoComplete={mode === "register" ? "new-password" : "current-password"}
           helper={mode === "register" ? t.auth.passwordHelper : undefined}
           required

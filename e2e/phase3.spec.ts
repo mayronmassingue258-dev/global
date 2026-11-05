@@ -110,3 +110,17 @@ test("cabeçalhos de segurança em produção", async ({ request, api: _api }) =
   expect(h["x-content-type-options"]).toBe("nosniff");
   expect(h["x-powered-by"]).toBeUndefined();
 });
+
+test("senha: oculta por padrão, botão de olho mostra e oculta (inclusive pelo teclado)", async ({ page, api: _api }) => {
+  await page.goto("/register");
+  const password = page.getByLabel("Senha", { exact: true });
+  await password.fill("minhaSenhaForte");
+  await expect(password).toHaveAttribute("type", "password");
+  await page.keyboard.press("Tab");
+  const toggle = page.getByRole("button", { name: "Mostrar senha" });
+  await expect(toggle).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(password).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Criar conta gratuita" }).click();
+  await expect(password).toHaveAttribute("type", "password");
+});

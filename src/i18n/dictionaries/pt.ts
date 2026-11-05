@@ -33,6 +33,7 @@ const pt = {
     cancel: "Cancelar",
     optional: "(opcional)",
     errorPrefix: "Erro:",
+    showPassword: "Mostrar senha",
     newTab: "(abre em nova aba)",
     dateInvalid: "Data não informada",
     demoBanner: "Modo demonstração · dados fictícios, sem servidor",

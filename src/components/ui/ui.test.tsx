@@ -55,3 +55,32 @@ describe("Field", () => {
     expect(screen.getByLabelText("Nível")).toHaveValue("M");
   });
 });
+
+describe("PasswordField", () => {
+  it("começa oculto, mostra só quando pedido e volta a ocultar ao enviar o formulário", async () => {
+    const { PasswordField } = await import("./Field");
+    const user = userEvent.setup();
+    render(
+      <form onSubmit={(e) => e.preventDefault()}>
+        <PasswordField label="Senha" name="password" />
+        <button type="submit">Enviar</button>
+      </form>
+    );
+    const input = screen.getByLabelText("Senha");
+    const toggle = screen.getByRole("button", { name: "Mostrar senha" });
+    expect(input).toHaveAttribute("type", "password");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(input).toHaveAttribute("autocorrect", "off");
+    expect(input).toHaveAttribute("spellcheck", "false");
+
+    await user.type(input, "segredo123");
+    await user.click(toggle);
+    expect(input).toHaveAttribute("type", "text");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(input).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveValue("segredo123");
+  });
+});
