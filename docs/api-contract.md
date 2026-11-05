@@ -4,8 +4,9 @@
 > Este documento descreve o que o **frontend espera hoje**. Nada aqui está decidido até o backend confirmar.
 > Para cada item, responda **OK**, **mudar para…** ou **não vamos ter**. Mudanças entram por pull request neste arquivo.
 
-A implementação de referência deste contrato é o servidor local `mock-api/server.mjs` (rode `npm run mock-api`).
-Os testes automáticos em `mock-api/server.test.mjs` verificam cada regra abaixo; se o contrato mudar, eles mudam junto.
+**Implementação:** o backend real está em [`backend/`](../backend) (Fastify + PostgreSQL), com testes de contrato em
+`backend/test/contract.test.ts`. A API local `mock-api/server.mjs` continua como versão sem base de dados para desenvolvimento rápido.
+Os testes de ponta a ponta do frontend rodam contra o backend real. Se o contrato mudar, os três mudam no mesmo pull request.
 
 ---
 

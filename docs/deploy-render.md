@@ -11,6 +11,24 @@ Este guia publica **duas** aplicações no [Render](https://render.com), na regi
 > No plano gratuito o disco é temporário: os dados somem a cada novo deploy ou reinício, e o serviço "dorme" após ~15 min sem uso
 > (a primeira visita depois disso demora ~1 min). Quando o backend do seu sócio existir, só a variável `NEXT_PUBLIC_API_BASE_URL` muda.
 
+## Atualização: backend real com PostgreSQL (B1)
+
+Desde a versão 2.0.0, o `render.yaml` cria também a base de dados **`globalscholar-db`** (PostgreSQL), e o serviço
+`globalscholar-api-demo` passa a rodar o **backend real** (`backend/`), não mais a API de demonstração. O nome e a URL continuam
+os mesmos, então o frontend não precisa de nenhuma mudança.
+
+Quando esta versão chegar ao `main`:
+
+1. No Render, abra **Blueprints → (o seu blueprint)**. Se aparecer **"Sync"** ou alterações pendentes, clique para aplicar:
+   o Render cria a base `globalscholar-db` e atualiza o serviço da API.
+2. Aguarde o serviço `globalscholar-api-demo` ficar *Live*. Na primeira subida ele aplica as migrações e cria as bolsas de demonstração.
+3. Confira `https://globalscholar-api-demo.onrender.com/api/health` → `{"ok":true}` (agora isso também prova que a base responde).
+4. Se o endereço do frontend não for `https://globalscholar-web.onrender.com`, ajuste `CORS_ORIGIN` em
+   **globalscholar-api-demo → Environment**.
+
+> **Atenção ao plano gratuito da base:** o Render **apaga** bases gratuitas 30 dias após a criação. Para dados que não podem
+> se perder, mude o plano para *Basic* (≈ 6 USD/mês, com backups diários) em **globalscholar-db → Settings** antes disso.
+
 ## Passo a passo
 
 1. Suba o projeto para o GitHub (veja [git-guide.md](./git-guide.md)) com o arquivo `render.yaml` na raiz.

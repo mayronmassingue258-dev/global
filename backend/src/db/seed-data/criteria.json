@@ -1,0 +1,49 @@
+{
+  "amostra-001": {
+    "acceptedLevels": [
+      "Graduação",
+      "Mestrado"
+    ],
+    "needs": [
+      "languages"
+    ]
+  },
+  "amostra-002": {
+    "acceptedLevels": [
+      "Mestrado",
+      "Doutorado"
+    ],
+    "needs": [
+      "grade",
+      "languages"
+    ]
+  },
+  "amostra-003": {
+    "acceptedLevels": [
+      "Graduação"
+    ],
+    "needs": [
+      "grade"
+    ]
+  },
+  "amostra-004": {
+    "acceptedLevels": [
+      "Graduação",
+      "Mestrado"
+    ],
+    "needs": []
+  },
+  "amostra-005": {
+    "acceptedLevels": [],
+    "needs": []
+  },
+  "amostra-006": {
+    "acceptedLevels": [
+      "Graduação",
+      "Mestrado"
+    ],
+    "needs": [
+      "languages"
+    ]
+  }
+}

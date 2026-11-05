@@ -1,27 +1,45 @@
 # Blueprint do Render (https://render.com/docs/blueprint-spec).
-# Cria dois serviços: a API de DEMONSTRAÇÃO (servidor local) e o frontend Next.js.
-# Passo a passo em docs/deploy-render.md.
+# Cria: a base de dados PostgreSQL, a API (backend/) e o frontend Next.js. Passo a passo em docs/deploy-render.md.
+databases:
+  - name: globalscholar-db
+    # Plano gratuito: a base é APAGADA 30 dias após a criação. Antes de ter estudantes reais, mude para "basic-256mb" (com backups).
+    plan: free
+    region: frankfurt
+    databaseName: globalscholar
+    user: globalscholar
+    # Só os serviços do Render acessam a base (nenhum IP externo).
+    ipAllowList: []
+
 services:
+  # O nome continua "globalscholar-api-demo" para não mudar a URL que o frontend já usa;
+  # desde a B1 este serviço roda o backend REAL (backend/) com PostgreSQL, não mais a API de demonstração.
   - type: web
     name: globalscholar-api-demo
     runtime: node
     plan: free
     region: frankfurt
-    # O servidor local não tem dependências: não é preciso instalar nada.
-    buildCommand: node --version
-    startCommand: node mock-api/server.mjs
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    # Aplica as migrações pendentes e inicia a API.
+    startCommand: npm run start:prod
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: HOST
-        value: 0.0.0.0
-      # Troque "*" pela URL do frontend depois do primeiro deploy, ex.: https://globalscholar-web.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: globalscholar-db
+          property: connectionString
+      # URL exata do frontend (sem barra no fim). Mude aqui se o Render der outro endereço ao frontend.
       - key: CORS_ORIGIN
-        value: "*"
-      # Nunca deixe a rota de reset aberta num servidor público.
-      - key: MOCK_API_ALLOW_RESET
-        value: "0"
+        value: https://globalscholar-web.onrender.com
+      # Bolsas FICTÍCIAS de demonstração. Mude para "0" quando houver bolsas reais cadastradas.
+      - key: SEED_DEMO_DATA
+        value: "1"
+      - key: LOG_LEVEL
+        value: info
 
   - type: web
     name: globalscholar-web
@@ -39,7 +57,7 @@ services:
         value: "1"
       - key: NEXT_PUBLIC_DATA_MODE
         value: api
-      # Preencha no painel do Render com a URL da API + /api, ex.: https://globalscholar-api-demo.onrender.com/api
+      # URL da API + /api, ex.: https://globalscholar-api-demo.onrender.com/api
       # É lida no BUILD: depois de mudar, faça "Manual Deploy → Clear build cache & deploy".
       - key: NEXT_PUBLIC_API_BASE_URL
         sync: false

@@ -1,6 +1,6 @@
 {
   "name": "global-scholarship-frontend",
-  "version": "1.5.2",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,9 @@
     "check": "npm run typecheck && npm run lint && npm run contrast && npm run test && npm run build && npm run size",
     "size": "node scripts/check-bundle-size.mjs",
     "contrast": "node scripts/contrast.mjs",
-    "lighthouse": "node scripts/lighthouse.mjs"
+    "lighthouse": "node scripts/lighthouse.mjs",
+    "dev:full": "node scripts/dev-full.mjs",
+    "backend:test": "npm --prefix backend test"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

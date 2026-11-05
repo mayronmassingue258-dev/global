@@ -1,5 +1,20 @@
 # Registro de mudanças
 
+## 2.0.0 — Backend B1: API real com PostgreSQL (2026-11-05)
+
+### Novo
+- **`backend/`**: API em Node.js + TypeScript + Fastify com **PostgreSQL** (Drizzle ORM), implementando todo o contrato atual:
+  bolsas (busca, filtros, paginação estável), elegibilidade calculada a partir do perfil, perfil, candidaturas com checklist,
+  notas e linha do tempo (em transação), e rascunhos.
+- **Base de dados** com 8 tabelas, chaves estrangeiras em cascata, restrições de valores e **migrações SQL versionadas**.
+- **Testes**: 27 testes do backend contra PostgreSQL real (inclui os testes de contrato) e os **82 testes de ponta a ponta do
+  frontend agora rodam contra o backend real**. O CI ganhou um job de backend com PostgreSQL e verifica que nenhuma migração ficou sem gerar.
+- **Desenvolvimento local**: `docker-compose.yml` (PostgreSQL) e `npm run dev:full` (backend + site).
+- **Render**: o blueprint cria a base `globalscholar-db` e o serviço `globalscholar-api-demo` passa a rodar o backend real.
+
+### Ainda não
+- Contas e login (B2). Até lá, todas as requisições usam um "estudante de demonstração".
+
 ## 1.5.2 — Senha (2026-11-05)
 
 - Campo de senha (login e cadastro) sempre oculto por padrão, com botão de olho para mostrar/ocultar quando a pessoa quiser.

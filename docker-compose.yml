@@ -1,0 +1,19 @@
+# PostgreSQL para desenvolvimento local do backend. Uso: `docker compose up -d`
+# Os dados ficam no volume "pgdata" (sobrevivem a reinícios). Para apagar tudo: `docker compose down -v`
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: globalscholar
+      POSTGRES_PASSWORD: globalscholar
+      POSTGRES_DB: globalscholar
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U globalscholar"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:
