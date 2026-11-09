@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "check": "npm run typecheck && npm run lint && npm run contrast && npm run test && npm run build && npm run size",
+    "check": "npm run typecheck && npm run lint && npm run contrast && npm run test:coverage && npm run build && npm run size",
     "size": "node scripts/check-bundle-size.mjs",
     "contrast": "node scripts/contrast.mjs",
     "lighthouse": "node scripts/lighthouse.mjs",
