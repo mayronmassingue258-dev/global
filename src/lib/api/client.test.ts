@@ -57,7 +57,7 @@ describe("apiRequest", () => {
 
 describe("safeMessage", () => {
   it.each([
-    [401, "sessão"], [403, "permissão"], [404, "não encontrado"], [422, "campos"], [429, "Muitas"], [500, "servidor"], [418, "Não foi possível"]
+    [401, "Entre"], [403, "permissão"], [404, "não encontrado"], [422, "campos"], [429, "Muitas"], [500, "servidor"], [418, "Não foi possível"]
   ])("status %i", (status, fragment) => {
     expect(safeMessage(status)).toContain(fragment);
   });

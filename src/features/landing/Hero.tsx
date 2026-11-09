@@ -4,10 +4,11 @@ import { Search } from "lucide-react";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
 import { getT } from "@/i18n/server";
+import { getCurrentUser } from "@/lib/api/serverAuth";
 import styles from "./Hero.module.css";
 
 export async function Hero() {
-  const t = await getT();
+  const [t, user] = await Promise.all([getT(), getCurrentUser()]);
   return (
     <section className={`container ${styles.wrap}`} aria-labelledby="hero-title">
       <div className={styles.card}>
@@ -18,8 +19,14 @@ export async function Hero() {
             <a href="#como-funciona">{t.nav.howItWorks}</a>
           </nav>
           <span className={styles.lang}><LanguageSwitcher tone="dark" /></span>
-          <Link href="/login" className={styles.signIn}>{t.nav.signIn}</Link>
-          <ButtonLink href="/register" variant="inverse" size="sm">{t.nav.getStarted}</ButtonLink>
+          {user ? (
+            <ButtonLink href="/dashboard" variant="inverse" size="sm">{t.nav.goToDashboard}</ButtonLink>
+          ) : (
+            <>
+              <Link href="/login" className={styles.signIn}>{t.nav.signIn}</Link>
+              <ButtonLink href="/register" variant="inverse" size="sm">{t.nav.getStarted}</ButtonLink>
+            </>
+          )}
         </header>
 
         <h1 id="hero-title" className={`t-display ${styles.title}`}>{t.landing.title}</h1>

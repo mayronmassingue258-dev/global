@@ -1,8 +1,7 @@
-# Contrato da API — GlobalScholar (PROVISÓRIO)
+# Contrato da API — GlobalScholar
 
-> **Versão 0.4 · 2026-11-02 · Status: aguardando confirmação do backend.**
-> Este documento descreve o que o **frontend espera hoje**. Nada aqui está decidido até o backend confirmar.
-> Para cada item, responda **OK**, **mudar para…** ou **não vamos ter**. Mudanças entram por pull request neste arquivo.
+> **Versão 1.0 · 2026-11-09 · Status: implementado** (frontend + `backend/`). Mudanças entram por pull request neste arquivo,
+> junto com o código e os testes de contrato. Itens ainda em aberto estão na seção "Decisões pendentes".
 
 **Implementação:** o backend real está em [`backend/`](../backend) (Fastify + PostgreSQL), com testes de contrato em
 `backend/test/contract.test.ts`. A API local `mock-api/server.mjs` continua como versão sem base de dados para desenvolvimento rápido.
@@ -46,7 +45,7 @@ Toda resposta de erro (`4xx`/`5xx`) usa o mesmo envelope:
 |---|---|---|---|
 | 400 | `invalid_query` | Parâmetros de busca inválidos | Mensagem genérica |
 | 400 | `invalid_json` / `invalid_body` | Corpo não é JSON / não é objeto | Mensagem genérica |
-| 401 | `unauthenticated` | Sem sessão ou sessão expirada | "Sua sessão expirou. Entre novamente." |
+| 401 | `unauthenticated` / `invalid_credentials` | Sem sessão válida / login errado | Em área privada, leva ao login e volta depois; em página pública, mostra a versão para visitantes |
 | 403 | `forbidden` | Sem permissão | "Você não tem permissão…" |
 | 404 | `not_found` | Recurso inexistente | Bolsa → página 404. Remover candidatura → tratado como sucesso. |
 | 409 | `conflict` | (reservado) | "Este registro já existe." |
@@ -59,6 +58,36 @@ Toda resposta de erro (`4xx`/`5xx`) usa o mesmo envelope:
 
 Se a resposta não tiver o formato esperado (inclusive sucesso com JSON diferente do descrito aqui), o frontend trata como erro
 `502 unexpected_response` e **não** mostra dados parciais nem troca por dados fictícios.
+
+---
+
+## Contas e sessão
+
+A sessão é um **cookie `gs_session`** (`HttpOnly`, `SameSite=Lax`, `Secure` em produção, 30 dias renovados com o uso).
+O token fica só no cookie; a base guarda apenas o hash dele. O JavaScript do site nunca vê o token.
+
+**Mesmo domínio:** o navegador chama `/api/*` **do próprio site**, que repassa ao backend (`next.config.ts`, `API_INTERNAL_URL`).
+Assim o cookie é de primeira parte (navegadores bloqueiam cookies de terceiros, e `*.onrender.com` conta como domínios diferentes).
+As páginas renderizadas no servidor repassam o cookie do visitante ao chamar o backend.
+
+| Rota | Corpo | Resposta |
+|---|---|---|
+| `POST /auth/register` | `{ name, email, password }` | `201 { user }` + cookie. `409 email_taken` (`fields.email = "taken"`). `422`: `name` required/too_long (100), `email` required/invalid, `password` required/too_short (8)/too_long (200). |
+| `POST /auth/login` | `{ email, password }` | `200 { user }` + cookie. `401 invalid_credentials` — **igual** para e-mail inexistente e senha errada. |
+| `POST /auth/logout` | — | `204`, encerra a sessão e apaga o cookie. |
+| `GET /auth/me` | — | `200 { user }` ou `401 unauthenticated`. |
+| `POST /auth/forgot-password` | `{ email }` | **Sempre** `204` (não revela se a conta existe). Se existir, envia e-mail com link `APP_URL/reset-password?token=…` válido por 1 hora e uso único. |
+| `POST /auth/reset-password` | `{ token, password }` | `204`: troca a senha e **encerra todas as sessões** da conta. `400 invalid_token` (inexistente, usado ou vencido). |
+
+`user` = `{ id, email, name }`. E-mail é guardado em minúsculas; senhas com scrypt.
+
+**Exigem login** (`401 unauthenticated` sem sessão válida): `/profile`, `/applications/*`, `/drafts/*`, `/scholarships/{id}/eligibility`.
+**Públicas:** `/health`, `/scholarships`, `/scholarships/{id}`, `/auth/*`. Cada estudante só vê e altera os próprios dados:
+recursos de outra conta respondem `404`, como se não existissem.
+
+**Proteções:** alterações (`POST/PUT/PATCH/DELETE`) com cabeçalho `Origin` fora das origens do site → `403 forbidden_origin` (CSRF).
+Limite de **300 requisições/minuto por IP**, e **10/minuto** em `register`, `login`, `forgot-password` e `reset-password` → `429 rate_limited`
+com `retryAfter`.
 
 ---
 
@@ -274,29 +303,30 @@ O frontend salva automaticamente cerca de 1 segundo após o estudante parar de d
 
 ---
 
-## 7. Decisões pendentes (precisamos da sua resposta)
+## 7. Decisões
 
-1. **Autenticação.** Cookie de sessão `HttpOnly` (recomendado para Next.js, exige `credentials: "include"` e CORS com origem fixa) ou token `Bearer`? Quais rotas: `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/forgot-password`, `GET /auth/me`?
-2. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz? Códigos facilitam o inglês da Fase 3.
-3. **Paginação.** `page`/`pageSize` + `total` atende? Ou cursor?
-4. **Idioma dos dados.** A interface já tem português e inglês (cookie `gs_locale`). Bolsas e motivos de elegibilidade virão em mais de um
-   idioma? Proposta: o frontend envia `Accept-Language: pt` ou `en` e a API responde no idioma disponível. Hoje, em inglês, a interface
-   avisa que os detalhes da bolsa aparecem como publicados, em português.
-5. **ID de candidatura** próprio ou igual ao da bolsa?
-6. **Documentos (Fase 3).** Upload direto para a API (`multipart/form-data`) ou URL pré-assinada para armazenamento (S3 e afins)? Tipos e tamanho máximo aceitos?
-7. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming? A chave da IA fica **só** no backend.
-8. **Limites.** Haverá limite de requisições (`429`) e com qual cabeçalho (`Retry-After`)?
-9. **Versão.** Prefixo `/v1` na URL?
+**Decididas e implementadas:** sessão por cookie HttpOnly (seção "Contas"); paginação `page`/`pageSize` + `total`;
+id da candidatura = id da bolsa (uma por bolsa e por estudante); limites de requisições (seção "Contas"); sem prefixo de versão por enquanto
+(quando houver uma mudança incompatível, ela entra como `/v2` e a atual continua).
+
+**Em aberto:**
+
+1. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz?
+2. **Idioma dos dados.** Bolsas e motivos de elegibilidade em mais de um idioma? Proposta: `Accept-Language: pt|en` e a API responde no
+   idioma disponível. Hoje, em inglês, a interface avisa que os detalhes da bolsa aparecem como publicados, em português.
+3. **Documentos.** Armazenamento dos arquivos (etapa B3).
+4. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming. A chave da IA fica **só** no backend.
 
 ## 8. Fora do contrato
 
-- `POST /__reset` existe só no servidor local para os testes automáticos. Não implementar no backend real.
+- `POST /__reset` e `GET /__emails` existem só com `ALLOW_TEST_RESET=1` (testes automáticos). O backend se recusa a iniciar em produção com isso ligado.
 - `mock-api/criteria.json` são regras fictícias para o servidor local calcular elegibilidade; o backend real terá as suas.
 
 ## Histórico
 
 | Versão | Data | Mudança |
 |---|---|---|
+| 1.0 | 2026-11-09 | Contas e sessão por cookie, rotas privadas por estudante, proteções (CSRF, limites). Contrato implementado. |
 | 0.4 | 2026-11-02 | Proposta de envio de arquivos (desligada); proposta de idioma dos dados. |
 | 0.3 | 2026-11-02 | Candidatura com `documents`, `notes` e `timeline`; `GET /applications/{id}`; `PATCH` parcial; rascunhos (`/drafts`). |
 | 0.2 | 2026-11-02 | Envelope de erro, perfil, candidaturas, validação da busca, elegibilidade baseada no perfil. |

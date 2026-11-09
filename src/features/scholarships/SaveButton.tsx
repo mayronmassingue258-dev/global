@@ -1,6 +1,8 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { loginUrl } from "@/lib/auth/routes";
 import type { ScholarshipSummary } from "@/types";
 import { useApplications } from "@/features/applications/ApplicationsProvider";
 import { useT } from "@/i18n/I18nProvider";
@@ -14,6 +16,8 @@ export function SaveButton({ scholarship, variant = "tertiary", label: labelProp
   const t = useT();
   const label = labelProp ?? t.scholarships.save;
   const { isSaved, save, remove, status } = useApplications();
+  const router = useRouter();
+  const pathname = usePathname() ?? "/scholarships";
   const saved = isSaved(scholarship.id);
   const summary: ScholarshipSummary = { id: scholarship.id, title: scholarship.title, institution: scholarship.institution, deadline: scholarship.deadline };
   return (
@@ -23,8 +27,12 @@ export function SaveButton({ scholarship, variant = "tertiary", label: labelProp
       className={styles.saved}
       aria-pressed={saved}
       aria-label={t.scholarships.saveNamed(label, scholarship.title)}
-      disabled={status !== "ready"}
-      onClick={() => void (saved ? remove(summary.id) : save(summary))}
+      disabled={status === "loading" || status === "error"}
+      onClick={() => {
+        // Visitante: salvar exige conta; volta para esta página depois de entrar.
+        if (status === "anonymous") return router.push(loginUrl(pathname));
+        void (saved ? remove(summary.id) : save(summary));
+      }}
     >
       {label}
     </Button>

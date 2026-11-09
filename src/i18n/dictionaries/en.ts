@@ -19,7 +19,8 @@ const en: Dictionary = {
       assistant: "Document assistant",
       login: "Sign in",
       register: "Create account",
-      forgot: "Reset password"
+      forgot: "Reset password",
+      reset: "New password"
     }
   },
   common: {
@@ -53,7 +54,11 @@ const en: Dictionary = {
     getStarted: "Get started",
     footer: "Footer",
     createAccount: "Create account",
-    footerTagline: "Free for students."
+    footerTagline: "Free for students.",
+    goToDashboard: "Go to dashboard",
+    account: "Account",
+    signedInAs: (name: string) => `Signed in as ${name}`,
+    signOut: "Sign out"
   },
   states: {
     loadFailedTitle: "Couldn't load this",
@@ -124,13 +129,12 @@ const en: Dictionary = {
     registerText: "Create your workspace and organise your academic opportunities.",
     forgotLabel: "Account recovery",
     forgotTitle: "Forgot your password?",
-    forgotText: "Enter your email and we'll send instructions once the service is connected.",
+    forgotText: "Enter your account email and we'll send you a link to create a new password.",
     name: "Full name",
     email: "Email",
     password: "Password",
     passwordHelper: "At least 8 characters.",
     submit: { login: "Sign in", register: "Create free account", forgot: "Send instructions" },
-    demo: "Demo: sign-in isn't connected yet. It will be switched on once the backend contract is agreed.",
     forgotLink: "I forgot my password",
     toRegister: "No account yet? Create one",
     toLogin: "Already have an account? Sign in",
@@ -142,7 +146,21 @@ const en: Dictionary = {
       passwordRequired: "Enter your password.",
       passwordShort: "The password must have at least 8 characters."
     },
-    fixErrors: "Fix the highlighted fields to continue."
+    fixErrors: "Fix the highlighted fields to continue.",
+    invalidCredentials: "Incorrect email or password.",
+    emailTaken: "An account with this email already exists. Sign in or reset your password.",
+    tooMany: "Too many attempts. Wait a minute and try again.",
+    failed: "Couldn't complete this right now. Try again in a moment.",
+    forgotSent: "If there's an account with this email, we've sent a link to create a new password. Check your spam folder too.",
+    resetLabel: "New password",
+    resetTitle: "Choose a new password.",
+    resetText: "Once saved, you'll sign in again with the new password on all your devices.",
+    newPassword: "New password",
+    resetSubmit: "Save new password",
+    resetDone: "Password changed. Sign in with your new password.",
+    resetInvalid: "This link is no longer valid (already used or older than 1 hour). Request a new one.",
+    requestNewLink: "Request a new link",
+    goToLogin: "Go to sign in"
   },
   dashboard: {
     eyebrow: "Your workspace",
@@ -229,6 +247,8 @@ const en: Dictionary = {
   },
   checklist: {
     unavailable: "Your profile check isn't available right now.",
+    signIn: "Sign in to see what your profile is missing for this scholarship.",
+    signInLink: "Sign in",
     nonePending: "Nothing missing from your profile for this scholarship.",
     pending: (n: number) => `${n} ${n === 1 ? "item" : "items"} missing from your profile.`,
     complete: "Complete profile",

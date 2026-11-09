@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
   // Sem isso, o Next 15 coloca <meta name="description"> no fim do HTML para navegadores comuns, e robôs de
   // pré-visualização de links (WhatsApp, LinkedIn…) e o Lighthouse não o encontram.
   htmlLimitedBots: /.*/,
+  /**
+   * /api/* do site é repassado ao backend. Assim o navegador só fala com o domínio do site e o cookie de sessão é
+   * de primeira parte (Safari e outros bloqueiam cookies de terceiros; *.onrender.com conta como domínios diferentes).
+   */
+  async rewrites() {
+    const backend = process.env.API_INTERNAL_URL?.replace(/\/$/, "");
+    return backend ? [{ source: "/api/:path*", destination: `${backend}/api/:path*` }] : [];
+  },
   async headers() {
     return [
       {

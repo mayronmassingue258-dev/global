@@ -29,6 +29,24 @@ Quando esta versão chegar ao `main`:
 > **Atenção ao plano gratuito da base:** o Render **apaga** bases gratuitas 30 dias após a criação. Para dados que não podem
 > se perder, mude o plano para *Basic* (≈ 6 USD/mês, com backups diários) em **globalscholar-db → Settings** antes disso.
 
+## Atualização: contas (B2)
+
+A partir da versão 2.1.0 o site tem login de verdade. O `render.yaml` já traz as mudanças; ao aplicar o **Sync** do blueprint:
+
+- **globalscholar-web:** `NEXT_PUBLIC_API_BASE_URL` passa a ser `/api` e entra `API_INTERNAL_URL` (endereço do backend). O site repassa
+  `/api` ao backend, então o cookie de login funciona em todos os navegadores (inclusive Safari/iPhone).
+- **globalscholar-api-demo:** entram `APP_URL` (para os links de e-mail) e `EMAIL_PROVIDER=log`.
+
+Depois do deploy: abra o site, crie uma conta, saia e entre de novo.
+
+**E-mail de "esqueci a senha":** com `EMAIL_PROVIDER=log`, o link aparece só em **globalscholar-api-demo → Logs** (útil para testar;
+os estudantes não recebem nada). Para enviar de verdade:
+
+1. Crie uma conta em [resend.com](https://resend.com) e uma API key.
+2. Em **globalscholar-api-demo → Environment**: `EMAIL_PROVIDER=resend`, `RESEND_API_KEY=<a chave>` (como *secret*).
+3. Para enviar a qualquer pessoa, verifique um domínio seu no Resend e defina `EMAIL_FROM`, ex.: `GlobalScholar <nao-responda@seudominio.com>`.
+   Sem domínio verificado, o Resend só entrega para o e-mail da sua própria conta (bom para testar).
+
 ## Passo a passo
 
 1. Suba o projeto para o GitHub (veja [git-guide.md](./git-guide.md)) com o arquivo `render.yaml` na raiz.

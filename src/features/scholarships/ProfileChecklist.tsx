@@ -12,8 +12,16 @@ const icon = { met: Check, missing: Minus, failed: X } as const;
  * "O que falta no seu perfil": lista os motivos da avaliação do servidor, pendências primeiro.
  * O frontend não calcula nada; só ordena e apresenta.
  */
-export function ProfileChecklist({ result, scholarshipId }: { result: EligibilityResult | null; scholarshipId: string }) {
+export function ProfileChecklist({ result, scholarshipId, signedIn = true }: { result: EligibilityResult | null; scholarshipId: string; signedIn?: boolean }) {
   const t = useT();
+  if (!signedIn) {
+    return (
+      <div className={styles.wrap}>
+        <p className="t-meta">{t.checklist.signIn}</p>
+        <div className={styles.links}><Link href={`/login?next=${encodeURIComponent(`/scholarships/${scholarshipId}`)}`}>{t.checklist.signInLink}</Link></div>
+      </div>
+    );
+  }
   if (!result) {
     return <p className="t-meta">{t.checklist.unavailable}</p>;
   }

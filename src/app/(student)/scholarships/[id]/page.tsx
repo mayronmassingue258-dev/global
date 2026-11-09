@@ -10,6 +10,7 @@ import { ProfileChecklist } from "@/features/scholarships/ProfileChecklist";
 import { SaveButton } from "@/features/scholarships/SaveButton";
 import { scholarshipService } from "@/lib/services";
 import { getT } from "@/i18n/server";
+import { getCurrentUser, sessionHeaders } from "@/lib/api/serverAuth";
 import { jsonLdScript, scholarshipJsonLd } from "@/lib/seo";
 import { formatDate } from "@/lib/utils/date";
 import type { EligibilityResult } from "@/types";
@@ -20,9 +21,10 @@ import styles from "./page.module.css";
 const getScholarship = cache((id: string) => scholarshipService.get(id));
 
 /** A avaliação é complementar: se falhar, a página da bolsa continua funcionando. */
-async function getEligibility(id: string): Promise<EligibilityResult | null> {
+async function getEligibility(id: string, signedIn: boolean): Promise<EligibilityResult | null> {
+  if (!signedIn) return null;
   try {
-    return await scholarshipService.eligibility(id);
+    return await scholarshipService.eligibility(id, undefined, await sessionHeaders());
   } catch {
     return null;
   }
@@ -45,7 +47,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ScholarshipDetailPage({ params }: Props) {
   const { id } = await params;
-  const [item, eligibility, t] = await Promise.all([getScholarship(id), getEligibility(id), getT()]);
+  const user = await getCurrentUser();
+  const [item, eligibility, t] = await Promise.all([getScholarship(id), getEligibility(id, Boolean(user)), getT()]);
   if (!item) notFound();
   const level = t.levels[item.level] ?? item.level;
   const date = (iso: string) => formatDate(iso, t.meta.dateLocale, t.common.dateInvalid);
@@ -85,7 +88,7 @@ export default async function ScholarshipDetailPage({ params }: Props) {
 
           <section className={styles.panel} aria-labelledby="s-missing">
             <h2 id="s-missing" className={styles.panelTitle}>{t.detail.missingTitle}</h2>
-            <ProfileChecklist result={eligibility} scholarshipId={item.id} />
+            <ProfileChecklist result={eligibility} scholarshipId={item.id} signedIn={Boolean(user)} />
           </section>
         </aside>
 

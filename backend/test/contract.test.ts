@@ -8,7 +8,11 @@ import { setupTestApp } from "./helpers.js";
 let t: Awaited<ReturnType<typeof setupTestApp>>;
 beforeAll(async () => { t = await setupTestApp(); });
 afterAll(async () => { await t.close(); });
-beforeEach(async () => { await t.reset(); });
+// Rotas de dados do estudante exigem login (B2): cada teste começa com uma conta nova e logada.
+beforeEach(async () => {
+  await t.reset();
+  await t.signUpAndUse();
+});
 
 describe("bolsas", () => {
   it("lista com paginação e total", async () => {
@@ -192,6 +196,13 @@ describe("HTTP", () => {
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["x-powered-by"]).toBeUndefined();
+  });
+
+  it("CORS libera só a origem do site, com credenciais", async () => {
+    const res = await t.call("/scholarships", { headers: { origin: "http://localhost:3000" } });
+    expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+    expect((await t.call("/scholarships", { headers: { origin: "https://malicioso.example" } })).headers["access-control-allow-origin"]).toBeUndefined();
   });
 
   it("rota de reset não existe sem ALLOW_TEST_RESET", async () => {

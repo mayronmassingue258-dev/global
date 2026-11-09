@@ -12,7 +12,7 @@ const children = [
   spawn(process.execPath, ["mock-api/server.mjs"], { stdio: "inherit", env: { ...process.env, PORT: apiPort } }),
   spawn(process.execPath, [nextBin, "dev"], {
     stdio: "inherit",
-    env: { ...process.env, NEXT_PUBLIC_DATA_MODE: "api", NEXT_PUBLIC_API_BASE_URL: `http://localhost:${apiPort}/api` }
+    env: { ...process.env, NEXT_PUBLIC_DATA_MODE: "api", NEXT_PUBLIC_API_BASE_URL: "/api", API_INTERNAL_URL: `http://localhost:${apiPort}` }
   })
 ];
 

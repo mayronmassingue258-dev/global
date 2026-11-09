@@ -219,3 +219,17 @@ describe("rascunhos", () => {
     expect(res.json.error.fields).toEqual({ type: "invalid_option", title: "required", sections: "invalid_type" });
   });
 });
+
+describe("contas simplificadas (demonstração)", () => {
+  it("login põe cookie, me responde só com cookie, logout apaga", async () => {
+    const login = await fetch(`${base}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "Ana@Ex.com", password: "x" }) });
+    expect(login.status).toBe(200);
+    expect(login.headers.get("set-cookie")).toContain("gs_session=demo");
+    expect((await login.json()).user.email).toBe("ana@ex.com");
+    expect((await fetch(`${base}/auth/me`)).status).toBe(401);
+    const me = await fetch(`${base}/auth/me`, { headers: { cookie: "gs_session=demo" } });
+    expect((await me.json()).user.email).toBe("ana@ex.com");
+    const out = await fetch(`${base}/auth/logout`, { method: "POST" });
+    expect(out.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+});

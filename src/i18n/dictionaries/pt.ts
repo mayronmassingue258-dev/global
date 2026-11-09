@@ -21,7 +21,8 @@ const pt = {
       assistant: "Assistente de documentos",
       login: "Entrar",
       register: "Criar conta",
-      forgot: "Recuperar senha"
+      forgot: "Recuperar senha",
+      reset: "Nova senha"
     }
   },
   common: {
@@ -55,7 +56,11 @@ const pt = {
     getStarted: "Começar",
     footer: "Rodapé",
     createAccount: "Criar conta",
-    footerTagline: "Gratuito para estudantes."
+    footerTagline: "Gratuito para estudantes.",
+    goToDashboard: "Ir para o painel",
+    account: "Conta",
+    signedInAs: (name: string) => `Conectado como ${name}`,
+    signOut: "Sair"
   },
   states: {
     loadFailedTitle: "Não foi possível carregar",
@@ -126,13 +131,12 @@ const pt = {
     registerText: "Crie seu espaço de trabalho e organize suas oportunidades acadêmicas.",
     forgotLabel: "Recuperação de acesso",
     forgotTitle: "Esqueceu sua senha?",
-    forgotText: "Informe seu e-mail e enviaremos as instruções quando o serviço estiver conectado.",
+    forgotText: "Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.",
     name: "Nome completo",
     email: "E-mail",
     password: "Senha",
     passwordHelper: "Mínimo de 8 caracteres.",
     submit: { login: "Entrar", register: "Criar conta gratuita", forgot: "Enviar instruções" },
-    demo: "Demonstração: a autenticação ainda não está conectada. Ela será ligada quando o contrato com o backend for definido.",
     forgotLink: "Esqueci minha senha",
     toRegister: "Ainda não tem conta? Criar conta",
     toLogin: "Já tem conta? Entrar",
@@ -144,7 +148,21 @@ const pt = {
       passwordRequired: "Informe sua senha.",
       passwordShort: "A senha precisa ter pelo menos 8 caracteres."
     },
-    fixErrors: "Corrija os campos destacados para continuar."
+    fixErrors: "Corrija os campos destacados para continuar.",
+    invalidCredentials: "E-mail ou senha incorretos.",
+    emailTaken: "Já existe uma conta com este e-mail. Entre ou recupere a senha.",
+    tooMany: "Muitas tentativas. Aguarde um minuto e tente de novo.",
+    failed: "Não foi possível concluir agora. Tente novamente em instantes.",
+    forgotSent: "Se houver uma conta com este e-mail, enviamos um link para criar uma nova senha. Confira também o spam.",
+    resetLabel: "Nova senha",
+    resetTitle: "Escolha uma nova senha.",
+    resetText: "Depois de salvar, você entra de novo com a nova senha em todos os aparelhos.",
+    newPassword: "Nova senha",
+    resetSubmit: "Salvar nova senha",
+    resetDone: "Senha alterada. Entre com a nova senha.",
+    resetInvalid: "Este link não vale mais (já foi usado ou passou de 1 hora). Peça um novo.",
+    requestNewLink: "Pedir um novo link",
+    goToLogin: "Ir para o login"
   },
   dashboard: {
     eyebrow: "Seu espaço de trabalho",
@@ -231,6 +249,8 @@ const pt = {
   },
   checklist: {
     unavailable: "A avaliação do seu perfil não está disponível agora.",
+    signIn: "Entre na sua conta para ver o que falta no seu perfil para esta bolsa.",
+    signInLink: "Entrar",
     nonePending: "Nada pendente no seu perfil para esta bolsa.",
     pending: (n: number) => `${n} ${n === 1 ? "item pendente" : "itens pendentes"} no seu perfil.`,
     complete: "Completar perfil",

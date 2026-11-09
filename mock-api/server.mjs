@@ -34,6 +34,8 @@ const DRAFT_LIMITS = { title: 120, program: 160, section: 20000, sections: 20 };
 const SECTION_KEY = /^[a-z][a-z0-9_]{0,39}$/;
 
 const emptyProfile = () => ({ residence: "", nationality: "", level: "", field: "", grade: "", languages: "", interests: "" });
+let demoUser = { id: "demo", email: "estudante@exemplo.com", name: "Estudante" };
+
 const emptyDb = () => ({ version: 2, profile: emptyProfile(), applications: [], drafts: [] });
 
 /** Completa registros gravados por versões anteriores do servidor (antes de documentos/notas/linha do tempo). */
@@ -232,6 +234,22 @@ export async function createMockApi(options = {}) {
   /** Tabela de rotas: [método, padrão, handler(params, query, req)] → { status, body } */
   const routes = [
     ["GET", /^\/api\/health$/, async () => ({ body: { ok: true } })],
+    // Contas SIMPLIFICADAS (demonstração): qualquer e-mail/senha válidos entram como o único estudante desta API.
+    // O backend real (backend/) é que verifica senhas e sessões de verdade.
+    ["POST", /^\/api\/auth\/(register|login)$/, async ([kind], _q, req) => {
+      const body = (await readJsonBody(req)) ?? {};
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (!email || typeof body.password !== "string" || !body.password) throw new HttpError(422, "validation_failed", { email: email ? undefined : "required" });
+      const user = { id: "demo", email, name: typeof body.name === "string" && body.name.trim() ? body.name.trim() : "Estudante" };
+      demoUser = user;
+      return { status: kind === "register" ? 201 : 200, body: { user }, cookie: "gs_session=demo; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000" };
+    }],
+    ["GET", /^\/api\/auth\/me$/, async (_m, _q, req) => {
+      if (!/(?:^|;\s*)gs_session=/.test(req.headers.cookie ?? "")) throw new HttpError(401, "unauthenticated");
+      return { body: { user: demoUser } };
+    }],
+    ["POST", /^\/api\/auth\/logout$/, async () => ({ status: 204, cookie: "gs_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0" })],
+    ["POST", /^\/api\/auth\/(forgot-password|reset-password)$/, async () => ({ status: 204 })],
     ["GET", /^\/api\/scholarships$/, async (_m, query) => ({ body: listScholarships(scholarships, query) })],
     ["GET", /^\/api\/scholarships\/([^/]+)$/, async ([id]) => ({ body: findScholarship(id) })],
     ["GET", /^\/api\/scholarships\/([^/]+)\/eligibility$/, async ([id]) => {
@@ -363,6 +381,7 @@ export async function createMockApi(options = {}) {
       }
       const params = route[1].exec(url.pathname).slice(1).map(decodeURIComponent);
       const result = await route[2](params, url.searchParams, req);
+      if (result.cookie) res.setHeader("Set-Cookie", result.cookie);
       send(result.status ?? 200, result.body);
     } catch (error) {
       if (error instanceof HttpError) {

@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "@/lib/config";
+import { API_BASE_URL, SERVER_API_BASE_URL } from "@/lib/config";
+import { isProtectedPath, loginUrl } from "@/lib/auth/routes";
 
 /**
  * Erro de API com mensagem segura para exibir. O corpo bruto da resposta nunca é mostrado ao usuário.
@@ -23,7 +24,7 @@ type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; rawBody?: Bo
 
 export function safeMessage(status: number): string {
   if (status === 0) return "Não foi possível conectar ao servidor.";
-  if (status === 401) return "Sua sessão expirou. Entre novamente.";
+  if (status === 401) return "Entre na sua conta para continuar.";
   if (status === 403) return "Você não tem permissão para acessar este recurso.";
   if (status === 404) return "Recurso não encontrado.";
   if (status === 409) return "Este registro já existe.";
@@ -52,13 +53,25 @@ async function readErrorEnvelope(response: Response): Promise<{ code?: string; f
   }
 }
 
+const isBrowser = () => typeof window !== "undefined";
+
 /**
- * Cliente HTTP central.
- * PENDENTE com o backend: modelo de autenticação (cookies vs. token). Por isso `credentials`
- * NÃO é definido aqui; quem integrar deve passá-lo conscientemente quando o contrato existir.
+ * Sessão venceu enquanto o estudante usava uma área privada: leva ao login e volta para onde estava depois.
+ * Em páginas públicas (busca, detalhe da bolsa) um 401 não redireciona: só mostra a versão para visitantes.
+ */
+function redirectToLoginIfPrivate() {
+  const { pathname, search } = window.location;
+  if (isProtectedPath(pathname)) window.location.assign(loginUrl(`${pathname}${search}`));
+}
+
+/**
+ * Cliente HTTP central. Autenticação por cookie de sessão HttpOnly (docs/api-contract.md, "Contas"):
+ * no navegador a base é "/api" (mesmo domínio do site), então o cookie vai sozinho (`credentials: "same-origin"`).
+ * No servidor do Next, quem chama passa o cookie do pedido em `headers.cookie` (ver lib/api/serverAuth.ts).
  */
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  if (!API_BASE_URL) throw new ApiError(0, "A URL da API não está configurada.", "config_missing");
+  const base = isBrowser() ? API_BASE_URL : SERVER_API_BASE_URL;
+  if (!base) throw new ApiError(0, "A URL da API não está configurada.", "config_missing");
 
   const { body, rawBody, ...init } = options;
   const headers = new Headers(init.headers);
@@ -67,8 +80,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${base}${path}`, {
       cache: "no-store",
+      credentials: "same-origin",
       ...init,
       headers,
       body: rawBody ?? (body === undefined ? undefined : JSON.stringify(body))
@@ -79,6 +93,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!response.ok) {
+    if (response.status === 401 && isBrowser() && !path.startsWith("/auth/")) redirectToLoginIfPrivate();
     const { code, fields } = await readErrorEnvelope(response);
     throw new ApiError(response.status, safeMessage(response.status), code, fields);
   }

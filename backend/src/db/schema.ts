@@ -16,6 +16,27 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 }, (t) => [uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`)]);
 
+/**
+ * Sessões de login. O cookie leva um token aleatório; aqui fica só o HASH (sha256) dele:
+ * quem ler a base não consegue se passar pelo estudante.
+ */
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  userAgent: text("user_agent").notNull().default("")
+}, (t) => [index("sessions_user_idx").on(t.userId), index("sessions_expires_idx").on(t.expiresAt)]);
+
+/** Pedidos de redefinição de senha: só o hash do token, válido por 1 hora, uso único. */
+export const passwordResets = pgTable("password_resets", {
+  id: text("id").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+}, (t) => [index("password_resets_user_idx").on(t.userId)]);
+
 export const scholarships = pgTable("scholarships", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),

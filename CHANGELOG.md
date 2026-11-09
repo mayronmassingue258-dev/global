@@ -1,5 +1,25 @@
 # Registro de mudanças
 
+## 2.1.0 — Backend B2: contas (2026-11-09)
+
+### Novo
+- **Contas de verdade**: cadastro, login, sair, "esqueci a senha" (link por e-mail, válido por 1 hora e uso único) e nova senha
+  (página `/reset-password`). O cabeçalho mostra o nome do estudante e "Sair"; a landing oferece "Ir para o painel" a quem já entrou.
+- **Cada estudante vê só os seus dados**: perfil, candidaturas, rascunhos e elegibilidade passam a ser da conta logada.
+- **Áreas privadas protegidas**: sem login, painel, candidaturas, perfil, assistente e elegibilidade levam ao login e voltam depois.
+  Visitantes continuam vendo a busca e o detalhe das bolsas; "Salvar" leva ao login.
+- **Segurança**: senhas com scrypt; sessão em cookie HttpOnly/SameSite=Lax/Secure, com só o hash do token na base; mesma resposta
+  para e-mail inexistente e senha errada; bloqueio de alterações vindas de outros sites (CSRF); limite de 10 tentativas/minuto nas
+  rotas de conta; redefinir a senha encerra todas as sessões; `?next=` só aceita caminhos internos.
+- **Arquitetura**: o site repassa `/api/*` ao backend (`API_INTERNAL_URL`), tornando o cookie de login de primeira parte
+  (funciona no Safari/iPhone). A Content Security Policy ficou mais restrita (`connect-src 'self'`).
+- **Envio de e-mail**: `EMAIL_PROVIDER=log` (link no log, para desenvolver) ou `resend` (produção).
+- **Testes**: 48 no backend (20 novos de contas e isolamento), 212 no frontend, **90 de ponta a ponta** (8 novos de contas).
+
+### Precisa de ação no Render
+Aplicar o *Sync* do blueprint (ver `docs/deploy-render.md`, "Atualização: contas"). Para os estudantes receberem o e-mail de nova senha,
+configurar o Resend.
+
 ## 2.0.0 — Backend B1: API real com PostgreSQL (2026-11-05)
 
 ### Novo

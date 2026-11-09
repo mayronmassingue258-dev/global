@@ -57,7 +57,12 @@ TEST_DATABASE_URL=postgres://globalscholar:globalscholar@localhost:5432/globalsc
 | `SEED_DEMO_DATA` | `1` | Cria as bolsas fictícias ao iniciar. `0` quando houver bolsas reais. |
 | `DATABASE_SSL` | `disable` | `require` para conexões externas que exigem SSL. |
 | `LOG_LEVEL` | `info` | `silent` nos testes. |
-| `ALLOW_TEST_RESET` | `0` | `1` só nos testes de ponta a ponta (`POST /api/__reset`). Proibido em produção (a API não inicia). |
+| `APP_URL` | `http://localhost:3000` | Endereço do site, usado nos links dos e-mails (nova senha). |
+| `SESSION_DAYS` | `30` | Duração da sessão (renovada com o uso). |
+| `SESSION_COOKIE_SECURE` | ligado em produção | Cookie só por HTTPS. |
+| `EMAIL_PROVIDER` | `log` | `log`: o e-mail aparece no terminal/log. `resend`: envia de verdade (exige `RESEND_API_KEY`). |
+| `RESEND_API_KEY` / `EMAIL_FROM` | — / `GlobalScholar <onboarding@resend.dev>` | Envio pelo Resend. |
+| `ALLOW_TEST_RESET` | `0` | `1` só nos testes de ponta a ponta (`POST /api/__reset`, `GET /api/__emails`). Proibido em produção (a API não inicia). |
 
 A configuração é validada na partida: valor errado = mensagem clara e a API não sobe.
 
@@ -84,14 +89,22 @@ test/                  testes de contrato com PostgreSQL real
 os documentos e eventos dela (chaves estrangeiras em cascata). Atualizações de candidatura rodam numa transação com a
 linha travada (`FOR UPDATE`), então cliques simultâneos não corrompem a linha do tempo.
 
+### Contas
+
+Cadastro, login, logout, "esqueci a senha" e redefinição (`src/services/auth.ts`, rotas `/api/auth/*`).
+Senhas com **scrypt** (sal aleatório, comparação em tempo constante); sessão em **cookie HttpOnly** com token aleatório de 256 bits,
+do qual a base guarda só o hash; sessões vencidas são apagadas a cada 6 horas. Login errado tem a mesma resposta (e tempo parecido)
+para e-mail inexistente e senha errada. Redefinir a senha encerra todas as sessões da conta. Toda consulta de dados do estudante é
+filtrada pelo id da sessão: um estudante nunca vê nem altera dados de outro (há testes para isso).
+
 ### Segurança já presente
 
-Cabeçalhos de segurança (helmet), CORS restrito às origens configuradas, limite de 300 requisições/minuto por IP,
+Cabeçalhos de segurança (helmet), CORS restrito às origens configuradas, bloqueio de alterações vindas de outros sites (CSRF:
+cookie `SameSite=Lax` + verificação de `Origin`), limite de 10 tentativas/minuto nas rotas de conta, limite de 300 requisições/minuto por IP,
 corpo de até 512 KB, busca protegida contra curingas `%`/`_`, `Cache-Control: no-store`, consultas parametrizadas (sem SQL montado
 com texto do usuário), cookies e tokens apagados dos logs.
 
 ### Ainda não existe (próximas etapas)
 
-- **B2 — Contas:** cadastro, login, sessão, recuperação de senha. Hoje todas as requisições usam um "estudante de demonstração" fixo.
 - **B3 — Dados por estudante e anexos:** cada pessoa vê só os seus dados; armazenamento de arquivos.
 - **B4 — Produção:** base paga com backups, documentação OpenAPI, monitoramento, cadastro de bolsas reais.

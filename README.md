@@ -64,11 +64,10 @@ Variáveis: veja [`.env.example`](.env.example).
   contagem de palavras, salvamento automático e rascunhos. **Sem IA**: quem escreve é o estudante.
 - **Dois idiomas**, SEO (sitemap, robots, Open Graph, schema.org), marca provisória (favicon, imagem de compartilhamento).
 
-### O que ainda é demonstração
+- **Contas**: cadastro, login, sair, "esqueci a senha" com link por e-mail; cada estudante vê só os próprios dados.
 
-- **Autenticação**: formulários validam, mas não criam sessão (aguarda decisão 1 do contrato).
+### O que ainda é demonstração
 - **Envio de arquivos**: desligado (`NEXT_PUBLIC_UPLOADS_ENABLED`) até o backend definir o armazenamento.
-- **Contas**: o backend ainda usa um único "estudante de demonstração" (as contas chegam na etapa B2).
 - "Enviada" em candidaturas é só uma marcação do estudante; a plataforma não envia nada aos provedores.
 
 ## Documentação
@@ -109,6 +108,9 @@ Toda resposta da API é validada em tempo de execução (`lib/api/guards.ts`) an
 
 ### Decisões que vale conhecer
 
+- **Login por cookie de sessão HttpOnly** (`gs_session`). O navegador chama `/api` do próprio site, que repassa ao backend
+  (`API_INTERNAL_URL`), então o cookie é de primeira parte e funciona em todos os navegadores. Áreas privadas são protegidas
+  pelo `src/middleware.ts` (sem cookie → login) e pelo backend (sessão inválida → 401 → login).
 - **Idioma por cookie** (`gs_locale`), mesmas URLs. Simples, mas só o português é indexado; para indexar o inglês, migrar para `/en/...`.
   Textos em `src/i18n/dictionaries/pt.ts` (fonte da verdade) e `en.ts`; um teste garante que as chaves são idênticas.
 - **No navegador** ficam apenas o cookie de idioma e cópias temporárias de formulários não salvos no `sessionStorage` da aba

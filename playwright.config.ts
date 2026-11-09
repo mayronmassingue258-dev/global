@@ -53,6 +53,7 @@ export default defineConfig({
             DATABASE_URL: E2E_DATABASE_URL,
             ALLOW_TEST_RESET: "1",
             CORS_ORIGIN: `http://localhost:${WEB_PORT}`,
+            APP_URL: `http://localhost:${WEB_PORT}`,
             LOG_LEVEL: "warn",
             NODE_ENV: "test"
           },
@@ -62,7 +63,14 @@ export default defineConfig({
     {
       command: `npx next build && npx next start -p ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}`,
-      env: { NEXT_DIST_DIR: ".next-e2e", NEXT_PUBLIC_DATA_MODE: "api", NEXT_PUBLIC_API_BASE_URL: API_URL, NEXT_TELEMETRY_DISABLED: "1" },
+      // Como em produção: o navegador fala com /api do próprio site, que repassa ao backend (cookie de primeira parte).
+      env: {
+        NEXT_DIST_DIR: ".next-e2e",
+        NEXT_PUBLIC_DATA_MODE: "api",
+        NEXT_PUBLIC_API_BASE_URL: "/api",
+        API_INTERNAL_URL: `http://127.0.0.1:${API_PORT}`,
+        NEXT_TELEMETRY_DISABLED: "1"
+      },
       reuseExistingServer: false,
       timeout: 240_000,
       stdout: "ignore",

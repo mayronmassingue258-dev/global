@@ -106,3 +106,6 @@ export type Draft = {
 };
 
 export type DraftInput = Pick<Draft, "type" | "title" | "program" | "sections">;
+
+/** Estudante autenticado (dados públicos da conta). */
+export type User = { id: string; email: string; name: string };

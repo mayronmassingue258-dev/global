@@ -35,6 +35,13 @@ services:
       # URL exata do frontend (sem barra no fim). Mude aqui se o Render der outro endereço ao frontend.
       - key: CORS_ORIGIN
         value: https://globalscholar-web.onrender.com
+      # Endereço público do site (links dos e-mails de redefinição de senha).
+      - key: APP_URL
+        value: https://globalscholar-web.onrender.com
+      # "log": o e-mail de redefinição de senha só aparece nos Logs deste serviço (provisório).
+      # Para os estudantes receberem o e-mail de verdade: EMAIL_PROVIDER=resend + RESEND_API_KEY (ver docs/deploy-render.md).
+      - key: EMAIL_PROVIDER
+        value: log
       # Bolsas FICTÍCIAS de demonstração. Mude para "0" quando houver bolsas reais cadastradas.
       - key: SEED_DEMO_DATA
         value: "1"
@@ -57,10 +64,12 @@ services:
         value: "1"
       - key: NEXT_PUBLIC_DATA_MODE
         value: api
-      # URL da API + /api, ex.: https://globalscholar-api-demo.onrender.com/api
-      # É lida no BUILD: depois de mudar, faça "Manual Deploy → Clear build cache & deploy".
+      # O navegador fala com /api do próprio site, que repassa ao backend (cookie de login de primeira parte).
       - key: NEXT_PUBLIC_API_BASE_URL
-        sync: false
+        value: /api
+      # Endereço do backend usado pelo repasse /api e pelas páginas renderizadas no servidor. Lido no BUILD.
+      - key: API_INTERNAL_URL
+        value: https://globalscholar-api-demo.onrender.com
       # URL pública do próprio frontend (metadados, sitemap, imagens de compartilhamento), ex.: https://globalscholar-web.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
         sync: false

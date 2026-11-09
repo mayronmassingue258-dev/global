@@ -105,7 +105,8 @@ test("robots.txt e sitemap.xml", async ({ request, api: _api }) => {
 test("cabeçalhos de segurança em produção", async ({ request, api: _api }) => {
   const res = await request.get("/");
   const h = res.headers();
-  expect(h["content-security-policy"]).toContain("connect-src 'self' http://127.0.0.1:4010");
+  // O navegador só fala com o próprio site (/api é repassado ao backend): nenhuma outra origem liberada.
+  expect(h["content-security-policy"]).toContain("connect-src 'self';");
   expect(h["x-frame-options"]).toBe("DENY");
   expect(h["x-content-type-options"]).toBe("nosniff");
   expect(h["x-powered-by"]).toBeUndefined();

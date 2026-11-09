@@ -9,3 +9,8 @@
 .nav a:focus-visible { outline-offset: -2px; }
 .nav a[aria-current="page"] { color: var(--color-text); border-bottom-color: var(--color-ink); font-weight: 500; }
 .tools { display: flex; align-items: center; gap: var(--space-4); }
+.account { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.userName { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; color: var(--color-text-2); }
+.signOut { border: 0; background: none; padding: var(--space-2) 0; font-size: 0.875rem; color: var(--color-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.signOut:disabled { opacity: 0.6; cursor: progress; }
+@media (max-width: 479px) { .userName { display: none; } }

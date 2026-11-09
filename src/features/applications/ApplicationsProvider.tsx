@@ -3,11 +3,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { applicationService } from "@/lib/services";
+import { useSessionUser } from "@/features/auth/SessionProvider";
 import type { ApplicationService } from "@/lib/api/applications";
 import { applyApplicationUpdate } from "@/lib/applications/applyUpdate";
 import type { Application, ApplicationStatus, ApplicationUpdate, ScholarshipSummary } from "@/types";
 
-export type LoadStatus = "loading" | "ready" | "error";
+/** "anonymous": visitante sem login (páginas públicas); nada é buscado. */
+export type LoadStatus = "loading" | "ready" | "error" | "anonymous";
 
 type ApplicationsContextValue = {
   applications: Application[];
@@ -44,7 +46,15 @@ export function ApplicationsProvider({ children, service = applicationService }:
   const snapshot = useRef<Application[]>([]);
   snapshot.current = applications;
 
+  const user = useSessionUser();
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    if (!userId) {
+      setApplications([]);
+      setLoadStatus("anonymous");
+      return;
+    }
     const controller = new AbortController();
     setLoadStatus("loading");
     service
@@ -57,7 +67,7 @@ export function ApplicationsProvider({ children, service = applicationService }:
         if (!controller.signal.aborted) setLoadStatus("error");
       });
     return () => controller.abort();
-  }, [service, reloadKey]);
+  }, [service, reloadKey, userId]);
 
   /** Aplica a mudança otimista, chama o servidor e reverte se falhar. */
   const mutate = useCallback(async (optimistic: (current: Application[]) => Application[], request: () => Promise<Application | void>): Promise<boolean> => {

@@ -6,12 +6,13 @@ import type { EligibilityResult, Scholarship, ScholarshipPage, ScholarshipQuery 
 export interface ScholarshipService {
   list(query: ScholarshipQuery, signal?: AbortSignal): Promise<ScholarshipPage>;
   get(id: string, signal?: AbortSignal): Promise<Scholarship | null>;
-  eligibility(scholarshipId: string, signal?: AbortSignal): Promise<EligibilityResult | null>;
+  /** null quando a bolsa não existe ou o visitante não está logado. `headers`: cookie repassado pelo servidor. */
+  eligibility(scholarshipId: string, signal?: AbortSignal, headers?: Record<string, string>): Promise<EligibilityResult | null>;
 }
 
 const unexpected = () => new ApiError(502, "Resposta inesperada do servidor.", "unexpected_response");
 
-// PROVISÓRIO: os caminhos abaixo NÃO estão confirmados. Ajustar quando o contrato do backend existir.
+// Caminhos do contrato (docs/api-contract.md), implementados em backend/.
 export const apiScholarshipService: ScholarshipService = {
   async list(query, signal) {
     const params = new URLSearchParams();
@@ -34,13 +35,13 @@ export const apiScholarshipService: ScholarshipService = {
     }
   },
 
-  async eligibility(scholarshipId, signal) {
+  async eligibility(scholarshipId, signal, headers) {
     try {
-      const data = await apiRequest<unknown>(`/scholarships/${encodeURIComponent(scholarshipId)}/eligibility`, { signal });
+      const data = await apiRequest<unknown>(`/scholarships/${encodeURIComponent(scholarshipId)}/eligibility`, { signal, headers });
       if (!isEligibilityResult(data)) throw unexpected();
       return data;
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return null;
+      if (error instanceof ApiError && (error.status === 404 || error.status === 401)) return null;
       throw error;
     }
   }

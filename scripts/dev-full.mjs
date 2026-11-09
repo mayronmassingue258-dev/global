@@ -25,7 +25,7 @@ children[0].on("exit", (code) => {
     spawn(npm, ["--prefix", "backend", "run", "dev"], { stdio: "inherit", shell: process.platform === "win32" }),
     spawn(process.execPath, [nextBin, "dev"], {
       stdio: "inherit",
-      env: { ...process.env, NEXT_PUBLIC_DATA_MODE: "api", NEXT_PUBLIC_API_BASE_URL: "http://localhost:4000/api" }
+      env: { ...process.env, NEXT_PUBLIC_DATA_MODE: "api", NEXT_PUBLIC_API_BASE_URL: "/api", API_INTERNAL_URL: "http://localhost:4000" }
     })
   );
   for (const child of children.slice(1)) child.on("exit", (c) => stop(c ?? 0));

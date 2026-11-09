@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AuthForm } from "@/features/auth/AuthForm";
 import { getT } from "@/i18n/server";
 
@@ -14,7 +15,10 @@ export default async function Page() {
       <p className="t-label">{t.auth.registerLabel}</p>
       <h1 className="t-title">{t.auth.registerTitle}</h1>
       <p className="t-secondary">{t.auth.registerText}</p>
-      <AuthForm mode="register" />
+      {/* ?next= (para onde voltar depois de entrar) vem de useSearchParams, que exige Suspense. */}
+      <Suspense fallback={null}>
+        <AuthForm mode="register" />
+      </Suspense>
     </>
   );
 }

@@ -8,6 +8,7 @@ import { EligibilityResult } from "@/features/eligibility/EligibilityResult";
 import { IS_MOCK_MODE } from "@/lib/config";
 import { scholarshipService } from "@/lib/services";
 import { getT } from "@/i18n/server";
+import { sessionHeaders } from "@/lib/api/serverAuth";
 import patterns from "@/styles/patterns.module.css";
 
 
@@ -29,7 +30,7 @@ export default async function EligibilityPage({ params }: Props) {
   const { scholarshipId } = await params;
   const item = await getScholarship(scholarshipId);
   if (!item) notFound();
-  const [result, t] = await Promise.all([scholarshipService.eligibility(scholarshipId), getT()]);
+  const [result, t] = await Promise.all([sessionHeaders().then((headers) => scholarshipService.eligibility(scholarshipId, undefined, headers)), getT()]);
 
   return (
     <div className={patterns.page}>

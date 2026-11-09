@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { SessionProvider } from "@/features/auth/SessionProvider";
+import { getCurrentUser } from "@/lib/api/serverAuth";
 import { getLocale, getT } from "@/i18n/server";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -23,14 +25,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#080808" };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const locale = await getLocale();
-  const t = await getT();
+  const [locale, t, user] = await Promise.all([getLocale(), getT(), getCurrentUser()]);
   return (
     <html lang={t.meta.htmlLang} className={`${inter.variable} ${playfair.variable}`}>
       <body>
         <I18nProvider locale={locale}>
-          <a className="skip-link" href="#main">{t.common.skipLink}</a>
-          {children}
+          <SessionProvider user={user}>
+            <a className="skip-link" href="#main">{t.common.skipLink}</a>
+            {children}
+          </SessionProvider>
         </I18nProvider>
       </body>
     </html>

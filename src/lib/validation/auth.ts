@@ -1,5 +1,5 @@
 export type AuthField = "name" | "email" | "password";
-export type AuthErrorCode = "required" | "invalid" | "too_short";
+export type AuthErrorCode = "required" | "invalid" | "too_short" | "taken";
 export type AuthErrors = Partial<Record<AuthField, AuthErrorCode>>;
 export type AuthMode = "login" | "register" | "forgot";
 

@@ -1,6 +1,6 @@
 {
   "name": "globalscholar-api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,6 +19,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
     "@fastify/cors": "^11.4.1",
     "@fastify/helmet": "^13.2.0",
     "@fastify/rate-limit": "^11.2.2",
