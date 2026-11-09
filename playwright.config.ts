@@ -10,6 +10,8 @@ export const API_URL = `http://127.0.0.1:${API_PORT}/api`;
 const USE_MOCK_API = process.env.E2E_BACKEND === "mock";
 /** Base PostgreSQL só para os testes (é zerada antes de cada teste). */
 const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgres://postgres@127.0.0.1:5433/globalscholar_e2e";
+/** Chave compartilhada entre o site e o backend (só para os testes). */
+const INTERNAL_API_SECRET = "chave-interna-dos-testes-e2e";
 const CI = Boolean(process.env.CI);
 // Os servidores NUNCA são reaproveitados: um build antigo na porta 3100 faria os testes mentirem.
 // Se a porta estiver ocupada, o Playwright falha avisando; feche o processo e rode de novo.
@@ -54,6 +56,7 @@ export default defineConfig({
             ALLOW_TEST_RESET: "1",
             CORS_ORIGIN: `http://localhost:${WEB_PORT}`,
             APP_URL: `http://localhost:${WEB_PORT}`,
+            INTERNAL_API_SECRET,
             LOG_LEVEL: "warn",
             NODE_ENV: "test"
           },
@@ -69,6 +72,8 @@ export default defineConfig({
         NEXT_PUBLIC_DATA_MODE: "api",
         NEXT_PUBLIC_API_BASE_URL: "/api",
         API_INTERNAL_URL: `http://127.0.0.1:${API_PORT}`,
+        NEXT_PUBLIC_UPLOADS_ENABLED: USE_MOCK_API ? "" : "true",
+        INTERNAL_API_SECRET,
         NEXT_TELEMETRY_DISABLED: "1"
       },
       reuseExistingServer: false,

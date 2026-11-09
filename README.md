@@ -58,16 +58,16 @@ Variáveis: veja [`.env.example`](.env.example).
 - **Busca** com filtros na URL (link compartilhável, "voltar" funciona), chips de filtros ativos, paginação.
 - **Detalhe da bolsa** com prazo em destaque, "o que falta no seu perfil" (avaliação feita **pelo servidor**), requisitos, documentos e fonte.
 - **Perfil acadêmico** com validação, foco no primeiro erro e recuperação do que foi digitado.
-- **Candidaturas**: lista com progresso e prazos; detalhe com checklist de documentos, anexar arquivo (validação; envio desligado),
+- **Candidaturas**: lista com progresso e prazos; detalhe com checklist de documentos, anexos (até 10 MB, tipo verificado pelo conteúdo),
   notas com salvamento automático e linha do tempo.
 - **Assistente de documentos**: carta de motivação, currículo, declaração pessoal e revisão, com estrutura por seções, orientação,
   contagem de palavras, salvamento automático e rascunhos. **Sem IA**: quem escreve é o estudante.
 - **Dois idiomas**, SEO (sitemap, robots, Open Graph, schema.org), marca provisória (favicon, imagem de compartilhamento).
 
 - **Contas**: cadastro, login, sair, "esqueci a senha" com link por e-mail; cada estudante vê só os próprios dados.
+- **Privacidade**: página **Conta** para baixar todos os dados (JSON) e excluir a conta (com a senha).
 
 ### O que ainda é demonstração
-- **Envio de arquivos**: desligado (`NEXT_PUBLIC_UPLOADS_ENABLED`) até o backend definir o armazenamento.
 - "Enviada" em candidaturas é só uma marcação do estudante; a plataforma não envia nada aos provedores.
 
 ## Documentação

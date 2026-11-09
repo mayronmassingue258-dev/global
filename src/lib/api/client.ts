@@ -76,6 +76,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const { body, rawBody, ...init } = options;
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
+  // Só no servidor do Next (nunca vai para o navegador): identifica o site junto ao backend, fora do limite por IP.
+  if (!isBrowser() && process.env.INTERNAL_API_SECRET) headers.set("x-gs-internal", process.env.INTERNAL_API_SECRET);
   if (body !== undefined && rawBody === undefined) headers.set("Content-Type", "application/json");
 
   let response: Response;

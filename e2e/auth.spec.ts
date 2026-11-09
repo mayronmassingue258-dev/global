@@ -115,3 +115,38 @@ test.describe("contas", () => {
     await expect(page).toHaveURL(/localhost:3100\/dashboard$/);
   });
 });
+
+test.describe("conta", () => {
+  test("baixar meus dados traz tudo o que o estudante guardou", async ({ page, api }) => {
+    await api.put("/profile", { residence: "Angola", level: "Mestrado" });
+    await api.post("/applications", { scholarshipId: "amostra-001" });
+    await page.goto("/account");
+    await expect(page.getByText(api.user.email)).toBeVisible();
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Baixar meus dados (JSON)" }).click();
+    const file = await download;
+    expect(file.suggestedFilename()).toMatch(/^globalscholar-meus-dados-\d{4}-\d{2}-\d{2}\.json$/);
+    const { readFile } = await import("node:fs/promises");
+    const data = JSON.parse(await readFile((await file.path())!, "utf8"));
+    expect(data.account.email).toBe(api.user.email);
+    expect(data.profile.residence).toBe("Angola");
+    expect(data.applications[0].id).toBe("amostra-001");
+  });
+
+  test("excluir a conta pede a senha e apaga tudo", async ({ page, api }) => {
+    await page.goto("/account");
+    await page.getByLabel("Para confirmar, digite a sua senha").fill("senha-errada");
+    await page.getByRole("button", { name: "Excluir minha conta para sempre" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Senha incorreta." })).toBeVisible();
+
+    await page.getByLabel("Para confirmar, digite a sua senha").fill(TEST_PASSWORD);
+    await page.getByRole("button", { name: "Excluir minha conta para sempre" }).click();
+    await expect(page).toHaveURL(/localhost:3100\/$/);
+
+    await page.goto("/login");
+    await page.getByLabel("E-mail").fill(api.user.email);
+    await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos." })).toBeVisible();
+  });
+});

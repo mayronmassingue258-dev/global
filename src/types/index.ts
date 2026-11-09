@@ -41,7 +41,10 @@ export type ScholarshipPage = { items: Scholarship[]; total: number };
 
 export type ApplicationStatus = "Saved" | "Preparing" | "Ready to submit" | "Submitted" | "Decision received";
 
-export type ApplicationDocument = { name: string; done: boolean };
+/** Arquivo anexado a um item do checklist (metadados; o conteúdo é baixado à parte). */
+export type AttachedFile = { name: string; size: number; type: string; uploadedAt: string };
+
+export type ApplicationDocument = { name: string; done: boolean; file?: AttachedFile };
 
 /** Evento da linha do tempo de uma candidatura (registrado pelo servidor). */
 export type TimelineEvent =

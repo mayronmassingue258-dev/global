@@ -6,7 +6,7 @@ import { applicationService } from "@/lib/services";
 import { useSessionUser } from "@/features/auth/SessionProvider";
 import type { ApplicationService } from "@/lib/api/applications";
 import { applyApplicationUpdate } from "@/lib/applications/applyUpdate";
-import type { Application, ApplicationStatus, ApplicationUpdate, ScholarshipSummary } from "@/types";
+import type { Application, ApplicationStatus, ApplicationUpdate, AttachedFile, ScholarshipSummary } from "@/types";
 
 /** "anonymous": visitante sem login (páginas públicas); nada é buscado. */
 export type LoadStatus = "loading" | "ready" | "error" | "anonymous";
@@ -24,6 +24,8 @@ type ApplicationsContextValue = {
   update: (id: string, update: ApplicationUpdate) => Promise<boolean>;
   /** Substitui/insere um registro vindo do servidor (ex.: página de detalhe). */
   upsert: (app: Application) => void;
+  /** Atualiza na tela o arquivo de um item do checklist (já gravado no servidor). */
+  setDocumentFile: (id: string, documentName: string, file: AttachedFile | null) => void;
   reload: () => void;
   dismissError: () => void;
 };
@@ -116,12 +118,23 @@ export function ApplicationsProvider({ children, service = applicationService }:
     setApplications((current) => (current.some((a) => a.id === app.id) ? current.map((a) => (a.id === app.id ? app : a)) : [...current, app]));
   }, []);
 
+  const setDocumentFile = useCallback((id: string, documentName: string, file: AttachedFile | null) => {
+    setApplications((current) => current.map((a) => a.id !== id ? a : {
+      ...a,
+      documents: a.documents.map((d) => {
+        if (d.name !== documentName) return d;
+        const { file: _old, ...rest } = d;
+        return file ? { ...rest, file } : rest;
+      })
+    }));
+  }, []);
+
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
   const dismissError = useCallback(() => setMutationError(""), []);
 
   const value = useMemo(
-    () => ({ applications, status, mutationError, isSaved, save, remove, setStatus, update, upsert, reload, dismissError }),
-    [applications, status, mutationError, isSaved, save, remove, setStatus, update, upsert, reload, dismissError]
+    () => ({ applications, status, mutationError, isSaved, save, remove, setStatus, update, upsert, setDocumentFile, reload, dismissError }),
+    [applications, status, mutationError, isSaved, save, remove, setStatus, update, upsert, setDocumentFile, reload, dismissError]
   );
   return <ApplicationsContext.Provider value={value}>{children}</ApplicationsContext.Provider>;
 }

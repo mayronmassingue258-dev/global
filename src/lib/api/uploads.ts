@@ -1,24 +1,32 @@
 import { ApiError, apiRequest } from "./client";
+import { isAttachedFile } from "./guards";
+import { API_BASE_URL } from "@/lib/config";
+import type { AttachedFile } from "@/types";
 
-export type UploadedFile = { name: string; size: number; type: string; uploadedAt: string };
+export type UploadedFile = AttachedFile;
 
-function isUploadedFile(v: unknown): v is UploadedFile {
-  if (typeof v !== "object" || v === null) return false;
-  const r = v as Record<string, unknown>;
-  return typeof r.name === "string" && typeof r.size === "number" && typeof r.type === "string" && typeof r.uploadedAt === "string";
-}
+const filePath = (applicationId: string, documentName: string) =>
+  `/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentName)}/file`;
 
-/**
- * PROPOSTA (docs/api-contract.md, "Arquivos"): envia o arquivo de um item do checklist como multipart/form-data, campo `file`.
- * Só é chamada quando NEXT_PUBLIC_UPLOADS_ENABLED=true.
- */
+/** Envia o arquivo de um item do checklist (multipart/form-data, campo `file`). Substitui o anterior. */
 export async function uploadApplicationDocument(applicationId: string, documentName: string, file: File, signal?: AbortSignal): Promise<UploadedFile> {
   const form = new FormData();
   form.append("file", file, file.name);
-  const data = await apiRequest<unknown>(
-    `/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentName)}/file`,
-    { method: "PUT", rawBody: form, signal }
-  );
-  if (!isUploadedFile(data)) throw new ApiError(502, "Resposta inesperada do servidor.", "unexpected_response");
+  const data = await apiRequest<unknown>(filePath(applicationId, documentName), { method: "PUT", rawBody: form, signal });
+  if (!isAttachedFile(data)) throw new ApiError(502, "Resposta inesperada do servidor.", "unexpected_response");
   return data;
+}
+
+export async function deleteApplicationDocument(applicationId: string, documentName: string): Promise<void> {
+  try {
+    await apiRequest<void>(filePath(applicationId, documentName), { method: "DELETE" });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return;
+    throw error;
+  }
+}
+
+/** Link de download (mesmo domínio do site, com o cookie de sessão). */
+export function documentDownloadUrl(applicationId: string, documentName: string): string {
+  return `${API_BASE_URL ?? ""}${filePath(applicationId, documentName)}`;
 }

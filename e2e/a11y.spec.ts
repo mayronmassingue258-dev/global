@@ -26,6 +26,8 @@ const pages = [
   "/applications/amostra-001",
   "/profile",
   "/assistant",
+  "/account",
+  "/reset-password?token=exemplo",
   "/login",
   "/register",
   "/forgot-password",

@@ -1,6 +1,6 @@
 # Contrato da API — GlobalScholar
 
-> **Versão 1.0 · 2026-11-09 · Status: implementado** (frontend + `backend/`). Mudanças entram por pull request neste arquivo,
+> **Versão 1.1 · 2026-11-09 · Status: implementado** (frontend + `backend/`). Mudanças entram por pull request neste arquivo,
 > junto com o código e os testes de contrato. Itens ainda em aberto estão na seção "Decisões pendentes".
 
 **Implementação:** o backend real está em [`backend/`](../backend) (Fastify + PostgreSQL), com testes de contrato em
@@ -78,6 +78,8 @@ As páginas renderizadas no servidor repassam o cookie do visitante ao chamar o 
 | `GET /auth/me` | — | `200 { user }` ou `401 unauthenticated`. |
 | `POST /auth/forgot-password` | `{ email }` | **Sempre** `204` (não revela se a conta existe). Se existir, envia e-mail com link `APP_URL/reset-password?token=…` válido por 1 hora e uso único. |
 | `POST /auth/reset-password` | `{ token, password }` | `204`: troca a senha e **encerra todas as sessões** da conta. `400 invalid_token` (inexistente, usado ou vencido). |
+| `GET /auth/me/export` | — | JSON para download com conta, perfil, candidaturas (com dados dos arquivos) e rascunhos. Nunca inclui a senha. |
+| `DELETE /auth/me` | `{ password }` | `204`: exclui a conta e **tudo** dela, em cascata. `422` com `fields.password` = `required` ou `incorrect`. |
 
 `user` = `{ id, email, name }`. E-mail é guardado em minúsculas; senhas com scrypt.
 
@@ -86,8 +88,9 @@ As páginas renderizadas no servidor repassam o cookie do visitante ao chamar o 
 recursos de outra conta respondem `404`, como se não existissem.
 
 **Proteções:** alterações (`POST/PUT/PATCH/DELETE`) com cabeçalho `Origin` fora das origens do site → `403 forbidden_origin` (CSRF).
-Limite de **300 requisições/minuto por IP**, e **10/minuto** em `register`, `login`, `forgot-password` e `reset-password` → `429 rate_limited`
-com `retryAfter`.
+Limite de **600 requisições/minuto** por sessão (logado) ou por IP (visitante); o servidor do site se identifica com
+`x-gs-internal` (segredo `INTERNAL_API_SECRET`) e fica fora desse limite. **10/minuto por IP** em `register`, `login`, `forgot-password`,
+`reset-password` e exclusão de conta, e **bloqueio por conta** após 10 senhas erradas para o mesmo e-mail em 15 minutos → `429 rate_limited`.
 
 ---
 
@@ -253,22 +256,20 @@ Atualização **parcial**: envie só o que mudou. Pelo menos um campo é obrigat
 
 `204` sem corpo. `404` se não existir (o frontend trata como já removida).
 
-### Arquivos dos documentos — PROPOSTA (desligada no frontend)
+### Arquivos dos documentos
 
-A interface de anexar arquivo já existe e valida no navegador, mas **não envia nada** enquanto `NEXT_PUBLIC_UPLOADS_ENABLED` não for `true`.
-Esta é a proposta do frontend; o backend decide a forma final (ver decisão pendente 6).
+Um arquivo por item do checklist (enviar de novo substitui). Guardados no PostgreSQL; apagar a candidatura ou a conta apaga os arquivos.
+Em `Application.documents[]`, o item ganha `file: { name, size, type, uploadedAt }` quando há arquivo (o conteúdo nunca vem junto).
 
-`PUT /applications/{id}/documents/{name}/file` — `multipart/form-data` com o campo `file`. `{name}` é o `name` do item do checklist, codificado na URL.
+| Rota | Corpo | Resposta |
+|---|---|---|
+| `PUT /applications/{id}/documents/{name}/file` | `multipart/form-data`, campo `file` | `200 { name, size, type, uploadedAt }`. `{name}` = nome do item, codificado na URL. |
+| `GET /applications/{id}/documents/{name}/file` | — | O arquivo, com `Content-Disposition: attachment` e `Content-Security-Policy: sandbox`. `404` se não houver. |
+| `DELETE /applications/{id}/documents/{name}/file` | — | `204`; `404` se não houver. |
 
-| Regra | Valor esperado |
-|---|---|
-| Tipos | PDF, JPG/JPEG, PNG, DOCX. O servidor deve verificar o **conteúdo** (assinatura do arquivo), não só a extensão. |
-| Tamanho | Até 10 MB. Acima disso: `413 payload_too_large`. |
-| Tipo inválido | `422 validation_failed` com `fields.file = "invalid_type"`. |
-| Sucesso | `200` + `{ "name": "diploma.pdf", "size": 2048, "type": "application/pdf", "uploadedAt": "…" }`. Substitui o arquivo anterior do item. |
-
-A ser definido junto: `GET` para baixar (link temporário?), `DELETE` do arquivo, se `Application.documents[]` ganha um campo `file`,
-antivírus, retenção e quem pode ver o arquivo.
+Regras: até **10 MB** (`413 payload_too_large`); tipo verificado **pelo conteúdo** (PDF, JPG, PNG, DOCX), não pela extensão
+(`422`, `fields.file = "invalid_type"`); vazio → `fields.file = "empty"`; sem o campo → `fields.file = "required"`; item ou candidatura
+de outra conta → `404`. O nome do arquivo é limpo (sem caminhos nem caracteres de controle).
 
 ---
 
@@ -314,8 +315,7 @@ id da candidatura = id da bolsa (uma por bolsa e por estudante); limites de requ
 1. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz?
 2. **Idioma dos dados.** Bolsas e motivos de elegibilidade em mais de um idioma? Proposta: `Accept-Language: pt|en` e a API responde no
    idioma disponível. Hoje, em inglês, a interface avisa que os detalhes da bolsa aparecem como publicados, em português.
-3. **Documentos.** Armazenamento dos arquivos (etapa B3).
-4. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming. A chave da IA fica **só** no backend.
+3. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming. A chave da IA fica **só** no backend.
 
 ## 8. Fora do contrato
 
@@ -326,6 +326,7 @@ id da candidatura = id da bolsa (uma por bolsa e por estudante); limites de requ
 
 | Versão | Data | Mudança |
 |---|---|---|
+| 1.1 | 2026-11-09 | Anexos implementados (PostgreSQL, tipo pelo conteúdo); exportar e excluir conta; limites por sessão e por conta. |
 | 1.0 | 2026-11-09 | Contas e sessão por cookie, rotas privadas por estudante, proteções (CSRF, limites). Contrato implementado. |
 | 0.4 | 2026-11-02 | Proposta de envio de arquivos (desligada); proposta de idioma dos dados. |
 | 0.3 | 2026-11-02 | Candidatura com `documents`, `notes` e `timeline`; `GET /applications/{id}`; `PATCH` parcial; rascunhos (`/drafts`). |

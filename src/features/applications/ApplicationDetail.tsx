@@ -63,7 +63,7 @@ export function ApplicationDetail({ id }: { id: string }) {
 }
 
 function Workspace({ app }: { app: Application }) {
-  const { update, remove } = useApplications();
+  const { update, remove, setDocumentFile } = useApplications();
   const t = useT();
   const router = useRouter();
   const progress = documentProgress(app);
@@ -160,7 +160,12 @@ function Workspace({ app }: { app: Application }) {
                       <span className={styles.box} aria-hidden="true" />
                       <span className={styles.docName}>{doc.name}</span>
                     </label>
-                    <DocumentUpload applicationId={app.id} documentName={doc.name} />
+                    <DocumentUpload
+                      applicationId={app.id}
+                      documentName={doc.name}
+                      current={doc.file}
+                      onChange={(file) => setDocumentFile(app.id, doc.name, file)}
+                    />
                   </li>
                 ))}
               </ul>

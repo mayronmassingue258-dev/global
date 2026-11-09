@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Database } from "../db/client.js";
-import { applicationDocuments, applicationEvents, applications, scholarships } from "../db/schema.js";
+import { applicationDocuments, applicationEvents, applications, documentFiles, scholarships } from "../db/schema.js";
 import { notFound, validationFailed } from "../lib/errors.js";
 import type { ApplicationPatch } from "../lib/validation.js";
 
@@ -27,19 +27,27 @@ async function load(db: Database, userId: string, scholarshipIds?: string[]) {
     .orderBy(asc(applications.createdAt));
   if (apps.length === 0) return [];
   const ids = apps.map((a) => a.app.scholarshipId);
-  const [docs, events] = await Promise.all([
+  const [docs, events, files] = await Promise.all([
     db.select().from(applicationDocuments)
       .where(and(eq(applicationDocuments.userId, userId), inArray(applicationDocuments.scholarshipId, ids)))
       .orderBy(asc(applicationDocuments.position)),
     db.select().from(applicationEvents)
       .where(and(eq(applicationEvents.userId, userId), inArray(applicationEvents.scholarshipId, ids)))
-      .orderBy(asc(applicationEvents.id))
+      .orderBy(asc(applicationEvents.id)),
+    // Só metadados: o conteúdo dos arquivos nunca é carregado aqui.
+    db.select({ scholarshipId: documentFiles.scholarshipId, documentName: documentFiles.documentName, fileName: documentFiles.fileName, size: documentFiles.size, contentType: documentFiles.contentType, uploadedAt: documentFiles.uploadedAt })
+      .from(documentFiles)
+      .where(and(eq(documentFiles.userId, userId), inArray(documentFiles.scholarshipId, ids)))
   ]);
+  const fileOf = (scholarshipId: string, name: string) => {
+    const f = files.find((x) => x.scholarshipId === scholarshipId && x.documentName === name);
+    return f ? { file: { name: f.fileName, size: f.size, type: f.contentType, uploadedAt: f.uploadedAt.toISOString() } } : {};
+  };
   return apps.map(({ app, s }) => ({
     id: app.scholarshipId,
     scholarship: s,
     status: app.status,
-    documents: docs.filter((d) => d.scholarshipId === app.scholarshipId).map((d) => ({ name: d.name, done: d.done })),
+    documents: docs.filter((d) => d.scholarshipId === app.scholarshipId).map((d) => ({ name: d.name, done: d.done, ...fileOf(app.scholarshipId, d.name) })),
     notes: app.notes,
     timeline: events.filter((e) => e.scholarshipId === app.scholarshipId).map(toEvent),
     updatedAt: app.updatedAt.toISOString()

@@ -29,6 +29,16 @@ Quando esta versão chegar ao `main`:
 > **Atenção ao plano gratuito da base:** o Render **apaga** bases gratuitas 30 dias após a criação. Para dados que não podem
 > se perder, mude o plano para *Basic* (≈ 6 USD/mês, com backups diários) em **globalscholar-db → Settings** antes disso.
 
+## Atualização: anexos e privacidade (B3)
+
+Ao aplicar o **Sync** do blueprint da versão 2.2.0:
+
+- **globalscholar-api-demo** ganha `INTERNAL_API_SECRET` (gerado pelo Render) e **globalscholar-web** passa a lê-lo. Com ele, as
+  páginas renderizadas pelo site não dividem o limite de requisições de um único IP.
+- **globalscholar-web** ganha `NEXT_PUBLIC_UPLOADS_ENABLED=true`: os estudantes passam a anexar arquivos de verdade (até 10 MB),
+  guardados na base de dados. **Atenção:** a base gratuita tem 1 GB e é apagada em 30 dias. Arquivos deixam isso mais urgente: mude para
+  o plano pago antes de ter estudantes reais.
+
 ## Atualização: contas (B2)
 
 A partir da versão 2.1.0 o site tem login de verdade. O `render.yaml` já traz as mudanças; ao aplicar o **Sync** do blueprint:

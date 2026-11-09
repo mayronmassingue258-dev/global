@@ -22,7 +22,8 @@ const pt = {
       login: "Entrar",
       register: "Criar conta",
       forgot: "Recuperar senha",
-      reset: "Nova senha"
+      reset: "Nova senha",
+      account: "Conta"
     }
   },
   common: {
@@ -385,7 +386,28 @@ const pt = {
     send: "Enviar arquivo",
     sending: "Enviando…",
     sent: (name: string) => `${name} enviado.`,
-    failed: "Não foi possível enviar o arquivo. Tente novamente."
+    failed: "Não foi possível enviar o arquivo. Tente novamente.",
+    attached: "Arquivo anexado",
+    download: (name: string, size: string) => `Baixar ${name} (${size})`,
+    removeFailed: "Não foi possível remover o arquivo. Tente novamente.",
+    invalidOnServer: "O conteúdo deste arquivo não é PDF, JPG, PNG nem DOCX válido."
+  },
+  account: {
+    eyebrow: "Conta",
+    title: "Sua conta e seus dados.",
+    text: "Veja os dados da conta, baixe uma cópia de tudo o que você guardou aqui ou exclua a conta.",
+    details: "Dados da conta",
+    name: "Nome",
+    email: "E-mail",
+    exportTitle: "Baixar meus dados",
+    exportText: "Um arquivo JSON com a conta, o perfil, as candidaturas (com checklist, notas e linha do tempo) e os rascunhos. Os arquivos anexados podem ser baixados em cada candidatura.",
+    exportButton: "Baixar meus dados (JSON)",
+    deleteTitle: "Excluir conta",
+    deleteText: "Apaga para sempre a conta, o perfil, as candidaturas, os arquivos anexados e os rascunhos. Não dá para desfazer.",
+    deleteConfirm: "Para confirmar, digite a sua senha",
+    deleteButton: "Excluir minha conta para sempre",
+    deleteWrongPassword: "Senha incorreta.",
+    deleteFailed: "Não foi possível excluir a conta agora. Tente novamente."
   },
   assistant: {
     eyebrow: "Documentos",

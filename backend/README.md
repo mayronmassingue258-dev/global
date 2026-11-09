@@ -62,6 +62,7 @@ TEST_DATABASE_URL=postgres://globalscholar:globalscholar@localhost:5432/globalsc
 | `SESSION_COOKIE_SECURE` | ligado em produção | Cookie só por HTTPS. |
 | `EMAIL_PROVIDER` | `log` | `log`: o e-mail aparece no terminal/log. `resend`: envia de verdade (exige `RESEND_API_KEY`). |
 | `RESEND_API_KEY` / `EMAIL_FROM` | — / `GlobalScholar <onboarding@resend.dev>` | Envio pelo Resend. |
+| `INTERNAL_API_SECRET` | — | Segredo compartilhado com o servidor do site (cabeçalho `x-gs-internal`): suas chamadas não contam no limite por IP. |
 | `ALLOW_TEST_RESET` | `0` | `1` só nos testes de ponta a ponta (`POST /api/__reset`, `GET /api/__emails`). Proibido em produção (a API não inicia). |
 
 A configuração é validada na partida: valor errado = mensagem clara e a API não sobe.
@@ -76,7 +77,8 @@ src/
   lib/validation.ts    validações com os códigos de erro do contrato
   lib/errors.ts        HttpError e envelope { error: { code, message, fields? } }
   eligibility/         motor de elegibilidade (regras explicáveis, sem probabilidades)
-  services/            consultas: bolsas, perfil, candidaturas (com linha do tempo), rascunhos
+  auth/                senhas (scrypt), tokens, envio de e-mail
+  services/            bolsas, perfil, candidaturas (com linha do tempo), rascunhos, contas, arquivos, exportação/exclusão
   db/schema.ts         tabelas (Drizzle) · db/migrate.ts · db/seed.ts · db/seed-data/ (bolsas fictícias)
 drizzle/               migrações SQL versionadas (geradas a partir do schema)
 test/                  testes de contrato com PostgreSQL real
@@ -84,8 +86,8 @@ test/                  testes de contrato com PostgreSQL real
 
 ### Base de dados
 
-`users` · `scholarships` · `eligibility_criteria` · `profiles` · `applications` · `application_documents` ·
-`application_events` (linha do tempo) · `drafts`. Toda informação do estudante tem `user_id`; apagar uma candidatura apaga
+`users` · `sessions` · `password_resets` · `scholarships` · `eligibility_criteria` · `profiles` · `applications` · `application_documents` ·
+`application_events` (linha do tempo) · `document_files` · `drafts`. Toda informação do estudante tem `user_id`; apagar uma candidatura apaga
 os documentos e eventos dela (chaves estrangeiras em cascata). Atualizações de candidatura rodam numa transação com a
 linha travada (`FOR UPDATE`), então cliques simultâneos não corrompem a linha do tempo.
 
@@ -97,14 +99,19 @@ do qual a base guarda só o hash; sessões vencidas são apagadas a cada 6 horas
 para e-mail inexistente e senha errada. Redefinir a senha encerra todas as sessões da conta. Toda consulta de dados do estudante é
 filtrada pelo id da sessão: um estudante nunca vê nem altera dados de outro (há testes para isso).
 
+### Anexos e privacidade
+
+Arquivos do checklist em `document_files` (PostgreSQL, até 10 MB, tipo verificado pelo conteúdo), download com `Content-Disposition:
+attachment` e `sandbox`. O estudante pode **baixar todos os seus dados** (`GET /api/auth/me/export`) e **excluir a conta**
+(`DELETE /api/auth/me`, com a senha), o que apaga tudo em cascata.
+
 ### Segurança já presente
 
 Cabeçalhos de segurança (helmet), CORS restrito às origens configuradas, bloqueio de alterações vindas de outros sites (CSRF:
-cookie `SameSite=Lax` + verificação de `Origin`), limite de 10 tentativas/minuto nas rotas de conta, limite de 300 requisições/minuto por IP,
+cookie `SameSite=Lax` + verificação de `Origin`), limite de 10 tentativas/minuto nas rotas de conta e bloqueio por conta após 10 senhas erradas, limite global por sessão/IP, limite de 300 requisições/minuto por IP,
 corpo de até 512 KB, busca protegida contra curingas `%`/`_`, `Cache-Control: no-store`, consultas parametrizadas (sem SQL montado
 com texto do usuário), cookies e tokens apagados dos logs.
 
 ### Ainda não existe (próximas etapas)
 
-- **B3 — Dados por estudante e anexos:** cada pessoa vê só os seus dados; armazenamento de arquivos.
 - **B4 — Produção:** base paga com backups, documentação OpenAPI, monitoramento, cadastro de bolsas reais.

@@ -12,7 +12,7 @@ describe("AppHeader com sessão", () => {
   it("logado: mostra o nome e 'Sair' encerra a sessão e volta para o início", async () => {
     const nav = setupTestRouter("/dashboard");
     render(<SessionProvider user={{ id: "u1", email: "ana@exemplo.com", name: "Ana Silva" }}><AppHeader /></SessionProvider>);
-    expect(screen.getByText("Conectado como Ana Silva")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Conectado como Ana Silva · Conta" })).toHaveAttribute("href", "/account");
     await userEvent.click(screen.getByRole("button", { name: "Sair" }));
     expect(logout).toHaveBeenCalledOnce();
     await waitFor(() => expect(nav.current()).toBe("/"));

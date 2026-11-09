@@ -1,4 +1,4 @@
-import type { Application, Draft, EligibilityResult, Profile, Scholarship, ScholarshipPage, TimelineEvent } from "@/types";
+import type { Application, AttachedFile, Draft, EligibilityResult, Profile, Scholarship, ScholarshipPage, TimelineEvent } from "@/types";
 import { APPLICATION_STATUSES } from "@/lib/constants";
 import { DOCUMENT_TYPES } from "@/lib/validation/draft";
 
@@ -48,6 +48,10 @@ function isTimelineEvent(v: unknown): v is TimelineEvent {
   }
 }
 
+export function isAttachedFile(v: unknown): v is AttachedFile {
+  return isRecord(v) && isStr(v.name) && typeof v.size === "number" && isStr(v.type) && isStr(v.uploadedAt);
+}
+
 export function isApplication(v: unknown): v is Application {
   return (
     isRecord(v) &&
@@ -57,7 +61,7 @@ export function isApplication(v: unknown): v is Application {
     isRecord(v.scholarship) &&
     isStr(v.scholarship.id) && isStr(v.scholarship.title) && isStr(v.scholarship.institution) && isStr(v.scholarship.deadline) &&
     isStr(v.notes) &&
-    Array.isArray(v.documents) && v.documents.every((d) => isRecord(d) && isStr(d.name) && typeof d.done === "boolean") &&
+    Array.isArray(v.documents) && v.documents.every((d) => isRecord(d) && isStr(d.name) && typeof d.done === "boolean" && (d.file === undefined || isAttachedFile(d.file))) &&
     Array.isArray(v.timeline) && v.timeline.every(isTimelineEvent)
   );
 }

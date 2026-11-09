@@ -19,7 +19,7 @@ export async function setupTestApp(options: { authRateLimit?: number; env?: Reco
   let defaultCookie: string | null = null;
 
   const reset = async () => {
-    await db.execute(sql`truncate users, sessions, password_resets, profiles, applications, application_documents, application_events, drafts, eligibility_criteria, scholarships restart identity cascade`);
+    await db.execute(sql`truncate users, sessions, password_resets, profiles, applications, application_documents, document_files, application_events, drafts, eligibility_criteria, scholarships restart identity cascade`);
     await seed(db);
     emails.length = 0;
     defaultCookie = null;

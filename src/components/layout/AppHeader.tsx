@@ -42,10 +42,10 @@ export function AppHeader() {
           <LanguageSwitcher />
           {user ? (
             <div className={styles.account}>
-              <span className={styles.userName} title={user.email}>
-                <span className="visually-hidden">{t.nav.signedInAs(user.name)}</span>
+              <Link href="/account" className={styles.userName} title={user.email} aria-current={pathname === "/account" ? "page" : undefined}>
+                <span className="visually-hidden">{t.nav.signedInAs(user.name)} · {t.nav.account}</span>
                 <span aria-hidden="true">{user.name}</span>
-              </span>
+              </Link>
               <button type="button" className={styles.signOut} onClick={() => void signOut()} disabled={leaving}>{t.nav.signOut}</button>
             </div>
           ) : (

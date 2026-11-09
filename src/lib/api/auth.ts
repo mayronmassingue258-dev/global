@@ -11,7 +11,12 @@ export interface AuthService {
   logout(): Promise<void>;
   forgotPassword(email: string): Promise<void>;
   resetPassword(token: string, password: string): Promise<void>;
+  /** Exclui a conta e todos os dados (pede a senha de novo). */
+  deleteAccount(password: string): Promise<void>;
 }
+
+/** Download do JSON com todos os dados do estudante (mesmo domínio, com o cookie de sessão). */
+export const ACCOUNT_EXPORT_PATH = "/auth/me/export";
 
 const isUser = (v: unknown): v is User => {
   if (typeof v !== "object" || v === null) return false;
@@ -48,5 +53,8 @@ export const apiAuthService: AuthService = {
   },
   async resetPassword(token, password) {
     await apiRequest<void>("/auth/reset-password", { method: "POST", body: { token, password } });
+  },
+  async deleteAccount(password) {
+    await apiRequest<void>("/auth/me", { method: "DELETE", body: { password } });
   }
 };

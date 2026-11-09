@@ -17,6 +17,7 @@ function fakeAuth(overrides: Partial<AuthService> = {}): AuthService & { calls: 
     logout: async () => {},
     forgotPassword: async (email) => { calls.push(`forgot:${email}`); },
     resetPassword: async () => {},
+    deleteAccount: async () => {},
     ...overrides
   };
 }

@@ -42,6 +42,9 @@ services:
       # Para os estudantes receberem o e-mail de verdade: EMAIL_PROVIDER=resend + RESEND_API_KEY (ver docs/deploy-render.md).
       - key: EMAIL_PROVIDER
         value: log
+      # Chave que o site usa para não cair no limite de requisições por IP. Gerada pelo Render; o site lê daqui.
+      - key: INTERNAL_API_SECRET
+        generateValue: true
       # Bolsas FICTÍCIAS de demonstração. Mude para "0" quando houver bolsas reais cadastradas.
       - key: SEED_DEMO_DATA
         value: "1"
@@ -70,6 +73,14 @@ services:
       # Endereço do backend usado pelo repasse /api e pelas páginas renderizadas no servidor. Lido no BUILD.
       - key: API_INTERNAL_URL
         value: https://globalscholar-api-demo.onrender.com
+      - key: INTERNAL_API_SECRET
+        fromService:
+          type: web
+          name: globalscholar-api-demo
+          envVarKey: INTERNAL_API_SECRET
+      # Anexos de documentos (enviados ao backend, guardados no PostgreSQL).
+      - key: NEXT_PUBLIC_UPLOADS_ENABLED
+        value: "true"
       # URL pública do próprio frontend (metadados, sitemap, imagens de compartilhamento), ex.: https://globalscholar-web.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
         sync: false

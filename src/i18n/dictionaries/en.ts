@@ -20,7 +20,8 @@ const en: Dictionary = {
       login: "Sign in",
       register: "Create account",
       forgot: "Reset password",
-      reset: "New password"
+      reset: "New password",
+      account: "Account"
     }
   },
   common: {
@@ -383,7 +384,28 @@ const en: Dictionary = {
     send: "Upload file",
     sending: "Uploading…",
     sent: (name: string) => `${name} uploaded.`,
-    failed: "Couldn't upload the file. Try again."
+    failed: "Couldn't upload the file. Try again.",
+    attached: "Attached file",
+    download: (name: string, size: string) => `Download ${name} (${size})`,
+    removeFailed: "Couldn't remove the file. Try again.",
+    invalidOnServer: "This file's content isn't a valid PDF, JPG, PNG or DOCX."
+  },
+  account: {
+    eyebrow: "Account",
+    title: "Your account and your data.",
+    text: "See your account details, download a copy of everything you stored here, or delete your account.",
+    details: "Account details",
+    name: "Name",
+    email: "Email",
+    exportTitle: "Download my data",
+    exportText: "A JSON file with your account, profile, applications (with checklist, notes and timeline) and drafts. Attached files can be downloaded from each application.",
+    exportButton: "Download my data (JSON)",
+    deleteTitle: "Delete account",
+    deleteText: "Permanently deletes your account, profile, applications, attached files and drafts. This can't be undone.",
+    deleteConfirm: "To confirm, enter your password",
+    deleteButton: "Delete my account permanently",
+    deleteWrongPassword: "Incorrect password.",
+    deleteFailed: "Couldn't delete your account right now. Try again."
   },
   assistant: {
     eyebrow: "Documents",

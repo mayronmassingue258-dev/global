@@ -1,5 +1,5 @@
 /** Áreas que exigem login. Usado pelo middleware (redireciona antes de abrir) e pelo cliente (sessão que venceu no meio do uso). */
-export const PROTECTED_PREFIXES = ["/dashboard", "/applications", "/profile", "/assistant", "/eligibility"] as const;
+export const PROTECTED_PREFIXES = ["/dashboard", "/applications", "/profile", "/assistant", "/eligibility", "/account"] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

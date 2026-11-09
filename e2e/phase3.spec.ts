@@ -78,16 +78,37 @@ test.describe("formulários", () => {
   });
 });
 
-test("upload: valida o arquivo e deixa claro que o envio está desligado", async ({ page, api }) => {
+test("anexos: envia, baixa o mesmo arquivo, recusa conteúdo falso e remove", async ({ page, api }) => {
   await api.post("/applications", { scholarshipId: "amostra-005" });
   await page.goto("/applications/amostra-005");
   const input = page.getByLabel("Arquivo para “Carta curta”");
+
+  // Recusado já no navegador (extensão/tipo).
   await input.setInputFiles({ name: "programa.exe", mimeType: "application/x-msdownload", buffer: Buffer.from("MZ") });
   await expect(page.getByRole("alert").filter({ hasText: "Tipo de arquivo não aceito" })).toBeVisible();
 
-  await input.setInputFiles({ name: "carta.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 teste") });
-  await expect(page.getByText(/carta\.pdf \(\d+ B\) pronto para envio\./)).toBeVisible();
-  await expect(page.getByText(/não saiu do seu computador/)).toBeVisible();
+  // Parece PDF pelo nome, mas o conteúdo não é: o SERVIDOR recusa.
+  await input.setInputFiles({ name: "disfarçado.pdf", mimeType: "application/pdf", buffer: Buffer.from("MZ executável") });
+  await expect(page.getByRole("alert").filter({ hasText: "não é PDF, JPG, PNG nem DOCX válido" })).toBeVisible();
+
+  const content = Buffer.from("%PDF-1.4\nCarta de teste\n%%EOF");
+  await input.setInputFiles({ name: "carta.pdf", mimeType: "application/pdf", buffer: content });
+  const link = page.getByRole("link", { name: /^Baixar carta\.pdf/ });
+  await expect(link).toBeVisible();
+
+  // Continua lá depois de recarregar (está no servidor) e baixa idêntico.
+  await page.reload();
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: /^Baixar carta\.pdf/ }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("carta.pdf");
+  const { readFile } = await import("node:fs/promises");
+  expect((await readFile((await file.path())!)).equals(content)).toBe(true);
+
+  await page.getByRole("button", { name: "Remover arquivo" }).click();
+  await expect(page.getByRole("link", { name: /^Baixar carta\.pdf/ })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText("Anexar arquivo")).toBeVisible();
 });
 
 test("robots.txt e sitemap.xml", async ({ request, api: _api }) => {

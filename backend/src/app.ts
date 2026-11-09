@@ -2,8 +2,11 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
+import { timingSafeEqual } from "node:crypto";
 import { sql } from "drizzle-orm";
+import { hashToken } from "./auth/tokens.js";
 import { cookieSecure, type Config } from "./config.js";
 import type { Database } from "./db/client.js";
 import { createEmailSender, sentEmails, type EmailSender } from "./auth/email.js";
@@ -13,6 +16,8 @@ import { getEligibility, getScholarshipRow, listScholarships, toScholarship } fr
 import { getProfile, putProfile } from "./services/profile.js";
 import { createApplication, deleteApplication, getApplication, listApplications, patchApplication } from "./services/applications.js";
 import { createDraft, deleteDraft, getDraft, listDrafts, updateDraft } from "./services/drafts.js";
+import { MAX_FILE_BYTES, deleteFile, readFile, saveFile } from "./services/files.js";
+import { deleteAccount, exportAccount } from "./services/account.js";
 import {
   createSession, destroySession, login, parseForgot, parseLogin, parseRegister, parseReset, register,
   requestPasswordReset, resetPassword, resolveSession, type PublicUser
@@ -39,6 +44,33 @@ type Deps = {
 
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+/**
+ * Bloqueio por CONTA: 10 senhas erradas para o mesmo e-mail em 15 minutos → novas tentativas recusadas até a janela passar.
+ * Protege contra força bruta mesmo quando o atacante troca de IP. (Memória do processo: basta para uma instância.)
+ */
+export function createLoginThrottle(maxFailures = 10, windowMs = 15 * 60 * 1000) {
+  const failures = new Map<string, { count: number; since: number }>();
+  const current = (email: string) => {
+    const entry = failures.get(email);
+    if (entry && Date.now() - entry.since > windowMs) {
+      failures.delete(email);
+      return undefined;
+    }
+    return entry;
+  };
+  return {
+    blocked: (email: string) => (current(email)?.count ?? 0) >= maxFailures,
+    fail: (email: string) => {
+      const entry = current(email);
+      failures.set(email, entry ? { count: entry.count + 1, since: entry.since } : { count: 1, since: Date.now() });
+      if (failures.size > 10_000) failures.delete(failures.keys().next().value!);
+    },
+    reset: (email: string) => {
+      failures.delete(email);
+    }
+  };
+}
+
 /** Monta a aplicação sem abrir porta (os testes usam `app.inject`). */
 export async function buildApp({ config, db, resetDatabase, emailSender, authRateLimit = 10 }: Deps): Promise<FastifyInstance> {
   const app = Fastify({
@@ -50,11 +82,26 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   const origins = config.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
 
   await app.register(cookie);
+  await app.register(multipart, { limits: { fileSize: MAX_FILE_BYTES, files: 1, fields: 0, parts: 2 } });
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "same-site" } });
   await app.register(cors, { origin: origins.length > 0 ? origins : false, credentials: true, methods: ["GET", "POST", "PUT", "PATCH", "DELETE"] });
+  const internalSecret = config.INTERNAL_API_SECRET ? Buffer.from(config.INTERNAL_API_SECRET) : null;
+  const isInternal = (req: FastifyRequest) => {
+    const given = req.headers["x-gs-internal"];
+    if (!internalSecret || typeof given !== "string") return false;
+    const buf = Buffer.from(given);
+    return buf.length === internalSecret.length && timingSafeEqual(buf, internalSecret);
+  };
   await app.register(rateLimit, {
-    max: 300,
+    // Testes de ponta a ponta: tudo vem de 127.0.0.1 em alta velocidade; os limites têm testes próprios.
+    max: config.ALLOW_TEST_RESET === "1" ? 100_000 : 600,
     timeWindow: "1 minute",
+    // Estudante logado conta pela própria sessão; visitante, pelo IP. O servidor do site (renderização) fica de fora.
+    keyGenerator: (req) => {
+      const token = req.cookies?.[SESSION_COOKIE];
+      return token ? `s:${hashToken(token).slice(0, 24)}` : `ip:${req.ip}`;
+    },
+    allowList: (req) => isInternal(req),
     errorResponseBuilder: (_req, ctx) => ({ statusCode: 429, ...errorBody("rate_limited"), retryAfter: ctx.after })
   });
 
@@ -120,7 +167,10 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     if (error instanceof HttpError) return reply.status(error.statusCode).send(errorBody(error.code, error.fields));
     if (error.code === "FST_ERR_CTP_INVALID_JSON_BODY" || error.name === "SyntaxError") return reply.status(400).send(errorBody("invalid_json"));
     if (error.code === "FST_ERR_CTP_EMPTY_JSON_BODY") return reply.status(400).send(errorBody("invalid_body"));
-    if (error.code === "FST_ERR_CTP_BODY_TOO_LARGE") return reply.status(413).send(errorBody("payload_too_large"));
+    if (error.code === "FST_ERR_CTP_BODY_TOO_LARGE" || error.code === "FST_REQ_FILE_TOO_LARGE") return reply.status(413).send(errorBody("payload_too_large"));
+    if (error.code === "FST_INVALID_MULTIPART_CONTENT_TYPE" || error.code === "FST_FILES_LIMIT" || error.code === "FST_PARTS_LIMIT" || error.code === "FST_FIELDS_LIMIT") {
+      return reply.status(400).send(errorBody("invalid_body"));
+    }
     if (error.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") return reply.status(415).send(errorBody("unsupported_media_type"));
     if (error.statusCode === 429) return reply.status(429).send(error);
     req.log.error(error);
@@ -128,7 +178,9 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   });
 
   const id = (req: FastifyRequest) => decodeURIComponent((req.params as { id: string }).id);
-  const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute" } } };
+  const loginThrottle = createLoginThrottle();
+  // Rotas de conta: sempre por IP (não por sessão), e sem exceção para a chave interna.
+  const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute", keyGenerator: (req: FastifyRequest) => `auth:${req.ip}`, allowList: () => false } } };
 
   await app.register(async (api) => {
     api.get("/health", async (_req, reply) => {
@@ -147,12 +199,31 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       return reply.status(201).send({ user });
     });
     api.post("/auth/login", authLimit, async (req, reply) => {
-      const user = await login(db, parseLogin(req.body));
+      const input = parseLogin(req.body);
+      if (loginThrottle.blocked(input.email)) throw new HttpError(429, "rate_limited");
+      let user: PublicUser;
+      try {
+        user = await login(db, input);
+      } catch (error) {
+        if (error instanceof HttpError && error.code === "invalid_credentials") loginThrottle.fail(input.email);
+        throw error;
+      }
+      loginThrottle.reset(input.email);
       setSessionCookie(reply, await createSession(db, user.id, req.headers["user-agent"] ?? "", config.SESSION_DAYS));
       return { user };
     });
     api.post("/auth/logout", async (req, reply) => {
       if (req.sessionToken) await destroySession(db, req.sessionToken);
+      clearSessionCookie(reply);
+      return reply.status(204).send();
+    });
+    api.get("/auth/me/export", async (req, reply) => {
+      const data = await exportAccount(db, userId(req));
+      const day = data.exportedAt.slice(0, 10);
+      return reply.header("Content-Disposition", `attachment; filename="globalscholar-meus-dados-${day}.json"`).send(data);
+    });
+    api.delete("/auth/me", authLimit, async (req, reply) => {
+      await deleteAccount(db, userId(req), req.body);
       clearSessionCookie(reply);
       return reply.status(204).send();
     });
@@ -210,6 +281,36 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     api.patch("/applications/:id", async (req) => patchApplication(db, userId(req), id(req), parseApplicationPatch(req.body)));
     api.delete("/applications/:id", async (req, reply) => {
       await deleteApplication(db, userId(req), id(req));
+      return reply.status(204).send();
+    });
+
+    // Arquivo de um item do checklist: multipart/form-data, campo "file" (até 10 MB; PDF, JPG, PNG ou DOCX pelo conteúdo).
+    const fileParams = (req: FastifyRequest) => {
+      const p = req.params as { id: string; name: string };
+      return { scholarshipId: decodeURIComponent(p.id), documentName: decodeURIComponent(p.name) };
+    };
+    api.put("/applications/:id/documents/:name/file", async (req) => {
+      const owner = userId(req);
+      if (!req.isMultipart()) throw new HttpError(400, "invalid_body");
+      const part = await req.file();
+      if (!part || part.fieldname !== "file") throw new HttpError(422, "validation_failed", { file: "required" });
+      const buffer = await part.toBuffer();
+      const { scholarshipId, documentName } = fileParams(req);
+      return saveFile(db, owner, scholarshipId, documentName, { fileName: part.filename, buffer });
+    });
+    api.get("/applications/:id/documents/:name/file", async (req, reply) => {
+      const { scholarshipId, documentName } = fileParams(req);
+      const file = await readFile(db, userId(req), scholarshipId, documentName);
+      return reply
+        .header("Content-Type", file.contentType)
+        .header("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`)
+        // O arquivo nunca é interpretado como página do site, mesmo se alguém tentar abri-lo direto.
+        .header("Content-Security-Policy", "default-src 'none'; sandbox")
+        .send(file.content);
+    });
+    api.delete("/applications/:id/documents/:name/file", async (req, reply) => {
+      const { scholarshipId, documentName } = fileParams(req);
+      await deleteFile(db, userId(req), scholarshipId, documentName);
       return reply.status(204).send();
     });
 

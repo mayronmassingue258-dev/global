@@ -15,5 +15,6 @@ export const mockAuthService: AuthService = {
   },
   async logout() {},
   async forgotPassword() {},
-  async resetPassword() {}
+  async resetPassword() {},
+  async deleteAccount() {}
 };

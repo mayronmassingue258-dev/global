@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigserial, boolean, check, date, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigserial, boolean, check, customType, date, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Esquema da base de dados. Toda informação do estudante tem `user_id`: na B1 existe só o estudante de
@@ -103,6 +103,26 @@ export const applicationDocuments = pgTable("application_documents", {
 }, (t) => [
   primaryKey({ columns: [t.userId, t.scholarshipId, t.name] }),
   foreignKey({ columns: [t.userId, t.scholarshipId], foreignColumns: [applications.userId, applications.scholarshipId] }).onDelete("cascade")
+]);
+
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+/**
+ * Arquivo anexado a um item do checklist (um por item; enviar de novo substitui).
+ * Guardado no próprio PostgreSQL (até 10 MB): entra nos backups e some em cascata com a candidatura ou a conta.
+ */
+export const documentFiles = pgTable("document_files", {
+  userId: uuid("user_id").notNull(),
+  scholarshipId: text("scholarship_id").notNull(),
+  documentName: text("document_name").notNull(),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  content: bytea("content").notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow()
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.scholarshipId, t.documentName] }),
+  foreignKey({ name: "document_files_document_fk", columns: [t.userId, t.scholarshipId, t.documentName], foreignColumns: [applicationDocuments.userId, applicationDocuments.scholarshipId, applicationDocuments.name] }).onDelete("cascade")
 ]);
 
 /** Linha do tempo. Ordem = id crescente. */

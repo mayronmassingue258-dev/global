@@ -1,5 +1,22 @@
 # Registro de mudanças
 
+## 2.2.0 — Backend B3: anexos e privacidade (2026-11-09)
+
+### Novo
+- **Anexos de verdade** em cada item do checklist da candidatura: o arquivo sobe assim que é escolhido, fica guardado (PostgreSQL),
+  pode ser baixado e removido. Até 10 MB; o servidor confere o tipo **pelo conteúdo** (um executável renomeado para .pdf é recusado).
+- **Página Conta** (`/account`, pelo nome no cabeçalho): dados da conta, **baixar meus dados** (JSON com perfil, candidaturas e
+  rascunhos) e **excluir a conta** com a senha, apagando tudo em cascata.
+
+### Corrigido
+- **Limite de requisições** (o CI da 2.1.0 falhou nos testes de ponta a ponta por isso): era por IP, e as páginas renderizadas pelo
+  servidor do site chamam o backend sempre do mesmo IP. Agora conta por sessão (logado) ou IP (visitante), o servidor do site se
+  identifica com uma chave interna, e há **bloqueio por conta** após 10 senhas erradas (vale mesmo se o atacante trocar de IP).
+- Cobertura de testes do frontend voltou acima do mínimo (funções 92,9%); `npm run check` agora mede a cobertura como o CI.
+
+### Testes
+62 no backend, 234 no frontend, 96 de ponta a ponta. Um arquivo de 9 MB foi enviado pelo site e baixado idêntico.
+
 ## 2.1.0 — Backend B2: contas (2026-11-09)
 
 ### Novo

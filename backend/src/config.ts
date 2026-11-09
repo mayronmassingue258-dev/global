@@ -23,6 +23,11 @@ const schema = z.object({
   EMAIL_PROVIDER: z.enum(["log", "resend"]).default("log"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("GlobalScholar <onboarding@resend.dev>"),
+  /**
+   * Segredo compartilhado com o servidor do Next (cabeçalho x-gs-internal). Chamadas com ele não contam no limite
+   * global de requisições: sem isso, todos os visitantes dividiriam o limite do IP do servidor do site.
+   */
+  INTERNAL_API_SECRET: z.string().min(16).optional(),
   /** Conexão com SSL (Render exige para conexões externas; a URL interna dispensa). */
   DATABASE_SSL: z.enum(["require", "disable"]).default("disable")
 });

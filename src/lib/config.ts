@@ -20,7 +20,7 @@ export const DATA_MODE: "mock" | "api" = process.env.NEXT_PUBLIC_DATA_MODE === "
 export const IS_MOCK_MODE = DATA_MODE === "mock";
 
 /**
- * Envio de arquivos. DESLIGADO até o backend definir o armazenamento (docs/api-contract.md, seção "Arquivos").
- * Desligado, a interface valida o arquivo mas não o envia.
+ * Envio de arquivos (backend: PUT /applications/{id}/documents/{nome}/file). Ligue com NEXT_PUBLIC_UPLOADS_ENABLED=true
+ * quando houver backend. Desligado (ex.: modo demonstração), a interface valida o arquivo mas não o envia.
  */
 export const UPLOADS_ENABLED = process.env.NEXT_PUBLIC_UPLOADS_ENABLED === "true";

@@ -21,6 +21,7 @@ export const config = {
     "/applications", "/applications/:path*",
     "/profile", "/profile/:path*",
     "/assistant", "/assistant/:path*",
-    "/eligibility", "/eligibility/:path*"
+    "/eligibility", "/eligibility/:path*",
+    "/account", "/account/:path*"
   ]
 };
