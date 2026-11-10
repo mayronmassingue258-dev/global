@@ -6,7 +6,7 @@ Publicação passo a passo: [deploy-render.md](./deploy-render.md). Verificaçã
 ## Visão geral
 
 ```
-Navegador ──► globalscholar-web (Next.js)  ──/api/* repassado──►  globalscholar-api-demo (Fastify)  ──►  globalscholar-db (PostgreSQL)
+Navegador ──► globalscholar-web (Next.js)  ──/api/* repassado──►  globalscholar-api-demo (Fastify)  ──►  Supabase (PostgreSQL)
                  páginas, login (cookie)          com x-gs-internal nas          contas, dados, arquivos        tudo, inclusive anexos
                                                   chamadas do servidor
 ```
@@ -16,7 +16,7 @@ Navegador ──► globalscholar-web (Next.js)  ──/api/* repassado──►
 | Site | `https://globalscholar-web.onrender.com` | `/` responde 200 |
 | API | `https://globalscholar-api-demo.onrender.com` | `/api/health` → `{"ok":true}` (também testa a base) |
 | Documentação da API | `https://globalscholar-api-demo.onrender.com/api/docs` | interativa (OpenAPI) |
-| Base de dados | `globalscholar-db` no Render | painel do Render |
+| Base de dados | projeto no Supabase | painel do Supabase (Reports) |
 
 ## Monitoramento
 
@@ -30,12 +30,11 @@ Navegador ──► globalscholar-web (Next.js)  ──/api/* repassado──►
 
 ## Backups e restauração
 
-**Plano gratuito da base: sem backups, e a base é apagada 30 dias após a criação.** Antes de ter estudantes reais:
+**Plano gratuito do Supabase: sem backups para baixar.** Antes de ter estudantes reais:
 
-1. Render → **globalscholar-db → Settings → Plan → Basic** (≈ 6 USD/mês): backups diários automáticos, restauração a um ponto no tempo
-   (conforme o plano) e a base não expira.
-2. Backup manual extra (por exemplo, antes de uma migração grande), da sua máquina, com a **External Database URL** do painel
-   (Render → globalscholar-db → Connections):
+1. Supabase → **Billing → Pro**: backups diários automáticos (e restauração a um ponto no tempo como opcional).
+2. Backup manual (por exemplo, antes de uma migração grande), da sua máquina, com a URL do **Session pooler**
+   (Supabase → Connect):
 
 ```bash
 pg_dump --format=custom --no-owner --file=globalscholar-$(date +%F).dump "URL_EXTERNA_DA_BASE"
@@ -47,11 +46,10 @@ pg_dump --format=custom --no-owner --file=globalscholar-$(date +%F).dump "URL_EX
 pg_restore --no-owner --clean --if-exists --dbname="URL_DA_BASE_DE_DESTINO" globalscholar-AAAA-MM-DD.dump
 ```
 
-> Para usar a URL externa, a base precisa aceitar o seu IP: Render → globalscholar-db → **Access Control**. O `render.yaml`
-> começa sem nenhum IP liberado (só os serviços do Render acessam). Libere o seu IP só durante o backup e remova depois.
+> Use `pg_dump` da mesma versão principal do PostgreSQL do Supabase (veja em Settings → Infrastructure), ou mais nova.
 
 **O que está na base:** contas (senhas só em hash), sessões, perfis, candidaturas, linha do tempo, **arquivos anexados** e rascunhos.
-Os anexos ocupam espaço: acompanhe em globalscholar-db → **Metrics** (o plano Basic tem 1 GB; aumente quando passar de 70%).
+Os anexos ocupam espaço: acompanhe em Supabase → **Reports → Database** (500 MB no gratuito, 8 GB no Pro).
 
 ## Cadastrar bolsas reais
 
@@ -83,7 +81,7 @@ prefira manter e deixar o prazo vencer.
 |---|---|---|
 | `INTERNAL_API_SECRET` | gerado pelo Render na API; o site lê de lá | API → Environment → gerar novo valor; depois redeploy do site (*Clear build cache & deploy*). |
 | `RESEND_API_KEY` | API → Environment | Criar nova chave no Resend, trocar aqui, apagar a antiga no Resend. |
-| Senha da base | gerenciada pelo Render | Render → globalscholar-db → *Rotate password* (a API recebe a nova URL automaticamente). |
+| Senha da base | Supabase | Supabase → Settings → Database → *Reset database password*; depois atualize `DATABASE_URL` na API do Render. |
 
 Nunca coloque segredos no código, no `render.yaml` ou em variáveis `NEXT_PUBLIC_*` (essas vão para o navegador).
 
@@ -92,7 +90,7 @@ Nunca coloque segredos no código, no `render.yaml` ou em variáveis `NEXT_PUBLI
 | Sintoma | Primeiro passo |
 |---|---|
 | Site fora do ar | Render → globalscholar-web → **Events**: deploy com erro? **Rollback** para o anterior. |
-| Páginas abrem, mas "Não foi possível carregar" | `…/api/health` da API. `503` = base fora; Render → globalscholar-db. |
+| Páginas abrem, mas "Não foi possível carregar" | `…/api/health` da API. `503` = base fora: projeto pausado no Supabase? Reative no painel. |
 | Ninguém consegue entrar | Logs da API. `CORS_ORIGIN`/`APP_URL` batem com o endereço do site? Cookie bloqueado = site sem o repasse `/api` (`API_INTERNAL_URL`). |
 | Estudantes não recebem e-mail de nova senha | `EMAIL_PROVIDER=resend` e `RESEND_API_KEY` configurados? Domínio verificado no Resend? |
 | Muitos `429` | Ataque ou um robô: veja os IPs nos logs. Os limites estão em `backend/src/app.ts`. |

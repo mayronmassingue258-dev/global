@@ -210,3 +210,12 @@ describe("HTTP", () => {
     expect((await t.call("/__reset", { method: "POST" })).status).toBe(404);
   });
 });
+
+describe("base de dados", () => {
+  it("RLS ligado em todas as tabelas (protege contra APIs automáticas do provedor, como a do Supabase)", async () => {
+    const { sql } = await import("drizzle-orm");
+    const rows = (await t.db.execute(sql`select relname, relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'`)) as unknown as { relname: string; relrowsecurity: boolean }[];
+    expect(rows.length).toBeGreaterThanOrEqual(11);
+    expect(rows.filter((r) => !r.relrowsecurity).map((r) => r.relname)).toEqual([]);
+  });
+});

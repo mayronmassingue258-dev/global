@@ -1,5 +1,13 @@
 # Registro de mudanças
 
+## 2.4.0 — Base de dados no Supabase (2026-11-10)
+
+- A base de dados passa a ser o **Supabase**; o `render.yaml` não cria mais uma base no Render (`DATABASE_URL` vem do painel).
+- **Row Level Security ligado em todas as tabelas** (migração `0003_enable_rls`): a API automática do Supabase (chave `anon`) não lê
+  nada. Verificado com um usuário comum dono das tabelas (como no Supabase): o backend funciona e o papel `anon` vê 0 linhas.
+- Suporte ao pooler do Supabase: SSL (`DATABASE_SSL=require`) e `DATABASE_PREPARE=0` para o modo *Transaction*.
+- Guia passo a passo em `docs/deploy-render.md` ("Base de dados no Supabase"); operação e backups atualizados.
+
 ## 2.3.0 — Backend B4: pronto para produção (2026-11-10)
 
 ### Novo

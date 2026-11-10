@@ -13,7 +13,7 @@ try {
 }
 
 const config = loadConfig();
-const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATABASE_SSL === "require" });
+const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATABASE_SSL === "require", prepare: config.DATABASE_PREPARE === "1" });
 
 /** Apaga TODAS as contas e dados de estudantes e recria as bolsas de demonstração. Só registrado com ALLOW_TEST_RESET=1. */
 async function resetDatabase() {

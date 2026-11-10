@@ -29,7 +29,7 @@ Use a cada publicação. Primeira configuração: [deploy-render.md](./deploy-re
 
 | Variável | Valor |
 |---|---|
-| `DATABASE_URL` | da base `globalscholar-db` (automático) |
+| `DATABASE_URL` / `DATABASE_SSL` | URL do **Session pooler** do Supabase / `require` |
 | `NODE_ENV` | `production` (cookie `Secure`; proíbe rotas de teste) |
 | `CORS_ORIGIN` / `APP_URL` | endereço exato do site |
 | `INTERNAL_API_SECRET` | gerado pelo Render |
@@ -56,7 +56,7 @@ Render → serviço → **Events** → deploy anterior → **Rollback** (cerca d
 
 ## Antes do lançamento público (uma vez)
 
-- [ ] **Base paga** (Basic) com backups; restauração testada uma vez.
+- [ ] **Supabase Pro** (backups diários, sem pausa por inatividade); restauração testada uma vez.
 - [ ] **E-mail real** (Resend com domínio verificado).
 - [ ] **Bolsas reais** importadas e `SEED_DEMO_DATA=0` (ver operations.md).
 - [ ] **Serviços pagos** ou outro plano sem "adormecer" (o gratuito leva ~1 minuto no primeiro acesso).

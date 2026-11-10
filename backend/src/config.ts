@@ -28,8 +28,13 @@ const schema = z.object({
    * global de requisições: sem isso, todos os visitantes dividiriam o limite do IP do servidor do site.
    */
   INTERNAL_API_SECRET: z.string().min(16).optional(),
-  /** Conexão com SSL (Render exige para conexões externas; a URL interna dispensa). */
-  DATABASE_SSL: z.enum(["require", "disable"]).default("disable")
+  /** Conexão com SSL. Supabase e conexões externas exigem "require"; a URL interna do Render dispensa. */
+  DATABASE_SSL: z.enum(["require", "disable"]).default("disable"),
+  /**
+   * "0" desliga "prepared statements": necessário no pooler do Supabase em modo TRANSACTION (porta 6543).
+   * No modo SESSION (porta 5432, recomendado) e em PostgreSQL comum, deixe "1".
+   */
+  DATABASE_PREPARE: z.enum(["0", "1"]).default("1")
 });
 
 export type Config = z.infer<typeof schema>;

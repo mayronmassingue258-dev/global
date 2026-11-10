@@ -56,7 +56,8 @@ TEST_DATABASE_URL=postgres://globalscholar:globalscholar@localhost:5432/globalsc
 | `PORT` / `HOST` | `4000` / `0.0.0.0` | Onde a API escuta. |
 | `CORS_ORIGIN` | vazio | Origens do frontend autorizadas, separadas por vírgula. |
 | `SEED_DEMO_DATA` | `1` | Cria as bolsas fictícias ao iniciar. `0` quando houver bolsas reais. |
-| `DATABASE_SSL` | `disable` | `require` para conexões externas que exigem SSL. |
+| `DATABASE_SSL` | `disable` | `require` para Supabase e conexões externas que exigem SSL. |
+| `DATABASE_PREPARE` | `1` | `0` só se usar o pooler do Supabase em modo *Transaction* (porta 6543). |
 | `LOG_LEVEL` | `info` | `silent` nos testes. |
 | `APP_URL` | `http://localhost:3000` | Endereço do site, usado nos links dos e-mails (nova senha). |
 | `SESSION_DAYS` | `30` | Duração da sessão (renovada com o uso). |
@@ -110,6 +111,12 @@ filtrada pelo id da sessão: um estudante nunca vê nem altera dados de outro (h
 Arquivos do checklist em `document_files` (PostgreSQL, até 10 MB, tipo verificado pelo conteúdo), download com `Content-Disposition:
 attachment` e `sandbox`. O estudante pode **baixar todos os seus dados** (`GET /api/auth/me/export`) e **excluir a conta**
 (`DELETE /api/auth/me`, com a senha), o que apaga tudo em cascata.
+
+### Supabase
+
+Funciona com qualquer PostgreSQL 15+; em produção usamos o **Supabase** (ver `docs/deploy-render.md`). A migração `0003_enable_rls`
+liga o **Row Level Security** em todas as tabelas, sem políticas: a API automática do Supabase (chave `anon`) não lê nem altera
+nada, enquanto o backend, dono das tabelas, segue com acesso total. Um teste confere que nenhuma tabela ficou sem RLS.
 
 ### Segurança já presente
 

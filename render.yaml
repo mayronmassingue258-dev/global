@@ -1,15 +1,6 @@
 # Blueprint do Render (https://render.com/docs/blueprint-spec).
-# Cria: a base de dados PostgreSQL, a API (backend/) e o frontend Next.js. Passo a passo em docs/deploy-render.md.
-databases:
-  - name: globalscholar-db
-    # Plano gratuito: a base é APAGADA 30 dias após a criação. Antes de ter estudantes reais, mude para "basic-256mb" (com backups).
-    plan: free
-    region: frankfurt
-    databaseName: globalscholar
-    user: globalscholar
-    # Só os serviços do Render acessam a base (nenhum IP externo).
-    ipAllowList: []
-
+# Cria: a API (backend/) e o frontend Next.js. A base de dados PostgreSQL fica no SUPABASE (ver docs/deploy-render.md,
+# "Base de dados no Supabase"): a DATABASE_URL é preenchida por você no painel, nunca no código.
 services:
   # O nome continua "globalscholar-api-demo" para não mudar a URL que o frontend já usa;
   # desde a B1 este serviço roda o backend REAL (backend/) com PostgreSQL, não mais a API de demonstração.
@@ -28,10 +19,12 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
+      # URL do Supabase, pooler em modo SESSION (porta 5432). Ex.:
+      # postgresql://postgres.SEU_REF:SENHA@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
       - key: DATABASE_URL
-        fromDatabase:
-          name: globalscholar-db
-          property: connectionString
+        sync: false
+      - key: DATABASE_SSL
+        value: require
       # URL exata do frontend (sem barra no fim). Mude aqui se o Render der outro endereço ao frontend.
       - key: CORS_ORIGIN
         value: https://globalscholar-web.onrender.com

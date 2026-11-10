@@ -115,7 +115,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(0);
   }
   const config = loadConfig();
-  const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATABASE_SSL === "require", max: 1 });
+  const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATABASE_SSL === "require", prepare: config.DATABASE_PREPARE === "1", max: 1 });
   const { imported, removed } = await importScholarships(db, result.items, { removeDemo: args.includes("--remove-demo") });
   await connection.end();
   console.log(`Importadas/atualizadas: ${imported}.${removed ? ` Bolsas de demonstração removidas: ${removed}.` : ""}`);
