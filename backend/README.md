@@ -36,6 +36,7 @@ Isso aplica as migrações, cria as bolsas de demonstração e sobe a **API em h
 | `npm run db:migrate` | Aplica migrações pendentes. |
 | `npm run db:seed` | Insere/atualiza as bolsas fictícias de demonstração. |
 | `npm run start:prod` | Produção: migra e inicia (usado pelo Render). |
+| `npm run scholarships:import -- arquivo.json [--dry-run] [--remove-demo]` | Importa bolsas reais (modelo: `scholarships.example.json`; ver `docs/operations.md`). |
 
 Para os testes, crie a base de teste uma vez (com o docker-compose):
 
@@ -84,6 +85,11 @@ drizzle/               migrações SQL versionadas (geradas a partir do schema)
 test/                  testes de contrato com PostgreSQL real
 ```
 
+### Documentação da API
+
+Interativa em **`/api/docs`** (JSON OpenAPI em `/api/docs/json`), a partir de `src/openapi.ts`. O teste `test/openapi.test.ts`
+falha se uma rota existir sem documentação, ou o contrário.
+
 ### Base de dados
 
 `users` · `sessions` · `password_resets` · `scholarships` · `eligibility_criteria` · `profiles` · `applications` · `application_documents` ·
@@ -112,6 +118,6 @@ cookie `SameSite=Lax` + verificação de `Origin`), limite de 10 tentativas/minu
 corpo de até 512 KB, busca protegida contra curingas `%`/`_`, `Cache-Control: no-store`, consultas parametrizadas (sem SQL montado
 com texto do usuário), cookies e tokens apagados dos logs.
 
-### Ainda não existe (próximas etapas)
+### Para produção
 
-- **B4 — Produção:** base paga com backups, documentação OpenAPI, monitoramento, cadastro de bolsas reais.
+Monitoramento, backups, restauração e cadastro de bolsas reais: [`docs/operations.md`](../docs/operations.md).

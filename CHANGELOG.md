@@ -1,5 +1,19 @@
 # Registro de mudanças
 
+## 2.3.0 — Backend B4: pronto para produção (2026-11-10)
+
+### Novo
+- **Documentação interativa da API** em `/api/docs` (OpenAPI 3.1), com teste que garante que toda rota está documentada.
+- **Importador de bolsas reais** (`npm --prefix backend run scholarships:import -- arquivo.json`): valida o arquivo inteiro com
+  mensagens por item e campo, grava tudo ou nada, atualiza pelo `id` e pode remover as bolsas fictícias (`--remove-demo`).
+  Modelo em `backend/scholarships.example.json`.
+- **`x-request-id`** em cada resposta da API, para localizar nos logs a requisição de um erro relatado.
+- **`docs/operations.md`**: monitoramento, backups e restauração (comandos prontos), cadastro de bolsas reais, troca de segredos e
+  o que fazer quando algo falha. **`docs/deploy-checklist.md`** reescrito para site + API + base de dados, com o checklist de lançamento.
+
+### Testes
+69 no backend, 234 no frontend, 96 de ponta a ponta.
+
 ## 2.2.0 — Backend B3: anexos e privacidade (2026-11-09)
 
 ### Novo

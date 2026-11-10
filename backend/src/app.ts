@@ -4,7 +4,10 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
-import { timingSafeEqual } from "node:crypto";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
+import { openapiDocument } from "./openapi.js";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { hashToken } from "./auth/tokens.js";
 import { cookieSecure, type Config } from "./config.js";
@@ -26,6 +29,10 @@ import {
 export const SESSION_COOKIE = "gs_session";
 
 declare module "fastify" {
+  interface FastifyInstance {
+    /** Rotas registradas (método + caminho), usadas no teste que confere a documentação OpenAPI. */
+    routeTable: { method: string; url: string }[];
+  }
   interface FastifyRequest {
     /** Estudante autenticado pela sessão (cookie), ou null. */
     user: PublicUser | null;
@@ -76,6 +83,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   const app = Fastify({
     logger: config.LOG_LEVEL === "silent" ? false : { level: config.LOG_LEVEL, redact: ["req.headers.authorization", "req.headers.cookie", "res.headers[\"set-cookie\"]"] },
     bodyLimit: 512 * 1024,
+    // Id único por requisição: aparece nos logs e no cabeçalho x-request-id da resposta (para suporte).
+    genReqId: () => randomUUID(),
     trustProxy: true // atrás do proxy do Render: IP real do cliente para o limite de requisições
   });
   const sender = emailSender ?? createEmailSender({ provider: config.EMAIL_PROVIDER, apiKey: config.RESEND_API_KEY, from: config.EMAIL_FROM, log: (m) => app.log.info(m) });
@@ -83,6 +92,9 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
 
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: MAX_FILE_BYTES, files: 1, fields: 0, parts: 2 } });
+  // Documentação interativa: /api/docs (JSON em /api/docs/json). Especificação mantida em src/openapi.ts.
+  await app.register(swagger, { mode: "static", specification: { document: openapiDocument as never } });
+  await app.register(swaggerUi, { routePrefix: "/api/docs", uiConfig: { docExpansion: "list", deepLinking: true } });
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "same-site" } });
   await app.register(cors, { origin: origins.length > 0 ? origins : false, credentials: true, methods: ["GET", "POST", "PUT", "PATCH", "DELETE"] });
   const internalSecret = config.INTERNAL_API_SECRET ? Buffer.from(config.INTERNAL_API_SECRET) : null;
@@ -127,8 +139,9 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   });
 
   // Respostas de dados do estudante nunca devem ficar em cache (contrato, seção 1).
-  app.addHook("onSend", async (_req, reply) => {
+  app.addHook("onSend", async (req, reply) => {
     reply.header("Cache-Control", "no-store");
+    reply.header("x-request-id", req.id);
   });
 
   const setSessionCookie = (reply: FastifyReply, token: string) =>
@@ -150,10 +163,16 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
 
   // Rotas conhecidas, para responder 405 (método errado) em vez de 404.
   const known: { method: string; pattern: RegExp }[] = [];
+  const routeTable: { method: string; url: string }[] = [];
+  app.decorate("routeTable", routeTable);
   app.addHook("onRoute", (route) => {
     const methods = Array.isArray(route.method) ? route.method : [route.method];
     const pattern = new RegExp(`^${route.url.replace(/:[^/]+/g, "[^/]+")}$`);
-    for (const method of methods) if (method !== "HEAD" && method !== "OPTIONS") known.push({ method, pattern });
+    for (const method of methods) {
+      if (method === "HEAD" || method === "OPTIONS") continue;
+      known.push({ method, pattern });
+      routeTable.push({ method, url: route.url });
+    }
   });
 
   app.setNotFoundHandler((req, reply) => {

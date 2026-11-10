@@ -1,0 +1,21 @@
+[
+  {
+    "id": "exemplo-mestrado-saude-publica-2027",
+    "title": "EXEMPLO — Bolsa de Mestrado em Saúde Pública",
+    "institution": "Universidade Exemplo (substitua por dados reais)",
+    "country": "Portugal",
+    "level": "Mestrado",
+    "fundingType": "Integral",
+    "funding": "Propina, alojamento e subsídio mensal (confirme no edital).",
+    "deadline": "2027-03-31",
+    "deadlineTimezone": "Europe/Lisbon",
+    "summary": "Resumo de uma ou duas frases, com as palavras do edital oficial.",
+    "requirements": ["Licenciatura concluída", "Inglês B2 ou superior"],
+    "requiredDocuments": ["Diploma", "Histórico acadêmico", "Carta de motivação"],
+    "applicationProcess": "Candidatura online no site oficial até a data limite.",
+    "eligibleCountries": ["Moçambique", "Angola", "Cabo Verde"],
+    "sourceUrl": "https://exemplo.org/edital",
+    "verification": { "status": "verified", "verifiedAt": "2026-11-10" },
+    "criteria": { "acceptedLevels": ["Graduação", "Mestrado"], "needs": ["languages"] }
+  }
+]

@@ -9,7 +9,8 @@ fotografia editorial). Interface em **português** (principal) e **inglês**. No
 | Qualidade | testes unitários/componentes e de ponta a ponta (fluxos, axe em 14 telas × 2 idiomas, teclado, segurança) rodando no CI · cobertura ~94% |
 | Lighthouse | Performance 95–100 · Acessibilidade 100 · Boas práticas 100 · SEO 100 ([relatório](docs/lighthouse-report.md)) |
 | Backend | [`backend/`](backend/README.md): Node.js + TypeScript + Fastify + PostgreSQL (Drizzle), implementando o contrato da API |
-| Deploy | Render, via [`render.yaml`](render.yaml): frontend + API + PostgreSQL ([guia](docs/deploy-render.md) · [checklist](docs/deploy-checklist.md)) |
+| Deploy | Render, via [`render.yaml`](render.yaml): frontend + API + PostgreSQL ([guia](docs/deploy-render.md) · [checklist](docs/deploy-checklist.md) · [operação](docs/operations.md)) |
+| API | Documentação interativa em `/api/docs` (OpenAPI, conferida por teste contra as rotas reais) |
 
 ## Começar
 
@@ -75,6 +76,7 @@ Variáveis: veja [`.env.example`](.env.example).
 | Documento | Para quê |
 |---|---|
 | [`docs/api-contract.md`](docs/api-contract.md) | Contrato com o backend: endpoints, campos, erros e **decisões pendentes**. Para o seu sócio. |
+| [`docs/operations.md`](docs/operations.md) | Produção: monitoramento, backups, restauração, **cadastrar bolsas reais**, segredos, incidentes. |
 | [`docs/git-guide.md`](docs/git-guide.md) | GitHub, branches, PRs e como ler o CI. |
 | [`docs/deploy-render.md`](docs/deploy-render.md) · [`docs/deploy-checklist.md`](docs/deploy-checklist.md) | Primeira publicação e verificação a cada deploy. |
 | [`docs/accessibility.md`](docs/accessibility.md) | O que é testado, contraste medido, correções e testes manuais pendentes. |
@@ -120,8 +122,11 @@ Toda resposta da API é validada em tempo de execução (`lib/api/guards.ts`) an
 - **Segurança**: Content Security Policy (libera só a origem da API), HSTS, `X-Frame-Options: DENY`, `nosniff`, sem `X-Powered-By`
   (`src/lib/securityHeaders.ts`).
 
-## Pendências fora do frontend
+## Para lançar ao público
 
-1. Respostas do backend às decisões do contrato (autenticação, níveis, idioma dos dados, arquivos, IA).
-2. Fotos `building.jpg`, `library.jpg`, `campus.jpg` e hero em alta resolução, com licença confirmada.
-3. Logo definitivo, páginas de privacidade/termos, domínio próprio.
+O código está pronto; o que falta são decisões e contas suas (lista completa em [`docs/deploy-checklist.md`](docs/deploy-checklist.md)):
+
+1. Base de dados paga no Render (a gratuita é apagada em 30 dias) e e-mail real (Resend).
+2. Bolsas reais, importadas com `npm --prefix backend run scholarships:import` ([`docs/operations.md`](docs/operations.md)).
+3. Páginas de privacidade e termos, domínio próprio, fotos em alta resolução e logo definitivo.
+4. Decisões em aberto no contrato: idioma dos dados das bolsas, níveis como códigos, assistente com IA.

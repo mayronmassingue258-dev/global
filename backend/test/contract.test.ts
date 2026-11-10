@@ -196,6 +196,7 @@ describe("HTTP", () => {
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["x-powered-by"]).toBeUndefined();
+    expect(res.headers["x-request-id"]).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it("CORS libera só a origem do site, com credenciais", async () => {
