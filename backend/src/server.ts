@@ -4,6 +4,7 @@ import { loadConfig } from "./config.js";
 import { createDb } from "./db/client.js";
 import { seed } from "./db/seed.js";
 import { purgeExpired } from "./services/auth.js";
+import { hideExpired } from "./services/scholarships.js";
 
 // Desenvolvimento: lê backend/.env se existir (em produção as variáveis vêm do Render).
 try {
@@ -17,7 +18,7 @@ const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATA
 
 /** Apaga TODAS as contas e dados de estudantes e recria as bolsas de demonstração. Só registrado com ALLOW_TEST_RESET=1. */
 async function resetDatabase() {
-  await db.execute(sql`truncate users, sessions, password_resets, profiles, applications, application_documents, document_files, application_events, drafts restart identity cascade`);
+  await db.execute(sql`truncate users, sessions, password_resets, profiles, scholarship_reports, applications, application_documents, document_files, application_events, drafts restart identity cascade`);
   await seed(db);
 }
 
@@ -31,8 +32,11 @@ const app = await buildApp({
 if (config.SEED_DEMO_DATA === "1") await seed(db); // bolsas fictícias de demonstração (idempotente)
 await app.listen({ port: config.PORT, host: config.HOST });
 
-// Limpeza de sessões vencidas e links de senha antigos: na partida e a cada 6 horas.
-const purge = () => purgeExpired(db).catch((error) => app.log.error(error));
+// Limpeza de sessões vencidas e links de senha antigos, e bolsas com prazo vencido saem do ar: na partida e a cada 6 horas.
+const purge = () => Promise.all([
+  purgeExpired(db),
+  hideExpired(db).then((n) => { if (n > 0) app.log.info({ hidden: n }, "bolsas com prazo vencido ocultadas"); })
+]).catch((error) => app.log.error(error));
 void purge();
 const timer = setInterval(purge, 6 * 60 * 60 * 1000);
 timer.unref();

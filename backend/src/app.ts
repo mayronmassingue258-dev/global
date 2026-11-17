@@ -15,7 +15,10 @@ import type { Database } from "./db/client.js";
 import { createEmailSender, sentEmails, type EmailSender } from "./auth/email.js";
 import { HttpError, errorBody, notFound } from "./lib/errors.js";
 import { parseApplicationCreate, parseApplicationPatch, parseDraft, parseListQuery, parseProfile } from "./lib/validation.js";
-import { getEligibility, getScholarshipRow, listScholarships, toScholarship } from "./services/scholarships.js";
+import { getEligibility, getRecommendations, getScholarshipRow, listScholarships, toScholarship } from "./services/scholarships.js";
+import {
+  adminListReports, adminListScholarships, adminPatchScholarship, adminPutScholarship, adminResolveReports, createReport, parseReport
+} from "./services/admin.js";
 import { getProfile, putProfile } from "./services/profile.js";
 import { createApplication, deleteApplication, getApplication, listApplications, patchApplication } from "./services/applications.js";
 import { createDraft, deleteDraft, getDraft, listDrafts, updateDraft } from "./services/drafts.js";
@@ -156,6 +159,10 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     reply.clearCookie(SESSION_COOKIE, { httpOnly: true, secure: cookieSecure(config), sameSite: "lax", path: "/" });
 
   /** Exige login. Devolve o id do estudante (cada consulta abaixo é filtrada por ele). */
+  const requireAdmin = (req: FastifyRequest) => {
+    if (!req.user) throw new HttpError(401, "unauthenticated");
+    if (req.user.role !== "admin") throw new HttpError(403, "forbidden");
+  };
   const userId = (req: FastifyRequest): string => {
     if (!req.user) throw new HttpError(401, "unauthenticated");
     return req.user.id;
@@ -284,6 +291,19 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       return result;
     });
 
+    api.get("/recommendations", async (req) => {
+      const raw = (req.query as Record<string, unknown>).limit;
+      const limit = raw === undefined ? 10 : Number(raw);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 30) throw new HttpError(400, "invalid_query", { limit: "out_of_range" });
+      return getRecommendations(db, userId(req), limit);
+    });
+    // Estudante reporta um erro na bolsa. Limite por conta: ninguém consegue inundar a fila.
+    const reportLimit = { config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: (req: FastifyRequest) => `report:${req.user?.id ?? req.ip}`, allowList: () => false } } };
+    api.post("/scholarships/:id/reports", reportLimit, async (req, reply) => {
+      await createReport(db, userId(req), id(req), parseReport(req.body));
+      return reply.status(204).send();
+    });
+
     api.get("/profile", async (req) => getProfile(db, userId(req)));
     api.put("/profile", async (req) => putProfile(db, userId(req), parseProfile(req.body)));
 
@@ -332,6 +352,17 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       await deleteFile(db, userId(req), scholarshipId, documentName);
       return reply.status(204).send();
     });
+
+    // ── Administração (role = admin) ─────────────────────────────────────────
+    api.get("/admin/scholarships", async (req) => { requireAdmin(req); return adminListScholarships(db, req.query); });
+    api.put("/admin/scholarships/:id", async (req, reply) => {
+      requireAdmin(req);
+      const { created, scholarship } = await adminPutScholarship(db, id(req), req.body);
+      return reply.status(created ? 201 : 200).send(scholarship);
+    });
+    api.patch("/admin/scholarships/:id", async (req) => { requireAdmin(req); return adminPatchScholarship(db, id(req), req.body); });
+    api.get("/admin/scholarships/:id/reports", async (req) => { requireAdmin(req); return adminListReports(db, id(req)); });
+    api.post("/admin/scholarships/:id/reports/resolve", async (req) => { requireAdmin(req); return adminResolveReports(db, id(req)); });
 
     api.get("/drafts", async (req) => ({ items: await listDrafts(db, userId(req)) }));
     api.post("/drafts", async (req, reply) => reply.status(201).send(await createDraft(db, userId(req), parseDraft(req.body))));

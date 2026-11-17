@@ -10,12 +10,62 @@
     "deadline": "2027-03-31",
     "deadlineTimezone": "Europe/Lisbon",
     "summary": "Resumo de uma ou duas frases, com as palavras do edital oficial.",
-    "requirements": ["Licenciatura concluída", "Inglês B2 ou superior"],
-    "requiredDocuments": ["Diploma", "Histórico acadêmico", "Carta de motivação"],
+    "requirements": [
+      "Licenciatura concluída",
+      "Inglês B2 ou superior"
+    ],
+    "requiredDocuments": [
+      "Diploma",
+      "Histórico acadêmico",
+      "Carta de motivação"
+    ],
     "applicationProcess": "Candidatura online no site oficial até a data limite.",
-    "eligibleCountries": ["Moçambique", "Angola", "Cabo Verde"],
     "sourceUrl": "https://exemplo.org/edital",
-    "verification": { "status": "verified", "verifiedAt": "2026-11-10" },
-    "criteria": { "acceptedLevels": ["Graduação", "Mestrado"], "needs": ["languages"] }
+    "verification": {
+      "status": "verified",
+      "verifiedAt": "2026-11-10"
+    },
+    "match": {
+      "levels": [
+        "master"
+      ],
+      "fields": [
+        "public_health",
+        "health_medicine"
+      ],
+      "eligibleNationalities": [
+        "MZ",
+        "AO",
+        "CV",
+        "GW",
+        "ST"
+      ],
+      "destinations": [
+        "PT"
+      ],
+      "coverage": [
+        "tuition",
+        "living",
+        "travel"
+      ],
+      "languages": [
+        {
+          "code": "pt",
+          "minLevel": "C1"
+        },
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [],
+      "minGpaPercent": 60,
+      "requiredCompletedLevel": "bachelor",
+      "maxAge": 35,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": false,
+      "studyMode": "onsite"
+    }
   }
 ]

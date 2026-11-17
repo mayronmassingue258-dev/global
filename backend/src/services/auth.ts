@@ -15,8 +15,10 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const RESET_TTL_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type PublicUser = { id: string; email: string; name: string };
-const toPublic = (u: { id: string; email: string; name: string }): PublicUser => ({ id: u.id, email: u.email, name: u.name });
+/** `role` só aparece para administradores (estudantes recebem o mesmo objeto de antes). */
+export type PublicUser = { id: string; email: string; name: string; role?: "admin" };
+const toPublic = (u: { id: string; email: string; name: string; role?: string }): PublicUser =>
+  ({ id: u.id, email: u.email, name: u.name, ...(u.role === "admin" ? { role: "admin" as const } : {}) });
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (b: Record<string, unknown>, k: string) => (typeof b[k] === "string" ? (b[k] as string) : null);
@@ -95,7 +97,7 @@ export async function createSession(db: Database, userId: string, userAgent: str
 export async function resolveSession(db: Database, token: string, days: number): Promise<PublicUser | null> {
   const id = hashToken(token);
   const [row] = await db
-    .select({ expiresAt: sessions.expiresAt, user: { id: users.id, email: users.email, name: users.name } })
+    .select({ expiresAt: sessions.expiresAt, user: { id: users.id, email: users.email, name: users.name, role: users.role } })
     .from(sessions).innerJoin(users, eq(users.id, sessions.userId))
     .where(eq(sessions.id, id)).limit(1);
   if (!row) return null;

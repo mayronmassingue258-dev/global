@@ -129,11 +129,11 @@ describe("isolamento entre estudantes", () => {
     const ana = await t.signUp("ana@exemplo.com");
     const bia = await t.signUp("bia@exemplo.com");
 
-    await t.call("/profile", { method: "PUT", body: { residence: "Angola", level: "Mestrado" }, cookie: ana });
+    await t.call("/profile", { method: "PUT", body: { nationalities: ["AO"], targetLevels: ["master"] }, cookie: ana });
     await t.call("/applications", { method: "POST", body: { scholarshipId: "amostra-001" }, cookie: ana });
     const draft = (await t.call("/drafts", { method: "POST", body: { type: "academic_cv", title: "CV da Ana", sections: {} }, cookie: ana })).json;
 
-    expect((await t.call("/profile", { cookie: bia })).json.residence).toBe("");
+    expect((await t.call("/profile", { cookie: bia })).json.nationalities).toEqual([]);
     expect((await t.call("/applications", { cookie: bia })).json.items).toEqual([]);
     expect((await t.call("/drafts", { cookie: bia })).json.items).toEqual([]);
     // Mesmo sabendo os ids, a Bia não lê, altera nem apaga nada da Ana (404, como se não existisse).
@@ -150,6 +150,11 @@ describe("isolamento entre estudantes", () => {
     // Elegibilidade usa o perfil de quem pergunta.
     expect((await t.call("/scholarships/amostra-004/eligibility", { cookie: ana })).json.status).toBe("not_eligible");
     expect((await t.call("/scholarships/amostra-004/eligibility", { cookie: bia })).json.status).toBe("possible");
+    // Recomendações também: a Ana (angolana) não recebe a amostra-004 (só europeus); a Bia, sem perfil, recebe.
+    const recAna = (await t.call("/recommendations", { cookie: ana })).json.items.map((i: { scholarship: { id: string } }) => i.scholarship.id);
+    const recBia = (await t.call("/recommendations", { cookie: bia })).json.items.map((i: { scholarship: { id: string } }) => i.scholarship.id);
+    expect(recAna).not.toContain("amostra-004");
+    expect(recBia).toContain("amostra-004");
   });
 });
 
@@ -198,10 +203,10 @@ describe("redefinição de senha", () => {
 describe("proteções", () => {
   it("alterações vindas de outro site são bloqueadas (CSRF)", async () => {
     const cookie = await t.signUp();
-    const res = await t.call("/profile", { method: "PUT", body: { residence: "X", level: "Mestrado" }, cookie, headers: { origin: "https://malicioso.example" } });
+    const res = await t.call("/profile", { method: "PUT", body: { goals: "X" }, cookie, headers: { origin: "https://malicioso.example" } });
     expect(res.status).toBe(403);
     expect(res.json.error.code).toBe("forbidden_origin");
-    const ok = await t.call("/profile", { method: "PUT", body: { residence: "X", level: "Mestrado" }, cookie, headers: { origin: "http://localhost:3000" } });
+    const ok = await t.call("/profile", { method: "PUT", body: { goals: "X" }, cookie, headers: { origin: "http://localhost:3000" } });
     expect(ok.status).toBe(200);
   });
 

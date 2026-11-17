@@ -28,6 +28,15 @@ describe("validação do arquivo de bolsas", () => {
     expect(errors).toContain("#4 (exemplo-mestrado-saude-publica-2027) id: repetido no arquivo");
   });
 
+  it("valida os critérios de compatibilidade (países, níveis, idiomas)", () => {
+    const bad = [{ ...example[0], match: { ...example[0].match, levels: [], eligibleNationalities: ["Moçambique", "@MARTE"], languages: [{ code: "pt", minLevel: "fluente" }] } }];
+    const errors = (validateScholarships(bad) as { errors: string[] }).errors.join("\n");
+    expect(errors).toContain("match.levels: required");
+    expect(errors).toContain("match.eligibleNationalities.0: invalid_option");
+    expect(errors).toContain("match.eligibleNationalities.1: invalid_option");
+    expect(errors).toContain("match.languages.0.minLevel:");
+  });
+
   it("recusa algo que não é lista", () => {
     expect(validateScholarships({})).toMatchObject({ ok: false });
   });
@@ -53,8 +62,9 @@ describe("importação", () => {
     expect(list.items[0]).toMatchObject({ id: "exemplo-mestrado-saude-publica-2027", title: "Título corrigido", verification: { status: "verified", verifiedAt: "2026-11-10" } });
 
     const cookie = await t.signUp();
-    await t.call("/profile", { method: "PUT", body: { residence: "Brasil", level: "Mestrado" }, cookie });
+    await t.call("/profile", { method: "PUT", body: { nationalities: ["BR"], targetLevels: ["master"] }, cookie });
     const eligibility = (await t.call("/scholarships/exemplo-mestrado-saude-publica-2027/eligibility", { cookie })).json;
     expect(eligibility.status).toBe("not_eligible");
+    expect(eligibility.reasons[0]).toEqual({ kind: "failed", code: "nationality_not_eligible" });
   });
 });

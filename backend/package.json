@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "scholarships:import": "tsx src/db/import-scholarships.ts"
+    "scholarships:import": "tsx src/db/import-scholarships.ts",
+    "admin:grant": "tsx src/db/grant-admin.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

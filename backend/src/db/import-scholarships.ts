@@ -4,8 +4,9 @@ import { like, sql } from "drizzle-orm";
 import { z } from "zod";
 import { loadConfig } from "../config.js";
 import { createDb, type Database } from "./client.js";
-import { eligibilityCriteria, scholarships } from "./schema.js";
+import { scholarships } from "./schema.js";
 import { STUDY_LEVELS } from "../lib/validation.js";
+import { matchSchema } from "../matching/model.js";
 
 /**
  * Importa bolsas REAIS de um arquivo JSON (lista no formato do contrato + critérios opcionais).
@@ -35,14 +36,11 @@ export const scholarshipInput = z.object({
   requirements: list,
   requiredDocuments: list,
   applicationProcess: z.string().trim().max(4000).optional(),
-  eligibleCountries: list.optional(),
   sourceUrl: z.string().url().refine((u) => u.startsWith("https://"), "use https://").optional(),
   verification: z.object({ status: z.enum(["verified", "unverified"]), verifiedAt: date.optional() })
     .refine((v) => v.status === "verified" || !v.verifiedAt, "verifiedAt só com status verified"),
-  criteria: z.object({
-    acceptedLevels: z.array(z.enum(STUDY_LEVELS)).default([]),
-    needs: z.array(z.enum(["grade", "languages", "field", "nationality"])).default([])
-  }).optional()
+  /** Critérios de compatibilidade (países, níveis, áreas, cobertura, idiomas, nota…). Ver src/matching/model.ts. */
+  match: matchSchema
 }).strict();
 
 export type ScholarshipInput = z.infer<typeof scholarshipInput>;
@@ -67,6 +65,21 @@ export function validateScholarships(data: unknown): { ok: true; items: Scholars
   return errors.length > 0 ? { ok: false, errors } : { ok: true, items };
 }
 
+type Executor = Pick<Database, "insert">;
+
+/** Insere ou atualiza uma bolsa (mesmo id = atualização). Volta a ficar ativa, salvo se o prazo já venceu. */
+export async function upsertScholarship(db: Executor, s: ScholarshipInput, origin: "manual" | "discovery" | "demo" = "manual") {
+  const row = {
+    id: s.id, title: s.title, institution: s.institution, country: s.country, level: s.level,
+    fundingType: s.fundingType, funding: s.funding, deadline: s.deadline, deadlineTimezone: s.deadlineTimezone ?? null,
+    summary: s.summary, requirements: s.requirements, requiredDocuments: s.requiredDocuments,
+    applicationProcess: s.applicationProcess ?? null, sourceUrl: s.sourceUrl ?? null,
+    verificationStatus: s.verification.status, verifiedAt: s.verification.verifiedAt ?? null,
+    match: s.match, origin, status: "active", hiddenReason: null, lastCheckedAt: new Date()
+  };
+  await db.insert(scholarships).values(row).onConflictDoUpdate({ target: scholarships.id, set: { ...row, updatedAt: sql`now()` } });
+}
+
 /** Grava tudo numa transação: se algo falhar, nada muda. */
 export async function importScholarships(db: Database, items: ScholarshipInput[], options: { removeDemo?: boolean } = {}) {
   return db.transaction(async (tx) => {
@@ -75,19 +88,7 @@ export async function importScholarships(db: Database, items: ScholarshipInput[]
       // Atenção: apagar uma bolsa apaga também as candidaturas que estudantes tinham salvo nela.
       removed = (await tx.delete(scholarships).where(like(scholarships.id, "amostra-%")).returning({ id: scholarships.id })).length;
     }
-    for (const s of items) {
-      const row = {
-        id: s.id, title: s.title, institution: s.institution, country: s.country, level: s.level,
-        fundingType: s.fundingType, funding: s.funding, deadline: s.deadline, deadlineTimezone: s.deadlineTimezone ?? null,
-        summary: s.summary, requirements: s.requirements, requiredDocuments: s.requiredDocuments,
-        applicationProcess: s.applicationProcess ?? null, eligibleCountries: s.eligibleCountries ?? null, sourceUrl: s.sourceUrl ?? null,
-        verificationStatus: s.verification.status, verifiedAt: s.verification.verifiedAt ?? null
-      };
-      await tx.insert(scholarships).values(row).onConflictDoUpdate({ target: scholarships.id, set: { ...row, updatedAt: sql`now()` } });
-      const criteria = { acceptedLevels: s.criteria?.acceptedLevels ?? [], needs: s.criteria?.needs ?? [] };
-      await tx.insert(eligibilityCriteria).values({ scholarshipId: s.id, ...criteria })
-        .onConflictDoUpdate({ target: eligibilityCriteria.scholarshipId, set: criteria });
-    }
+    for (const s of items) await upsertScholarship(tx, s);
     return { imported: items.length, removed };
   });
 }

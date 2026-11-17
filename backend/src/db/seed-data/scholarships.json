@@ -24,6 +24,45 @@
     "applicationProcess": "Processo de exemplo: envio online do formulário e dos documentos antes do prazo.",
     "verification": {
       "status": "unverified"
+    },
+    "match": {
+      "levels": [
+        "master"
+      ],
+      "fields": [
+        "computer_science",
+        "mathematics_statistics"
+      ],
+      "eligibleNationalities": [
+        "@COMMONWEALTH",
+        "@CPLP"
+      ],
+      "destinations": [
+        "GB"
+      ],
+      "coverage": [
+        "tuition",
+        "living",
+        "travel",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [
+        {
+          "type": "ielts",
+          "minScore": 6.5
+        },
+        {
+          "type": "toefl_ibt",
+          "minScore": 90
+        }
+      ],
+      "minGpaPercent": 65
     }
   },
   {
@@ -48,6 +87,34 @@
     ],
     "verification": {
       "status": "unverified"
+    },
+    "match": {
+      "levels": [
+        "phd"
+      ],
+      "fields": [
+        "environment_energy",
+        "engineering"
+      ],
+      "eligibleNationalities": [
+        "@AFRICA"
+      ],
+      "destinations": [
+        "DE"
+      ],
+      "coverage": [
+        "tuition",
+        "living"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "C1"
+        }
+      ],
+      "minGpaPercent": 70,
+      "requiredCompletedLevel": "master",
+      "maxAge": 36
     }
   },
   {
@@ -72,6 +139,31 @@
     ],
     "verification": {
       "status": "unverified"
+    },
+    "match": {
+      "levels": [
+        "bachelor"
+      ],
+      "fields": [
+        "engineering"
+      ],
+      "destinations": [
+        "CA"
+      ],
+      "coverage": [
+        "tuition",
+        "living",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "minGpaPercent": 75,
+      "maxAge": 25,
+      "applicationFee": true
     }
   },
   {
@@ -95,13 +187,34 @@
     "verification": {
       "status": "unverified"
     },
-    "eligibleCountries": [
-      "Suíça",
-      "Alemanha",
-      "Áustria",
-      "França",
-      "Itália"
-    ]
+    "match": {
+      "levels": [
+        "master"
+      ],
+      "fields": [
+        "natural_sciences",
+        "health_medicine"
+      ],
+      "eligibleNationalities": [
+        "CH",
+        "DE",
+        "AT",
+        "FR",
+        "IT"
+      ],
+      "destinations": [
+        "CH"
+      ],
+      "coverage": [
+        "living"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ]
+    }
   },
   {
     "id": "amostra-005",
@@ -122,6 +235,24 @@
     ],
     "verification": {
       "status": "unverified"
+    },
+    "match": {
+      "levels": [
+        "short_course"
+      ],
+      "destinations": [
+        "ES"
+      ],
+      "coverage": [
+        "tuition",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "es",
+          "minLevel": "A2"
+        }
+      ]
     }
   },
   {
@@ -146,6 +277,36 @@
     ],
     "verification": {
       "status": "unverified"
+    },
+    "match": {
+      "levels": [
+        "master"
+      ],
+      "fields": [
+        "public_policy",
+        "social_sciences",
+        "business_economics"
+      ],
+      "destinations": [
+        "GB"
+      ],
+      "coverage": [
+        "tuition"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [
+        {
+          "type": "ielts",
+          "minScore": 7
+        }
+      ],
+      "minWorkYears": 2,
+      "applicationFee": true
     }
   }
 ]

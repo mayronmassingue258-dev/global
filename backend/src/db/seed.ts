@@ -1,43 +1,12 @@
 import { fileURLToPath } from "node:url";
-import { sql as dsql } from "drizzle-orm";
 import { loadConfig } from "../config.js";
 import { createDb, type Database } from "./client.js";
-import { eligibilityCriteria, scholarships } from "./schema.js";
+import { scholarshipInput, upsertScholarship } from "./import-scholarships.js";
 import scholarshipData from "./seed-data/scholarships.json" with { type: "json" };
-import criteriaData from "./seed-data/criteria.json" with { type: "json" };
 
-
-type SeedScholarship = (typeof scholarshipData)[number] & { eligibleCountries?: string[]; sourceUrl?: string; deadlineTimezone?: string; applicationProcess?: string };
-
-/** Insere/atualiza as bolsas FICTÍCIAS de demonstração. Idempotente. */
+/** Insere/atualiza as bolsas FICTÍCIAS de demonstração ("amostra-*"). Idempotente. */
 export async function seed(db: Database) {
-  for (const raw of scholarshipData as SeedScholarship[]) {
-    const row = {
-      id: raw.id,
-      title: raw.title,
-      institution: raw.institution,
-      country: raw.country,
-      level: raw.level,
-      fundingType: raw.fundingType,
-      funding: raw.funding,
-      deadline: raw.deadline,
-      deadlineTimezone: raw.deadlineTimezone ?? null,
-      summary: raw.summary,
-      requirements: raw.requirements,
-      requiredDocuments: raw.requiredDocuments,
-      applicationProcess: raw.applicationProcess ?? null,
-      eligibleCountries: raw.eligibleCountries ?? null,
-      sourceUrl: raw.sourceUrl ?? null,
-      verificationStatus: raw.verification.status,
-      verifiedAt: null
-    };
-    await db.insert(scholarships).values(row).onConflictDoUpdate({ target: scholarships.id, set: { ...row, updatedAt: dsql`now()` } });
-  }
-
-  for (const [scholarshipId, c] of Object.entries(criteriaData as Record<string, { acceptedLevels: string[]; needs: string[] }>)) {
-    await db.insert(eligibilityCriteria).values({ scholarshipId, ...c })
-      .onConflictDoUpdate({ target: eligibilityCriteria.scholarshipId, set: c });
-  }
+  for (const raw of scholarshipData) await upsertScholarship(db, scholarshipInput.parse(raw), "demo");
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

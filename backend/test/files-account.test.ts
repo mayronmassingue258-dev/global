@@ -120,7 +120,7 @@ describe("conta: exportar e excluir", () => {
 
   it("exporta tudo do estudante num JSON para download", async () => {
     const ana = await t.signUp("ana@exemplo.com");
-    await t.call("/profile", { method: "PUT", body: { residence: "Angola", level: "Mestrado" }, cookie: ana });
+    await t.call("/profile", { method: "PUT", body: { nationalities: ["AO"], residenceCountry: "AO" }, cookie: ana });
     await t.call("/applications", { method: "POST", body: { scholarshipId: "amostra-001" }, cookie: ana });
     await t.call("/drafts", { method: "POST", body: { type: "academic_cv", title: "CV", sections: { education: "UEM" } }, cookie: ana });
     await upload(ana, "amostra-001", "Diploma", "d.pdf", PDF);
@@ -131,7 +131,7 @@ describe("conta: exportar e excluir", () => {
     const data = JSON.parse(res.body);
     expect(data.account).toMatchObject({ email: "ana@exemplo.com", name: "Ana" });
     expect(data.account).not.toHaveProperty("passwordHash");
-    expect(data.profile.residence).toBe("Angola");
+    expect(data.profile).toMatchObject({ nationalities: ["AO"], residenceCountry: "AO" });
     expect(data.applications[0].documents[0].file.name).toBe("d.pdf");
     expect(data.drafts[0].sections).toEqual({ education: "UEM" });
     expect(JSON.stringify(data)).not.toContain("scrypt$");

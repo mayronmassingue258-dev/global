@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { ScholarshipMatch, StudentProfile } from "../matching/model.js";
 import { bigserial, boolean, check, customType, date, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /**
@@ -13,8 +14,13 @@ export const users = pgTable("users", {
   name: text("name").notNull().default(""),
   /** Preenchido na B2. Nulo = conta sem senha (ex.: estudante de demonstração). */
   passwordHash: text("password_hash"),
+  /** "student" (padrão) ou "admin" (painel de administração das bolsas). Promover: npm run admin:grant -- email. */
+  role: text("role").notNull().default("student"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
-}, (t) => [uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`)]);
+}, (t) => [
+  uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`),
+  check("users_role_chk", sql`${t.role} in ('student','admin')`)
+]);
 
 /**
  * Sessões de login. O cookie leva um token aleatório; aqui fica só o HASH (sha256) dele:
@@ -51,8 +57,16 @@ export const scholarships = pgTable("scholarships", {
   requirements: text("requirements").array().notNull().default(sql`'{}'::text[]`),
   requiredDocuments: text("required_documents").array().notNull().default(sql`'{}'::text[]`),
   applicationProcess: text("application_process"),
-  eligibleCountries: text("eligible_countries").array(),
   sourceUrl: text("source_url"),
+  /** Critérios de compatibilidade (ver src/matching/model.ts → matchSchema). */
+  match: jsonb("match").$type<ScholarshipMatch>().notNull(),
+  /** "active" aparece para os estudantes; "hidden" não (prazo vencido, link quebrado, ocultada por um admin). */
+  status: text("status").notNull().default("active"),
+  hiddenReason: text("hidden_reason"),
+  /** De onde veio: "manual" (importação/admin), "discovery" (busca automática), "demo" (fictícia). */
+  origin: text("origin").notNull().default("manual"),
+  /** Última vez que alguém (ou a verificação automática) conferiu o link e o prazo. */
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
   verificationStatus: text("verification_status").notNull().default("unverified"),
   verifiedAt: date("verified_at", { mode: "string" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -60,25 +74,15 @@ export const scholarships = pgTable("scholarships", {
 }, (t) => [
   index("scholarships_deadline_idx").on(t.deadline),
   index("scholarships_level_idx").on(t.level),
-  check("scholarships_verification_chk", sql`${t.verificationStatus} in ('verified','unverified')`)
+  index("scholarships_status_idx").on(t.status),
+  check("scholarships_verification_chk", sql`${t.verificationStatus} in ('verified','unverified')`),
+  check("scholarships_status_chk", sql`${t.status} in ('active','hidden')`)
 ]);
-
-/** Critérios usados pelo motor de elegibilidade (não fazem parte da resposta pública da bolsa). */
-export const eligibilityCriteria = pgTable("eligibility_criteria", {
-  scholarshipId: text("scholarship_id").primaryKey().references(() => scholarships.id, { onDelete: "cascade" }),
-  acceptedLevels: text("accepted_levels").array().notNull().default(sql`'{}'::text[]`),
-  needs: text("needs").array().notNull().default(sql`'{}'::text[]`)
-});
 
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
-  residence: text("residence").notNull().default(""),
-  nationality: text("nationality").notNull().default(""),
-  level: text("level").notNull().default(""),
-  field: text("field").notNull().default(""),
-  grade: text("grade").notNull().default(""),
-  languages: text("languages").notNull().default(""),
-  interests: text("interests").notNull().default(""),
+  /** Perfil estruturado (ver src/matching/model.ts → profileSchema). */
+  data: jsonb("data").$type<Partial<StudentProfile>>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true })
 });
 
@@ -153,4 +157,18 @@ export const drafts = pgTable("drafts", {
 }, (t) => [
   index("drafts_user_updated_idx").on(t.userId, t.updatedAt),
   check("drafts_type_chk", sql`${t.type} in ('motivation_letter','academic_cv','personal_statement','document_review')`)
+]);
+
+/** Erros reportados por estudantes numa bolsa (link quebrado, prazo errado, …). Vistos no painel de administração. */
+export const scholarshipReports = pgTable("scholarship_reports", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  scholarshipId: text("scholarship_id").notNull().references(() => scholarships.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  reason: text("reason").notNull(),
+  message: text("message").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true })
+}, (t) => [
+  index("scholarship_reports_open_idx").on(t.scholarshipId).where(sql`${t.resolvedAt} is null`),
+  check("scholarship_reports_reason_chk", sql`${t.reason} in ('broken_link','wrong_deadline','wrong_info','closed','scam','other')`)
 ]);

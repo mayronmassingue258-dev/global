@@ -1,4 +1,5 @@
 import { HttpError, validationFailed } from "./errors.js";
+import { profileSchema, zodFields, type StudentProfile } from "../matching/model.js";
 
 /**
  * Validações do contrato. Os CÓDIGOS de erro de campo são parte do contrato com o frontend:
@@ -10,16 +11,11 @@ export const APPLICATION_STATUSES = ["Saved", "Preparing", "Ready to submit", "S
 export const DOCUMENT_TYPES = ["motivation_letter", "academic_cv", "personal_statement", "document_review"] as const;
 export const SORTS = ["deadline", "title"] as const;
 
-export const PROFILE_MAX = { residence: 80, nationality: 80, level: 40, field: 120, grade: 60, languages: 200, interests: 1000 } as const;
-export type ProfileField = keyof typeof PROFILE_MAX;
-export const PROFILE_FIELDS = Object.keys(PROFILE_MAX) as ProfileField[];
-const PROFILE_REQUIRED: ProfileField[] = ["residence", "level"];
 
 export const NOTES_MAX = 5000;
 export const DRAFT_LIMITS = { title: 120, program: 160, section: 20000, sections: 20 } as const;
 const SECTION_KEY = /^[a-z][a-z0-9_]{0,39}$/;
 
-export type ProfileInput = Record<ProfileField, string>;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 export type DraftType = (typeof DOCUMENT_TYPES)[number];
 export type ApplicationPatch = { status?: ApplicationStatus; notes?: string; documents?: { name: string; done: boolean }[] };
@@ -46,20 +42,10 @@ export function parseListQuery(q: Record<string, unknown>): ListQuery {
   return { search: str("search").trim(), country: str("country").trim(), level: str("level"), sort: sort as ListQuery["sort"], page, pageSize };
 }
 
-export function parseProfile(body: unknown): ProfileInput {
-  const b = requireObject(body);
-  const fields: Record<string, string> = {};
-  const out = {} as ProfileInput;
-  for (const key of PROFILE_FIELDS) {
-    const value = b[key] ?? "";
-    if (typeof value !== "string") { fields[key] = "invalid_type"; continue; }
-    const trimmed = value.trim();
-    if (PROFILE_REQUIRED.includes(key) && !trimmed) fields[key] = "required";
-    else if (trimmed.length > PROFILE_MAX[key]) fields[key] = "too_long";
-    out[key] = trimmed;
-  }
-  if (Object.keys(fields).length > 0) throw validationFailed(fields);
-  return out;
+export function parseProfile(body: unknown): StudentProfile {
+  const parsed = profileSchema.safeParse(requireObject(body));
+  if (!parsed.success) throw validationFailed(zodFields(parsed.error));
+  return parsed.data;
 }
 
 export function parseApplicationCreate(body: unknown): string {

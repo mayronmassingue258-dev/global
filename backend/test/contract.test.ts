@@ -52,7 +52,10 @@ describe("bolsas", () => {
 
   it("detalhe no formato do contrato e 404 no envelope de erro", async () => {
     const ok = await t.call("/scholarships/amostra-004");
-    expect(ok.json).toMatchObject({ id: "amostra-004", eligibleCountries: ["Suíça", "Alemanha", "Áustria", "França", "Itália"], verification: { status: "unverified" } });
+    expect(ok.json).toMatchObject({
+      id: "amostra-004", status: "active", origin: "demo", verification: { status: "unverified" },
+      match: { levels: ["master"], eligibleNationalities: ["CH", "DE", "AT", "FR", "IT"], destinations: ["CH"], coverage: ["living"], applicationFee: false, studyMode: "onsite" }
+    });
     expect(ok.json).not.toHaveProperty("sourceUrl");
     const missing = await t.call("/scholarships/nao-existe");
     expect(missing.status).toBe(404);
@@ -61,30 +64,45 @@ describe("bolsas", () => {
 });
 
 describe("perfil e elegibilidade", () => {
-  it("perfil começa vazio (não 404) e valida com 422", async () => {
+  it("perfil começa vazio (não 404), com completude 0%, e valida com 422", async () => {
     const empty = await t.call("/profile");
     expect(empty.status).toBe(200);
-    expect(empty.json).toEqual({ residence: "", nationality: "", level: "", field: "", grade: "", languages: "", interests: "" });
-    const bad = await t.call("/profile", { method: "PUT", body: { residence: " ", level: "Mestrado", grade: 3 } });
+    expect(empty.json).toMatchObject({ nationalities: [], residenceCountry: "", targetLevels: [], gpa: null, goals: "", completeness: { percent: 0 } });
+    expect(empty.json.completeness.missing).toContain("nationalities");
+    const bad = await t.call("/profile", { method: "PUT", body: {
+      nationalities: ["Moçambique"], targetLevels: ["mestrado"], gpa: { value: 25, scale: "20" }, workYears: "3", fields: ["law", "law"], extra: 1
+    } });
     expect(bad.status).toBe(422);
-    expect(bad.json.error.fields).toEqual({ residence: "required", grade: "invalid_type" });
+    expect(bad.json.error.fields).toEqual({
+      nationalities: "invalid_option", targetLevels: "invalid_option", gpa: "out_of_range", workYears: "invalid_type", fields: "duplicate", extra: "unknown_field"
+    });
   });
 
-  it("salva com trim e devolve updatedAt", async () => {
-    const { json } = await t.call("/profile", { method: "PUT", body: { residence: "  Moçambique ", level: "Mestrado", interests: "x".repeat(1000) } });
-    expect(json).toMatchObject({ residence: "Moçambique", level: "Mestrado" });
+  it("salva por inteiro, com trim, e devolve completude e updatedAt", async () => {
+    const body = {
+      nationalities: ["MZ"], residenceCountry: "MZ", completedLevel: "bachelor", targetLevels: ["master"], fields: ["computer_science"],
+      gpa: { value: 15, scale: "20" }, languages: [{ code: "pt", level: "native" }, { code: "en", level: "C1" }], tests: [{ type: "ielts", score: 7 }],
+      fundingNeed: "full", goals: "  Quero estudar dados.  "
+    };
+    const { status, json } = await t.call("/profile", { method: "PUT", body });
+    expect(status).toBe(200);
+    expect(json).toMatchObject({ ...body, goals: "Quero estudar dados.", completeness: { percent: 67 } });
     expect(Date.parse(json.updatedAt)).not.toBeNaN();
-    expect((await t.call("/profile")).json.residence).toBe("Moçambique");
+    // PUT substitui: o que não veio volta ao padrão.
+    expect((await t.call("/profile", { method: "PUT", body: { goals: "outro" } })).json).toMatchObject({ nationalities: [], goals: "outro" });
   });
 
-  it("elegibilidade muda conforme o perfil salvo", async () => {
+  it("elegibilidade muda conforme o perfil salvo, com motivos em código", async () => {
     expect((await t.call("/scholarships/amostra-004/eligibility")).json.status).toBe("possible");
-    await t.call("/profile", { method: "PUT", body: { residence: "Moçambique", level: "Mestrado" } });
+    await t.call("/profile", { method: "PUT", body: { nationalities: ["MZ"], targetLevels: ["master"], completedLevel: "bachelor" } });
     const failed = (await t.call("/scholarships/amostra-004/eligibility")).json;
-    expect(failed.status).toBe("not_eligible");
-    expect(failed.reasons[0].text).toContain("fora da lista");
-    await t.call("/profile", { method: "PUT", body: { residence: "suica", level: "Mestrado" } });
-    expect((await t.call("/scholarships/amostra-004/eligibility")).json.status).toBe("eligible");
+    expect(failed).toMatchObject({ scholarshipId: "amostra-004", status: "not_eligible", score: 0 });
+    expect(failed.reasons[0]).toEqual({ kind: "failed", code: "nationality_not_eligible" });
+    await t.call("/profile", { method: "PUT", body: { nationalities: ["MZ", "CH"], targetLevels: ["master"], completedLevel: "bachelor", fundingNeed: "partial", languages: [{ code: "en", level: "C1" }] } });
+    const ok = (await t.call("/scholarships/amostra-004/eligibility")).json;
+    expect(ok.status).toBe("eligible");
+    expect(ok.score).toBeGreaterThan(0);
+    expect(["high", "medium", "low"]).toContain(ok.fit);
     expect((await t.call("/scholarships/nao-existe/eligibility")).status).toBe(404);
   });
 

@@ -3,6 +3,15 @@
  * Mantida à mão junto com o docs/api-contract.md. Um teste (test/openapi.test.ts) garante que toda rota do
  * servidor está documentada aqui, e que nada documentado deixou de existir.
  */
+import { z } from "zod";
+import { matchSchema, profileSchema } from "./matching/model.js";
+
+/** Perfil e critérios vêm dos esquemas zod (fonte única: o que a API valida é o que a documentação mostra). */
+const fromZod = (schema: z.ZodTypeAny) => {
+  const { $schema: _ignored, ...rest } = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }) as Record<string, unknown>;
+  return rest;
+};
+
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 const json = (schema: object) => ({ content: { "application/json": { schema } } });
 const error = (description: string) => ({ description, ...json(ref("Error")) });
@@ -20,7 +29,7 @@ export const openapiDocument = {
   openapi: "3.1.0",
   info: {
     title: "GlobalScholar API",
-    version: "1.1.0",
+    version: "2.0.0",
     description:
       "API do GlobalScholar. Contrato completo, regras e decisões em docs/api-contract.md. " +
       "Autenticação por cookie de sessão HttpOnly `gs_session` (posto por /auth/register e /auth/login). " +
@@ -33,6 +42,8 @@ export const openapiDocument = {
     { name: "Perfil" },
     { name: "Candidaturas" },
     { name: "Rascunhos" },
+    { name: "Recomendações" },
+    { name: "Administração", description: "Só contas com role = admin" },
     { name: "Operação" }
   ],
   components: {
@@ -51,29 +62,70 @@ export const openapiDocument = {
       },
       Scholarship: {
         type: "object",
-        required: ["id", "title", "institution", "country", "level", "fundingType", "funding", "deadline", "summary", "requirements", "requiredDocuments", "verification"],
+        required: ["id", "title", "institution", "country", "level", "fundingType", "funding", "deadline", "summary", "requirements", "requiredDocuments", "match", "status", "origin", "verification"],
         properties: {
           ...strings("id", "title", "institution", "country", "level", "fundingType", "funding", "summary", "applicationProcess", "deadlineTimezone"),
           deadline: { type: "string", format: "date" },
           requirements: { type: "array", items: { type: "string" } },
           requiredDocuments: { type: "array", items: { type: "string" } },
-          eligibleCountries: { type: "array", items: { type: "string" } },
           sourceUrl: { type: "string", format: "uri" },
+          match: ref("ScholarshipMatch"),
+          status: { enum: ["active", "hidden"], description: "Bolsas ocultas não aparecem na busca nem nas recomendações" },
+          origin: { enum: ["manual", "discovery", "demo"] },
+          lastCheckedAt: { type: "string", format: "date-time" },
           verification: { type: "object", required: ["status"], properties: { status: { enum: ["verified", "unverified"] }, verifiedAt: { type: "string", format: "date" } } }
         }
       },
       ScholarshipPage: { type: "object", required: ["items", "total"], properties: { items: { type: "array", items: ref("Scholarship") }, total: { type: "integer" } } },
+      ScholarshipMatch: { description: "Critérios de compatibilidade da bolsa (códigos; o site traduz).", ...fromZod(matchSchema) },
+      Reason: {
+        type: "object",
+        required: ["kind", "code"],
+        description: "Motivo em código (ex.: nationality_not_eligible, language_gap) com parâmetros; o site escreve a frase em PT/EN. Lista em docs/api-contract.md.",
+        properties: { kind: { enum: ["met", "gap", "missing", "failed", "info"] }, code: { type: "string" }, params: { type: "object" } }
+      },
       EligibilityResult: {
         type: "object",
-        required: ["scholarshipId", "status", "reasons"],
+        required: ["scholarshipId", "status", "score", "fit", "reasons"],
         properties: {
           scholarshipId: { type: "string" },
           status: { enum: ["eligible", "possible", "not_eligible"] },
-          reasons: { type: "array", items: { type: "object", required: ["kind", "text"], properties: { kind: { enum: ["met", "missing", "failed"] }, text: { type: "string" } } } }
+          score: { type: "integer", minimum: 0, maximum: 100 },
+          fit: { enum: ["high", "medium", "low"] },
+          reasons: { type: "array", items: ref("Reason") }
         }
       },
-      ProfileInput: { type: "object", properties: strings("residence", "nationality", "level", "field", "grade", "languages", "interests"), required: ["residence", "level"] },
-      Profile: { allOf: [ref("ProfileInput"), { type: "object", properties: { updatedAt: { type: "string", format: "date-time" } } }] },
+      Recommendations: {
+        type: "object",
+        required: ["considered", "excluded", "items"],
+        properties: {
+          considered: { type: "integer", description: "Bolsas ativas com prazo aberto avaliadas" },
+          excluded: { type: "integer", description: "Eliminadas por um requisito obrigatório" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["scholarship", "eligibility", "score", "fit", "reasons", "saved"],
+              properties: {
+                scholarship: ref("Scholarship"), eligibility: { enum: ["eligible", "possible"] }, score: { type: "integer" },
+                fit: { enum: ["high", "medium", "low"] }, reasons: { type: "array", items: ref("Reason") }, saved: { type: "boolean" }
+              }
+            }
+          }
+        }
+      },
+      ProfileInput: { description: "Perfil completo (PUT substitui tudo; campos ausentes voltam ao padrão).", ...fromZod(profileSchema) },
+      Profile: {
+        allOf: [ref("ProfileInput"), {
+          type: "object",
+          required: ["completeness"],
+          properties: {
+            completeness: { type: "object", required: ["percent", "missing"], properties: { percent: { type: "integer" }, missing: { type: "array", items: { type: "string" } } } },
+            updatedAt: { type: "string", format: "date-time" }
+          }
+        }]
+      },
+      AdminScholarship: { allOf: [ref("Scholarship"), { type: "object", required: ["openReports"], properties: { openReports: { type: "integer" }, hiddenReason: { type: "string" } } }] },
       AttachedFile: { type: "object", required: ["name", "size", "type", "uploadedAt"], properties: { ...strings("name", "type"), size: { type: "integer" }, uploadedAt: { type: "string", format: "date-time" } } },
       TimelineEvent: {
         type: "object",
@@ -114,7 +166,7 @@ export const openapiDocument = {
         }
       },
       Draft: { allOf: [ref("DraftInput"), { type: "object", required: ["id", "createdAt", "updatedAt"], properties: { id: { type: "string" }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } }] },
-      User: { type: "object", required: ["id", "email", "name"], properties: strings("id", "email", "name") },
+      User: { type: "object", required: ["id", "email", "name"], properties: { ...strings("id", "email", "name"), role: { const: "admin", description: "Só presente em contas de administração" } } },
       UserResponse: { type: "object", required: ["user"], properties: { user: ref("User") } }
     }
   },
@@ -142,6 +194,49 @@ export const openapiDocument = {
     },
     "/scholarships/{id}/eligibility": {
       get: { tags: ["Bolsas"], summary: "Elegibilidade do estudante logado", security: session, parameters: [idParam], responses: { 200: ok("Avaliação", ref("EligibilityResult")), ...common401, 404: error("Bolsa não encontrada") } }
+    },
+    "/scholarships/{id}/reports": {
+      post: {
+        tags: ["Bolsas"], summary: "Reportar erro na bolsa", security: session, parameters: [idParam],
+        description: "Com 3 estudantes diferentes reportando link quebrado, bolsa encerrada ou golpe, a bolsa sai do ar até um admin conferir.",
+        requestBody: json({ type: "object", required: ["reason"], properties: { reason: { enum: ["broken_link", "wrong_deadline", "wrong_info", "closed", "scam", "other"] }, message: { type: "string", maxLength: 1000 } } }),
+        responses: { 204: noContent, ...common401, 404: error("Bolsa não encontrada"), ...common422, 429: error("Muitos relatos (20 por hora)") }
+      }
+    },
+    "/recommendations": {
+      get: {
+        tags: ["Recomendações"], summary: "Bolsas mais compatíveis com o meu perfil", security: session,
+        parameters: [{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 30, default: 10 } }],
+        responses: { 200: ok("Da maior nota para a menor", ref("Recommendations")), 400: error("`limit` fora de 1–30"), ...common401 }
+      }
+    },
+    "/admin/scholarships": {
+      get: {
+        tags: ["Administração"], summary: "Todas as bolsas (inclusive ocultas), reportadas primeiro", security: session,
+        parameters: [
+          { name: "status", in: "query", schema: { enum: ["all", "active", "hidden"], default: "all" } },
+          { name: "verification", in: "query", schema: { enum: ["all", "verified", "unverified"], default: "all" } },
+          { name: "reported", in: "query", schema: { enum: ["0", "1"], default: "0" } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 25 } }
+        ],
+        responses: { 200: ok("Página", { type: "object", properties: { items: { type: "array", items: ref("AdminScholarship") }, total: { type: "integer" } } }), ...common401, 403: error("Não é administrador") }
+      }
+    },
+    "/admin/scholarships/{id}": {
+      put: { tags: ["Administração"], summary: "Criar ou substituir bolsa (formato do importador, sem o id)", security: session, parameters: [idParam], requestBody: json({ type: "object" }), responses: { 200: ok("Atualizada", ref("Scholarship")), 201: ok("Criada", ref("Scholarship")), ...common401, 403: error("Não é administrador"), ...common422 } },
+      patch: {
+        tags: ["Administração"], summary: "Verificar / ocultar / reativar", security: session, parameters: [idParam],
+        requestBody: json({ type: "object", properties: { status: { enum: ["active", "hidden"] }, verification: { enum: ["verified", "unverified"] }, hiddenReason: { type: "string", maxLength: 200 } } }),
+        responses: { 200: ok("Bolsa", ref("Scholarship")), ...common401, 403: error("Não é administrador"), 404: error("Não encontrada"), ...common422 }
+      }
+    },
+    "/admin/scholarships/{id}/reports": {
+      get: { tags: ["Administração"], summary: "Relatos de erro da bolsa", security: session, parameters: [idParam], responses: { 200: ok("Relatos (mais recentes primeiro)", { type: "object" }), ...common401, 403: error("Não é administrador") } }
+    },
+    "/admin/scholarships/{id}/reports/resolve": {
+      post: { tags: ["Administração"], summary: "Marcar relatos abertos como resolvidos", security: session, parameters: [idParam], responses: { 200: ok("Quantos foram resolvidos", { type: "object", properties: { resolved: { type: "integer" } } }), ...common401, 403: error("Não é administrador") } }
     },
     "/auth/register": {
       post: { tags: ["Contas"], summary: "Criar conta (inicia a sessão)", requestBody: json({ type: "object", required: ["name", "email", "password"], properties: { name: { type: "string", maxLength: 100 }, email: { type: "string", format: "email" }, password: { type: "string", minLength: 8, maxLength: 200 } } }), responses: { 201: ok("Conta criada; cookie de sessão posto", ref("UserResponse")), 409: error("E-mail já cadastrado (`email_taken`)"), ...common422, 429: error("Muitas tentativas") } }
