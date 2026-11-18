@@ -1,32 +1,20 @@
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { PageHeading } from "@/components/layout/PageHeading";
-import { ErrorState } from "@/components/feedback/States";
-import { ScholarshipCard } from "@/features/scholarships/ScholarshipCard";
 import { UpcomingDeadlines } from "@/features/applications/UpcomingDeadlines";
+import { RecommendationList } from "@/features/recommendations/RecommendationList";
 import { getT } from "@/i18n/server";
-import { scholarshipService } from "@/lib/services";
-import type { Scholarship } from "@/types";
 import patterns from "@/styles/patterns.module.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).meta.titles.dashboard, robots: { index: false } };
 }
 
-// Os dados vêm da API a cada pedido: a página não pode ser pré-gerada no build (a API não existe nessa hora).
+// Página por pedido (idioma e sessão vêm do cookie); nada é pré-gerado no build.
 export const dynamic = "force-dynamic";
 
-async function loadRecommended(): Promise<Scholarship[] | null> {
-  try {
-    const { items } = await scholarshipService.list({ sort: "deadline", pageSize: 3 });
-    return items;
-  } catch {
-    return null;
-  }
-}
-
 export default async function DashboardPage() {
-  const [t, items] = await Promise.all([getT(), loadRecommended()]);
+  const t = await getT();
 
   return (
     <div className={patterns.page}>
@@ -42,14 +30,10 @@ export default async function DashboardPage() {
 
       <section className={patterns.section} aria-labelledby="d-recommended">
         <div className={patterns.sectionHead}>
-          <h2 id="d-recommended" className="t-section">{t.dashboard.toEvaluate}</h2>
-          <ButtonLink href="/scholarships" variant="tertiary" size="sm">{t.dashboard.seeAll}</ButtonLink>
+          <h2 id="d-recommended" className="t-section">{t.recommendations.dashboardTitle}</h2>
+          <ButtonLink href="/recommendations" variant="tertiary" size="sm">{t.recommendations.dashboardSeeAll}</ButtonLink>
         </div>
-        {items ? (
-          <ul className={patterns.list}>{items.map((item) => <ScholarshipCard key={item.id} item={item} />)}</ul>
-        ) : (
-          <ErrorState title={t.dashboard.loadFailed} description={t.states.serverDown} />
-        )}
+        <RecommendationList limit={3} compact />
       </section>
 
       <div className={patterns.grid2}>

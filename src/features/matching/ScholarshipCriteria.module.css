@@ -1,0 +1,5 @@
+.list { display: grid; gap: 0; margin: 0; border-top: 1px solid var(--color-border); }
+.list > div { display: grid; gap: var(--space-1); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+.list dt { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-muted); font-weight: 500; }
+.list dd { margin: 0; color: var(--color-text); overflow-wrap: anywhere; }
+@media (min-width: 640px) { .list > div { grid-template-columns: 14rem 1fr; gap: var(--space-4); } }

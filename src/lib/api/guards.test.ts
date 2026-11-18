@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeApplication, makeScholarship } from "@/test/fakes";
-import { emptyProfile } from "@/lib/validation/profile";
-import { isApplication, isApplicationList, isEligibilityResult, isProfile, isScholarship, isScholarshipPage } from "./guards";
+import { completenessOf, emptyProfile } from "@/lib/validation/profile";
+import { isAdminPage, isApplication, isApplicationList, isEligibilityResult, isProfile, isRecommendations, isScholarship, isScholarshipPage } from "./guards";
 
 describe("guards", () => {
   it("isScholarship aceita o formato do contrato e rejeita campos faltando", () => {
@@ -18,10 +18,28 @@ describe("guards", () => {
     expect(isScholarshipPage({ items: [] })).toBe(false);
   });
 
-  it("isEligibilityResult checa status e motivos", () => {
-    expect(isEligibilityResult({ scholarshipId: "a", status: "eligible", reasons: [{ kind: "met", text: "ok" }] })).toBe(true);
-    expect(isEligibilityResult({ scholarshipId: "a", status: "maybe", reasons: [] })).toBe(false);
-    expect(isEligibilityResult({ scholarshipId: "a", status: "possible", reasons: [{ kind: "other", text: "x" }] })).toBe(false);
+  it("isScholarship confere os critérios quando vêm", () => {
+    const match = { levels: ["master"], fields: [], eligibleNationalities: ["@AFRICA"], destinations: ["PT"], coverage: [], languages: [], tests: [], minGpaPercent: null, requiredCompletedLevel: null, maxAge: null, minWorkYears: null, restrictedTo: [], applicationFee: false, studyMode: "onsite" };
+    expect(isScholarship(makeScholarship({ match: match as never, status: "active" }))).toBe(true);
+    expect(isScholarship({ ...makeScholarship(), match: { ...match, levels: "master" } })).toBe(false);
+    expect(isScholarship({ ...makeScholarship(), status: "deleted" })).toBe(false);
+  });
+
+  it("isEligibilityResult checa status, nota e motivos em código", () => {
+    const ok = { scholarshipId: "a", status: "eligible", score: 80, fit: "high", reasons: [{ kind: "met", code: "nationality_ok" }, { kind: "gap", code: "gpa_gap", params: { min: 70, yours: 60 } }] };
+    expect(isEligibilityResult(ok)).toBe(true);
+    expect(isEligibilityResult({ ...ok, status: "maybe" })).toBe(false);
+    expect(isEligibilityResult({ ...ok, score: "80" })).toBe(false);
+    expect(isEligibilityResult({ ...ok, reasons: [{ kind: "other", code: "x" }] })).toBe(false);
+    expect(isEligibilityResult({ ...ok, reasons: [{ kind: "met", text: "formato antigo" }] })).toBe(false);
+  });
+
+  it("isRecommendations e isAdminPage", () => {
+    const item = { scholarship: makeScholarship(), eligibility: "possible", score: 50, fit: "low", reasons: [], saved: false };
+    expect(isRecommendations({ considered: 3, excluded: 1, items: [item] })).toBe(true);
+    expect(isRecommendations({ considered: 3, excluded: 1, items: [{ ...item, eligibility: "not_eligible" }] })).toBe(false);
+    expect(isAdminPage({ total: 1, items: [{ ...makeScholarship(), openReports: 0 }] })).toBe(true);
+    expect(isAdminPage({ total: 1, items: [makeScholarship()] })).toBe(false);
   });
 
   it("isApplication só aceita status conhecidos", () => {
@@ -36,9 +54,13 @@ describe("guards", () => {
     expect(isApplication(noNotes)).toBe(false);
   });
 
-  it("isProfile exige todos os campos como texto", () => {
-    expect(isProfile(emptyProfile)).toBe(true);
-    expect(isProfile({ ...emptyProfile, updatedAt: "2026-01-01T00:00:00Z" })).toBe(true);
-    expect(isProfile({ ...emptyProfile, level: 3 })).toBe(false);
+  it("isProfile exige o perfil estruturado com completude", () => {
+    const profile = { ...emptyProfile, completeness: completenessOf(emptyProfile) };
+    expect(isProfile(profile)).toBe(true);
+    expect(isProfile({ ...profile, updatedAt: "2026-01-01T00:00:00Z" })).toBe(true);
+    expect(isProfile(emptyProfile)).toBe(false);
+    expect(isProfile({ ...profile, nationalities: "MZ" })).toBe(false);
+    expect(isProfile({ ...profile, gpa: { value: "14", scale: "20" } })).toBe(false);
+    expect(isProfile({ residence: "Moçambique", level: "Mestrado" })).toBe(false);
   });
 });

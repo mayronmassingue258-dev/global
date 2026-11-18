@@ -1,15 +1,14 @@
-# Deploy no Render (demonstração)
+# Deploy no Render
 
 Este guia publica **duas** aplicações no [Render](https://render.com), na região Frankfurt (a mais próxima de Moçambique entre as do Render):
 
 | Serviço | O que é | URL típica |
 |---|---|---|
-| `globalscholar-api-demo` | O servidor local (`mock-api`) rodando na nuvem | `https://globalscholar-api-demo.onrender.com/api` |
+| `globalscholar-api-demo` | O backend (`backend/`: contas, perfil, recomendações, administração), ligado ao Supabase | `https://globalscholar-api-demo.onrender.com/api` |
 | `globalscholar-web` | O frontend Next.js em modo API real | `https://globalscholar-web.onrender.com` |
 
-> **É uma demonstração, não produção.** A API de demonstração não tem login: **todos os visitantes compartilham o mesmo perfil e as mesmas candidaturas**.
-> No plano gratuito o disco é temporário: os dados somem a cada novo deploy ou reinício, e o serviço "dorme" após ~15 min sem uso
-> (a primeira visita depois disso demora ~1 min). Quando o backend do seu sócio existir, só a variável `NEXT_PUBLIC_API_BASE_URL` muda.
+> Os dados ficam no **Supabase** (seção "Base de dados no Supabase"). No plano gratuito do Render, o serviço "dorme" após ~15 min
+> sem uso (a primeira visita depois disso demora ~1 min). O nome `globalscholar-api-demo` ficou por compatibilidade com a URL antiga.
 
 ## Atualização: backend real (B1)
 

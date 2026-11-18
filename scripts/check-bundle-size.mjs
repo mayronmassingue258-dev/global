@@ -7,7 +7,9 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
-export const BUDGET = { js: 150 * 1024, css: 20 * 1024 };
+// Histórico: 150 KB → 160 KB na R1 (perfil e recomendações). Os dicionários PT e EN vão inteiros para todas as páginas
+// (troca de idioma instantânea, sem novo carregamento) e o vocabulário do perfil acrescentou ~4 KB a cada uma.
+export const BUDGET = { js: 160 * 1024, css: 20 * 1024 };
 
 const dist = process.env.NEXT_DIST_DIR || ".next";
 const manifestPath = join(dist, "app-build-manifest.json");

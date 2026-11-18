@@ -3,21 +3,27 @@ import { render, screen, within } from "@testing-library/react";
 import { EligibilityResult } from "./EligibilityResult";
 
 describe("EligibilityResult", () => {
-  it("mostra o veredito e cada motivo com rótulo textual (não só cor)", () => {
+  it("mostra o veredito, a nota e cada motivo como frase, com rótulo textual (não só cor)", () => {
     render(
       <EligibilityResult
-        result={{ scholarshipId: "a", status: "possible", reasons: [{ kind: "met", text: "Nível ok." }, { kind: "missing", text: "Falta nota." }] }}
+        result={{
+          scholarshipId: "a", status: "possible", score: 68, fit: "medium",
+          reasons: [{ kind: "met", code: "nationality_ok" }, { kind: "gap", code: "test_gap", params: { type: "ielts", min: 7, yours: 6.5 } }]
+        }}
       />
     );
-    expect(screen.getByRole("heading", { name: /Possivelmente elegível/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pode ser elegível/ })).toBeInTheDocument();
+    expect(screen.getByText("Nota de compatibilidade: 68 de 100")).toBeInTheDocument();
     const items = screen.getAllByRole("listitem");
-    expect(within(items[0]!).getByText("Atendido")).toBeInTheDocument();
-    expect(within(items[1]!).getByText("Falta informar")).toBeInTheDocument();
+    expect(items[0]).toHaveTextContent("Falta pouco: IELTS: mínimo 7; a sua nota é 6.5.");
+    expect(within(items[1]!).getByText("Cumpre:")).toBeInTheDocument();
+    expect(items[1]).toHaveTextContent("A sua nacionalidade é aceita.");
   });
 
-  it("não elegível", () => {
-    render(<EligibilityResult result={{ scholarshipId: "a", status: "not_eligible", reasons: [{ kind: "failed", text: "Sem vínculo." }] }} />);
+  it("não elegível: sem nota, com o motivo", () => {
+    render(<EligibilityResult result={{ scholarshipId: "a", status: "not_eligible", score: 0, fit: "low", reasons: [{ kind: "failed", code: "nationality_not_eligible" }] }} />);
     expect(screen.getByText("Não elegível")).toBeInTheDocument();
-    expect(screen.getByText("Não atendido")).toBeInTheDocument();
+    expect(screen.queryByText(/Nota de compatibilidade/)).not.toBeInTheDocument();
+    expect(screen.getByRole("listitem")).toHaveTextContent("Não cumpre: A sua nacionalidade não está entre as aceitas.");
   });
 });

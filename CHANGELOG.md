@@ -1,5 +1,37 @@
 # Registro de mudanças
 
+## 3.0.0 — R1: perfil completo e bolsas para cada estudante (2026-11-18)
+
+### Novo
+- **Perfil em 6 etapas** (Origem, Formação, Idiomas, Experiência, Objetivos, Finanças), salvo a cada passo, com barra de
+  "perfil X% completo". Nacionalidades (até 3), país onde mora, nota em qualquer escala (0–20, 0–4, 0–10…, com vírgula decimal),
+  idiomas com nível, testes (IELTS, TOEFL…), anos de experiência, níveis desejados, destinos preferidos e excluídos, modalidade,
+  ano de início e situação financeira. Países com nome em PT ou EN; tudo guardado em códigos estáveis.
+- **Motor de compatibilidade** no backend (`backend/src/matching/`): elimina o que o estudante não pode aceitar (nacionalidade,
+  nível, formação concluída, idade, experiência, público restrito, modalidade, destino excluído, bolsa sem propinas e sustento para
+  quem precisa de integral, prazo vencido) e dá uma **nota de 0 a 100** com os porquês ("Inglês: pede C1; você indicou B2").
+- **"Para você"** (`/recommendations`, no menu e no painel): as 10 bolsas mais compatíveis, explicadas, com link para o edital e "Salvar".
+- **Página da bolsa**: "Quem pode se candidatar" (níveis, nacionalidades e grupos como CPLP, cobertura, idiomas, testes, nota mínima,
+  idade, taxa), nota de compatibilidade, avisos de bolsa fictícia / não verificada / fora do ar, e **"Reportar erro"**.
+- **Publicação automática com proteções**: bolsas novas entram como "não verificadas"; 3 relatos graves de estudantes diferentes
+  (link quebrado, encerrada, golpe) tiram a bolsa do ar; bolsas com prazo vencido saem sozinhas (na partida e a cada 6 horas).
+- **Painel de administração** (`/admin`, só para `role: admin`): todas as bolsas (reportadas primeiro), verificar, ocultar/reativar,
+  ver e resolver relatos, criar e editar bolsas em JSON. Dar acesso: `npm --prefix backend run admin:grant -- email`.
+
+### Mudou (incompatível)
+- Contrato da API **2.0**: perfil estruturado, `Scholarship.match/status/origin`, elegibilidade com `score`, `fit` e motivos em código
+  (o site escreve as frases em PT/EN). Migração `0004_r1_matching`: perfis antigos (texto livre) viram vazios, exceto os objetivos;
+  bolsas que não são de demonstração ficam ocultas até serem reimportadas com critérios.
+- Importador: cada bolsa precisa de `match` (ver `backend/scholarships.example.json`); `eligibleCountries` e `criteria` saíram.
+- **Removida a API de demonstração `mock-api/`** (`npm run dev:api`): o backend real a substitui (`npm run dev:full`).
+  `npm run dev` continua com dados fictícios em memória, sem servidor.
+- Orçamento de JavaScript por página: 150 → 160 KB (dicionários PT e EN maiores; motivo em `scripts/check-bundle-size.mjs`).
+
+### Testes
+98 no backend, 245 no frontend (inclui um teste que confere o vocabulário do frontend com o do backend e que todo motivo tem
+frase em PT e EN), ponta a ponta com o perfil em etapas, recomendações, reportar erro e axe nas telas novas.
+
+
 ## 2.4.0 — Base de dados no Supabase (2026-11-10)
 
 - A base de dados passa a ser o **Supabase**; o `render.yaml` não cria mais uma base no Render (`DATABASE_URL` vem do painel).

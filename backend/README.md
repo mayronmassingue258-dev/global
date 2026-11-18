@@ -23,7 +23,7 @@ npm run dev:full
 ```
 
 Isso aplica as migrações, cria as bolsas de demonstração e sobe a **API em http://localhost:4000/api** e o **site em http://localhost:3000**
-(ambos recarregam ao salvar). Sem Docker, use `npm run dev:api` na raiz (API de demonstração, sem base de dados).
+(ambos recarregam ao salvar). Sem Docker, use um PostgreSQL local ou um projeto gratuito do Supabase em `DATABASE_URL`.
 
 ## Comandos (dentro de `backend/`)
 
@@ -36,7 +36,8 @@ Isso aplica as migrações, cria as bolsas de demonstração e sobe a **API em h
 | `npm run db:migrate` | Aplica migrações pendentes. |
 | `npm run db:seed` | Insere/atualiza as bolsas fictícias de demonstração. |
 | `npm run start:prod` | Produção: migra e inicia (usado pelo Render). |
-| `npm run scholarships:import -- arquivo.json [--dry-run] [--remove-demo]` | Importa bolsas reais (modelo: `scholarships.example.json`; ver `docs/operations.md`). |
+| `npm run scholarships:import -- arquivo.json [--dry-run] [--remove-demo]` | Importa bolsas reais com critérios (`match`) (modelo: `scholarships.example.json`; ver `docs/operations.md`). |
+| `npm run admin:grant -- email [--revoke]` | Dá (ou tira) acesso ao painel de administração `/admin`. A conta precisa existir. |
 
 Para os testes, crie a base de teste uma vez (com o docker-compose):
 
@@ -85,6 +86,13 @@ src/
 drizzle/               migrações SQL versionadas (geradas a partir do schema)
 test/                  testes de contrato com PostgreSQL real
 ```
+
+### Perfil e recomendações
+
+`src/matching/` concentra a regra de negócio: `model.ts` (vocabulário e validação do perfil e dos critérios, em códigos estáveis),
+`countries.ts` (países ISO e grupos `@AFRICA`, `@CPLP`, `@COMMONWEALTH`) e `engine.ts` (função pura: filtros eliminatórios, nota
+0–100 e motivos em código). `GET /recommendations` passa todas as bolsas ativas com prazo aberto pelo motor e devolve as melhores.
+Testes do motor em `src/matching/engine.test.ts`. O frontend tem uma cópia do vocabulário (`src/lib/matching.ts`), conferida por teste.
 
 ### Documentação da API
 

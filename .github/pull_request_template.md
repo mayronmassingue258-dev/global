@@ -4,7 +4,7 @@
 
 ## Como testar
 
-<!-- Passos curtos para quem revisa. Ex.: npm run dev:api → /applications → abrir uma candidatura. -->
+<!-- Passos curtos para quem revisa. Ex.: npm run dev:full → /profile → preencher as etapas → /recommendations. -->
 
 ## Checklist
 

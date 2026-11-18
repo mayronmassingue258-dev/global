@@ -1,0 +1,12 @@
+.field { display: grid; gap: var(--space-2); }
+.label { font-size: 0.875rem; font-weight: 500; }
+.optional { font-weight: 400; color: var(--color-text-muted); }
+.helper { font-size: 0.8125rem; color: var(--color-text-2); }
+.error { font-size: 0.8125rem; font-weight: 500; color: var(--color-danger); }
+.control { width: 100%; min-height: var(--control-height); padding: var(--space-2) var(--space-3); background: var(--color-card); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); font-size: 1rem; color: var(--color-text); }
+.control:disabled { background: var(--color-surface); color: var(--color-text-muted); }
+.invalid { border-color: var(--color-danger); }
+.chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: 2px 2px 2px var(--space-3); border-radius: 999px; background: var(--color-surface); border: 1px solid var(--color-border); font-size: 0.875rem; }
+.remove { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-2); cursor: pointer; }
+.remove:hover { background: var(--color-card); color: var(--color-text); }

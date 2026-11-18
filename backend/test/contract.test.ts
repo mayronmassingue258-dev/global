@@ -2,8 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { setupTestApp } from "./helpers.js";
 
 /**
- * Testes de CONTRATO (docs/api-contract.md): as mesmas regras verificadas na API local (mock-api/server.test.mjs),
- * agora contra o backend real e o PostgreSQL. Se o contrato mudar, os dois mudam juntos.
+ * Testes de CONTRATO (docs/api-contract.md) contra o backend real e o PostgreSQL.
+ * Se o contrato mudar, este arquivo, a documentação e o frontend (src/lib/api/guards.ts) mudam juntos.
  */
 let t: Awaited<ReturnType<typeof setupTestApp>>;
 beforeAll(async () => { t = await setupTestApp(); });

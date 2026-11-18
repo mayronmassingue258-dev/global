@@ -5,7 +5,7 @@
 `npm run size` (depois do build) mede o JavaScript e o CSS, comprimidos com gzip, que cada página carrega na primeira visita
 (layouts + página). Roda no CI: uma página acima do limite reprova o pull request.
 
-Orçamento por página (gzip): JS ≤ 150.0 KB, CSS ≤ 20.0 KB
+Orçamento por página (gzip): JS ≤ 160.0 KB, CSS ≤ 20.0 KB (era 150 KB até a R1; motivo em scripts/check-bundle-size.mjs)
 
 | Página | JS | CSS | Orçamento |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Resumo: **Performance 95–100, Acessibilidade 100, Boas práticas 100, SEO 100*
 Como medir de novo:
 
 ```bash
-npm run mock-api
+npm --prefix backend run dev
 ```
 
 ```bash

@@ -4,11 +4,14 @@ import { apiApplicationService, type ApplicationService } from "./api/applicatio
 import { apiProfileService, type ProfileService } from "./api/profile";
 import { apiDraftService, type DraftService } from "./api/drafts";
 import { apiAuthService, type AuthService } from "./api/auth";
+import { apiRecommendationService, type RecommendationService } from "./api/recommendations";
+import { apiAdminService, type AdminService } from "./api/admin";
 import { mockScholarshipService } from "@/mocks/scholarshipService";
 import { mockApplicationService } from "@/mocks/applicationService";
 import { mockProfileService } from "@/mocks/profileService";
 import { mockDraftService } from "@/mocks/draftService";
 import { mockAuthService } from "@/mocks/authService";
+import { mockRecommendationService } from "@/mocks/recommendationService";
 
 /**
  * Ponto único de escolha entre dados reais e dados de demonstração.
@@ -22,3 +25,6 @@ export const applicationService: ApplicationService = useMock ? mockApplicationS
 export const profileService: ProfileService = useMock ? mockProfileService : apiProfileService;
 export const draftService: DraftService = useMock ? mockDraftService : apiDraftService;
 export const authService: AuthService = useMock ? mockAuthService : apiAuthService;
+export const recommendationService: RecommendationService = useMock ? mockRecommendationService : apiRecommendationService;
+/** Sem versão de demonstração: no modo mock, a página de administração mostra um aviso. */
+export const adminService: AdminService = apiAdminService;

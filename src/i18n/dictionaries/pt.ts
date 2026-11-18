@@ -3,7 +3,10 @@
  * O inglês (en.ts) é tipado a partir deste arquivo: uma chave faltando lá é erro de TypeScript.
  * Textos que vêm da API (bolsas, motivos de elegibilidade) NÃO passam por aqui.
  */
+import ptMatching from "./pt.matching";
+
 const pt = {
+  ...ptMatching,
   meta: {
     htmlLang: "pt-BR",
     dateLocale: "pt-BR",
@@ -23,7 +26,9 @@ const pt = {
       register: "Criar conta",
       forgot: "Recuperar senha",
       reset: "Nova senha",
-      account: "Conta"
+      account: "Conta",
+      recommendations: "Bolsas para você",
+      admin: "Administração"
     }
   },
   common: {
@@ -48,6 +53,8 @@ const pt = {
     scholarships: "Bolsas",
     applications: "Candidaturas",
     profile: "Perfil",
+    recommendations: "Para você",
+    admin: "Admin",
     assistant: "Assistente",
     home: "Página inicial",
     main: "Principal",
@@ -109,7 +116,7 @@ const pt = {
     howTitle: "Do interesse à candidatura, em quatro passos.",
     steps: [
       { title: "Encontre bolsas", text: "Pesquise por país, nível e área. Cada oportunidade mostra prazo, cobertura, requisitos e a fonte oficial." },
-      { title: "Monte seu perfil", text: "Registre formação, notas e idiomas uma vez. Ele passa a orientar a avaliação de elegibilidade." },
+      { title: "Monte seu perfil", text: "Nacionalidade, formação, notas, idiomas e situação financeira, uma vez só. Com ele, separamos as bolsas que combinam com você." },
       { title: "Entenda o que falta", text: "Para cada bolsa, veja o que você já atende e o que ainda precisa informar, sem promessas de aprovação." },
       { title: "Organize a candidatura", text: "Acompanhe prazos, documentos e notas, e escreva cartas e currículos com uma estrutura clara." }
     ],
@@ -175,8 +182,8 @@ const pt = {
     seeAll: "Ver todas",
     loadFailed: "Não foi possível carregar as bolsas",
     nextAction: "Próxima ação",
-    completeProfile: "Complete seu perfil acadêmico",
-    completeProfileText: "Com mais informações, a avaliação de elegibilidade fica mais útil.",
+    completeProfile: "Complete o seu perfil",
+    completeProfileText: "Com nacionalidade, formação, idiomas e situação financeira, encontramos as bolsas certas para você.",
     continueProfile: "Continuar perfil",
     documents: "Documentos",
     documentsText: "Prepare cartas de motivação, currículos acadêmicos e declarações pessoais com uma estrutura clara.",
@@ -235,7 +242,6 @@ const pt = {
     about: "Sobre esta oportunidade",
     coverage: "Cobertura:",
     requirements: "Requisitos de elegibilidade",
-    countries: (list: string) => `Países de residência aceitos: ${list}.`,
     documents: "Documentos necessários",
     documentsNote: "Ao salvar a bolsa, estes documentos viram um checklist na sua candidatura.",
     process: "Processo de candidatura",
@@ -253,7 +259,8 @@ const pt = {
     signIn: "Entre na sua conta para ver o que falta no seu perfil para esta bolsa.",
     signInLink: "Entrar",
     nonePending: "Nada pendente no seu perfil para esta bolsa.",
-    pending: (n: number) => `${n} ${n === 1 ? "item pendente" : "itens pendentes"} no seu perfil.`,
+    pending: (n: number) => `${n} ${n === 1 ? "ponto a resolver" : "pontos a resolver"}.`,
+    notEligible: "Pelos critérios conhecidos, você não pode se candidatar a esta bolsa.",
     complete: "Completar perfil",
     seeFull: "Ver avaliação completa"
   },
@@ -267,51 +274,11 @@ const pt = {
     seeRequirements: "Ver requisitos",
     summary: {
       eligible: { title: "Elegível segundo os critérios conhecidos", badge: "Elegível" },
-      possible: { title: "Possivelmente elegível: faltam informações", badge: "Faltam informações" },
+      possible: { title: "Pode ser elegível: falta informar ou cumprir algo", badge: "Falta pouco" },
       not_eligible: { title: "Não elegível: um requisito obrigatório não é atendido", badge: "Não elegível" }
     },
-    kind: { met: "Atendido", missing: "Falta informar", failed: "Não atendido" }
-  },
-  profile: {
-    eyebrow: "Perfil acadêmico",
-    title: "Conte sobre sua formação.",
-    text: "Estas informações apoiam a avaliação de elegibilidade.",
-    demoText: " Nesta demonstração, o perfil fica só nesta aba e não vai para nenhum servidor.",
-    formLabel: "Perfil acadêmico",
-    loading: "Carregando perfil…",
-    loadFailed: "Não foi possível carregar seu perfil",
-    s1: "01 · Origem",
-    s1Title: "Onde você está agora",
-    s2: "02 · Formação",
-    s2Title: "Sua trajetória acadêmica",
-    s3: "03 · Objetivos",
-    s3Title: "O que você procura",
-    residence: "País de residência",
-    residencePlaceholder: "Ex.: Moçambique",
-    residenceHelper: "Usado para avaliar a elegibilidade.",
-    nationality: "Nacionalidade",
-    level: "Nível de estudo atual",
-    select: "Selecione",
-    field: "Área de estudo",
-    fieldPlaceholder: "Ex.: Ciência da Computação",
-    grade: "Resultado acadêmico e escala",
-    gradePlaceholder: "Ex.: 16 em 20",
-    gradeHelper: "Inclua a escala de notas da sua instituição.",
-    languages: "Idiomas e níveis",
-    languagesPlaceholder: "Ex.: Português nativo, Inglês B2",
-    interests: "Países e áreas de interesse",
-    interestsPlaceholder: "Descreva seus objetivos e destinos preferidos.",
-    required: { residence: "Informe o país de residência.", level: "Selecione o nível de estudo atual.", other: "Campo obrigatório." },
-    tooLong: (n: number) => `Use no máximo ${n} caracteres.`,
-    fixErrors: "Corrija os campos destacados para continuar.",
-    saveFailed: "Não foi possível salvar o perfil. Tente novamente.",
-    save: "Salvar perfil",
-    saved: "Perfil salvo.",
-    savedDemo: "Demonstração: perfil guardado só nesta aba, sem servidor.",
-    demoWarning: "Não insira informações sensíveis neste formulário de demonstração.",
-    restored: "Recuperamos o que você tinha digitado e ainda não salvou.",
-    discard: "Descartar",
-    unsaved: "Há alterações não salvas."
+    kind: { met: "Atendido", gap: "Falta pouco", missing: "Falta informar", failed: "Não atendido", info: "Aviso" },
+    scoreTitle: "Compatibilidade com o seu perfil"
   },
   applications: {
     eyebrow: "Acompanhamento",

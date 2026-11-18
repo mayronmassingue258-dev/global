@@ -82,16 +82,18 @@ test("filtros e chips funcionam pelo teclado", async ({ page, api: _api }) => {
   await expect(page).toHaveURL(/\/scholarships$/);
 });
 
-test("perfil: Enter envia, o foco vai para o erro e Tab segue na ordem visual", async ({ page, api: _api }) => {
+test("perfil: Enter salva a etapa, o foco vai para o título da próxima e Tab segue na ordem visual", async ({ page, api: _api }) => {
   await page.goto("/profile");
-  await tabTo(page, (el) => el.name.startsWith("País de residência"));
+  await tabTo(page, (el) => el.name.startsWith("Nacionalidade(s)"));
+  await expectVisibleFocus(page);
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("País onde mora hoje")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("Ano de nascimento")).toBeFocused();
+  await page.keyboard.type("2001");
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel("País de residência")).toBeFocused();
-  await page.keyboard.type("Moçambique");
-  await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Nacionalidade (opcional)")).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Nível de estudo atual")).toBeFocused();
+  await expect(page.getByRole("heading", { name: "O que você já estudou" })).toBeFocused();
+  await expect(page.getByText("Etapa 2 de 6")).toBeVisible();
 });
 
 test("assistente: escolher tipo com setas e criar rascunho pelo teclado", async ({ page, api: _api }) => {

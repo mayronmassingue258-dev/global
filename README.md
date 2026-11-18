@@ -21,11 +21,11 @@ npm install
 ```
 
 ```bash
-npm run dev:api
+npm run dev:full
 ```
 
-Abre http://localhost:3000 com a **API local** (http://localhost:4000/api): perfil, candidaturas e rascunhos ficam gravados em
-`mock-api/.data/db.json`. Para só olhar o visual, sem servidor: `npm run dev` (dados fictícios em memória).
+Abre http://localhost:3000 com o **backend real** (http://localhost:4000/api) e PostgreSQL (ver [`backend/README.md`](backend/README.md)).
+Para só olhar o visual, sem servidor: `npm run dev` (dados fictícios em memória).
 
 ### Comandos
 
@@ -33,11 +33,9 @@ Abre http://localhost:3000 com a **API local** (http://localhost:4000/api): perf
 |---|---|
 | `npm run dev` | Frontend com dados fictícios em memória (aviso visível na tela). |
 | `npm run dev:full` | **Backend real + PostgreSQL** + frontend (ver [`backend/README.md`](backend/README.md); requer Docker). |
-| `npm run dev:api` | API de demonstração (sem base de dados) + frontend em modo API. |
-| `npm run mock-api` / `mock-api:reset` | Só a API local / apagar os dados dela. |
 | `npm run build` / `npm start` | Build e servidor de produção. |
 | `npm run check` | Tipos + lint + contraste + testes + build + orçamento de tamanho. **Rode antes de abrir um PR.** |
-| `npm test` / `test:watch` / `test:coverage` | Testes unitários, de componentes e do contrato da API local (Vitest). |
+| `npm test` / `test:watch` / `test:coverage` | Testes unitários e de componentes (Vitest). |
 | `npm run test:e2e` | Ponta a ponta no navegador (Playwright). Primeira vez: `npx playwright install chromium`. |
 | `npm run contrast` | Contraste WCAG dos pares de cor da paleta. |
 | `npm run size` | Orçamento de JS/CSS por página (depois do build). |
@@ -48,7 +46,6 @@ Abre http://localhost:3000 com a **API local** (http://localhost:4000/api): perf
 | Modo | Como ativar | Dados |
 |---|---|---|
 | Demonstração | `npm run dev` (`.env.development` define `NEXT_PUBLIC_DATA_MODE=mock`) | Fictícios, em memória, com aviso na interface. |
-| API de demonstração | `npm run dev:api` | `mock-api/`, seguindo o contrato; grava em arquivo, sem base de dados. |
 | Backend real | `npm run dev:full` / produção + `NEXT_PUBLIC_API_BASE_URL` | `backend/` com PostgreSQL. |
 
 Se a API falhar, a interface mostra o erro com "Tentar novamente". **Nunca** troca silenciosamente por dados fictícios.
@@ -57,7 +54,10 @@ Variáveis: veja [`.env.example`](.env.example).
 ## O que o produto faz hoje
 
 - **Busca** com filtros na URL (link compartilhável, "voltar" funciona), chips de filtros ativos, paginação.
-- **Detalhe da bolsa** com prazo em destaque, "o que falta no seu perfil" (avaliação feita **pelo servidor**), requisitos, documentos e fonte.
+- **Perfil em 6 etapas** (origem, formação, idiomas, experiência, objetivos, finanças) com barra de completude.
+- **"Para você"**: as bolsas mais compatíveis com o perfil, com nota de 0 a 100 e os porquês, calculados pelo backend
+  (`backend/src/matching/`). Bolsas que o estudante não pode aceitar (nacionalidade, nível, finanças…) ficam de fora.
+- **Detalhe da bolsa** com "quem pode se candidatar", "reportar erro", prazo em destaque, "o que falta no seu perfil" (avaliação feita **pelo servidor**), requisitos, documentos e fonte.
 - **Perfil acadêmico** com validação, foco no primeiro erro e recuperação do que foi digitado.
 - **Candidaturas**: lista com progresso e prazos; detalhe com checklist de documentos, anexos (até 10 MB, tipo verificado pelo conteúdo),
   notas com salvamento automático e linha do tempo.
@@ -95,13 +95,12 @@ src/
   i18n/           dicionários pt/en, provider, seletor, leitura do idioma no servidor
   lib/            config, services (mock ou API), api (cliente HTTP, validação das respostas, serviços), validation,
                   searchParams, formDrafts, uploads, seo, securityHeaders, utils
-  mocks/          dados e serviços de demonstração (data/scholarships.json é compartilhado com a API local)
+  mocks/          dados e serviços de demonstração (data/scholarships.json copia as bolsas fictícias do backend)
   styles/         tokens (cores, espaçamentos), tipografia, padrões
-  types/          tipos do contrato (provisório)
+  types/          tipos do contrato (docs/api-contract.md)
 backend/          API real: Fastify + PostgreSQL (Drizzle), migrações, testes de contrato (ver backend/README.md)
-mock-api/         API de demonstração em Node puro, sem dependências nem base de dados
 e2e/              Playwright: fluxos, acessibilidade (axe), teclado, idiomas, segurança
-scripts/          dev-api, contraste, orçamento de tamanho, Lighthouse
+scripts/          dev-full, contraste, orçamento de tamanho, Lighthouse
 docs/             documentação acima
 ```
 

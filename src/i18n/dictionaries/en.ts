@@ -1,7 +1,9 @@
 import type { Dictionary } from "./pt";
+import enMatching from "./en.matching";
 
 /** Dicionário INGLÊS. Mesma forma do português (verificado pelo TypeScript). */
 const en: Dictionary = {
+  ...enMatching,
   meta: {
     htmlLang: "en",
     dateLocale: "en-GB",
@@ -21,7 +23,9 @@ const en: Dictionary = {
       register: "Create account",
       forgot: "Reset password",
       reset: "New password",
-      account: "Account"
+      account: "Account",
+      recommendations: "Scholarships for you",
+      admin: "Administration"
     }
   },
   common: {
@@ -46,6 +50,8 @@ const en: Dictionary = {
     scholarships: "Scholarships",
     applications: "Applications",
     profile: "Profile",
+    recommendations: "For you",
+    admin: "Admin",
     assistant: "Assistant",
     home: "Home",
     main: "Main",
@@ -107,7 +113,7 @@ const en: Dictionary = {
     howTitle: "From interest to application, in four steps.",
     steps: [
       { title: "Find scholarships", text: "Search by country, level and field. Each opportunity shows the deadline, funding, requirements and official source." },
-      { title: "Build your profile", text: "Record your education, grades and languages once. It then guides the eligibility check." },
+      { title: "Build your profile", text: "Nationality, education, grades, languages and finances, just once. With it, we pick out the scholarships that suit you." },
       { title: "See what's missing", text: "For each scholarship, see what you already meet and what you still need to provide, with no promises of approval." },
       { title: "Organise your application", text: "Track deadlines, documents and notes, and write letters and CVs with a clear structure." }
     ],
@@ -173,8 +179,8 @@ const en: Dictionary = {
     seeAll: "See all",
     loadFailed: "Couldn't load scholarships",
     nextAction: "Next step",
-    completeProfile: "Complete your academic profile",
-    completeProfileText: "With more information, the eligibility check becomes more useful.",
+    completeProfile: "Complete your profile",
+    completeProfileText: "With your nationality, education, languages and finances, we can find the right scholarships for you.",
     continueProfile: "Continue profile",
     documents: "Documents",
     documentsText: "Prepare motivation letters, academic CVs and personal statements with a clear structure.",
@@ -233,7 +239,6 @@ const en: Dictionary = {
     about: "About this opportunity",
     coverage: "Coverage:",
     requirements: "Eligibility requirements",
-    countries: (list: string) => `Accepted countries of residence: ${list}.`,
     documents: "Required documents",
     documentsNote: "When you save the scholarship, these documents become a checklist in your application.",
     process: "Application process",
@@ -251,7 +256,8 @@ const en: Dictionary = {
     signIn: "Sign in to see what your profile is missing for this scholarship.",
     signInLink: "Sign in",
     nonePending: "Nothing missing from your profile for this scholarship.",
-    pending: (n: number) => `${n} ${n === 1 ? "item" : "items"} missing from your profile.`,
+    pending: (n: number) => `${n} ${n === 1 ? "point" : "points"} to resolve.`,
+    notEligible: "Under the known criteria, you can't apply for this scholarship.",
     complete: "Complete profile",
     seeFull: "See full assessment"
   },
@@ -265,51 +271,11 @@ const en: Dictionary = {
     seeRequirements: "See requirements",
     summary: {
       eligible: { title: "Eligible under the known criteria", badge: "Eligible" },
-      possible: { title: "Possibly eligible: information missing", badge: "Information missing" },
+      possible: { title: "May be eligible: something to add or meet", badge: "Almost there" },
       not_eligible: { title: "Not eligible: a mandatory requirement isn't met", badge: "Not eligible" }
     },
-    kind: { met: "Met", missing: "Missing", failed: "Not met" }
-  },
-  profile: {
-    eyebrow: "Academic profile",
-    title: "Tell us about your education.",
-    text: "This information supports the eligibility check.",
-    demoText: " In this demo, your profile stays in this tab only and isn't sent to any server.",
-    formLabel: "Academic profile",
-    loading: "Loading profile…",
-    loadFailed: "Couldn't load your profile",
-    s1: "01 · Where you are",
-    s1Title: "Where you are now",
-    s2: "02 · Education",
-    s2Title: "Your academic path",
-    s3: "03 · Goals",
-    s3Title: "What you're looking for",
-    residence: "Country of residence",
-    residencePlaceholder: "E.g. Mozambique",
-    residenceHelper: "Used for the eligibility check.",
-    nationality: "Nationality",
-    level: "Current level of study",
-    select: "Select",
-    field: "Field of study",
-    fieldPlaceholder: "E.g. Computer Science",
-    grade: "Academic result and scale",
-    gradePlaceholder: "E.g. 16 out of 20",
-    gradeHelper: "Include your institution's grading scale.",
-    languages: "Languages and levels",
-    languagesPlaceholder: "E.g. Portuguese native, English B2",
-    interests: "Countries and fields of interest",
-    interestsPlaceholder: "Describe your goals and preferred destinations.",
-    required: { residence: "Enter your country of residence.", level: "Select your current level of study.", other: "This field is required." },
-    tooLong: (n: number) => `Use at most ${n} characters.`,
-    fixErrors: "Fix the highlighted fields to continue.",
-    saveFailed: "Couldn't save your profile. Try again.",
-    save: "Save profile",
-    saved: "Profile saved.",
-    savedDemo: "Demo: profile kept in this tab only, no server.",
-    demoWarning: "Don't enter sensitive information in this demo form.",
-    restored: "We restored what you had typed but not saved yet.",
-    discard: "Discard",
-    unsaved: "You have unsaved changes."
+    kind: { met: "Met", gap: "Almost there", missing: "Missing", failed: "Not met", info: "Note" },
+    scoreTitle: "Match with your profile"
   },
   applications: {
     eyebrow: "Tracking",

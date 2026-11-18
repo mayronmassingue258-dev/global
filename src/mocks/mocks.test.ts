@@ -24,6 +24,14 @@ describe("mockScholarshipService", () => {
     expect(page2.total).toBe(scholarships.length);
   });
 
+  it("recomendações de demonstração: sem as não elegíveis, da maior nota para a menor", async () => {
+    const { mockRecommendationService } = await import("./recommendationService");
+    const { items } = await mockRecommendationService.list(10);
+    expect(items.map((i) => i.scholarship.id)).not.toContain("amostra-004");
+    expect(items.map((i) => i.score)).toEqual([...items.map((i) => i.score)].sort((a, b) => b - a));
+    expect((await mockRecommendationService.list(2)).items).toHaveLength(2);
+  });
+
   it("get e eligibility devolvem null para id desconhecido", async () => {
     expect(await mockScholarshipService.get("nao-existe")).toBeNull();
     expect(await mockScholarshipService.eligibility("nao-existe")).toBeNull();
@@ -62,12 +70,12 @@ describe("mockProfileService", () => {
   beforeEach(() => __resetMockProfile());
 
   it("valida como o servidor (422 com campos)", async () => {
-    await expect(mockProfileService.update(emptyProfile)).rejects.toMatchObject({ status: 422, fields: { residence: "required", level: "required" } });
+    await expect(mockProfileService.update({ ...emptyProfile, gpa: { value: 30, scale: "20" } })).rejects.toMatchObject({ status: 422, fields: { gpa: "out_of_range" } });
   });
 
-  it("guarda e devolve o perfil", async () => {
-    await mockProfileService.update({ ...emptyProfile, residence: "Angola", level: "Graduação" });
-    expect(await mockProfileService.get()).toMatchObject({ residence: "Angola", level: "Graduação" });
+  it("guarda e devolve o perfil, com completude", async () => {
+    await mockProfileService.update({ ...emptyProfile, nationalities: ["AO"], residenceCountry: "AO", goals: "  x  " });
+    expect(await mockProfileService.get()).toMatchObject({ nationalities: ["AO"], goals: "x", completeness: { percent: 17 } });
   });
 });
 

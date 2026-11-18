@@ -44,6 +44,7 @@ Variáveis do site são lidas no **build**: depois de mudar, *Manual Deploy → 
 - [ ] Site abre; PT/EN funciona; **Bolsas** lista resultados; console do navegador sem erros.
 - [ ] Criar uma conta de teste → painel; sair; entrar de novo.
 - [ ] "Esqueci a senha" com essa conta: o e-mail chega (ou o link aparece nos Logs, se `EMAIL_PROVIDER=log`).
+- [ ] Preencher o **perfil** (6 etapas) → **Para você** lista bolsas com nota e motivos; a página da bolsa mostra "Quem pode se candidatar".
 - [ ] Salvar uma bolsa, anexar um PDF, recarregar, baixar o PDF.
 - [ ] Em outro navegador (ou aba anônima), outra conta **não** vê nada da primeira.
 - [ ] **Conta → Baixar meus dados** gera o JSON; **Excluir conta** apaga a conta de teste.
@@ -58,7 +59,8 @@ Render → serviço → **Events** → deploy anterior → **Rollback** (cerca d
 
 - [ ] **Supabase Pro** (backups diários, sem pausa por inatividade); restauração testada uma vez.
 - [ ] **E-mail real** (Resend com domínio verificado).
-- [ ] **Bolsas reais** importadas e `SEED_DEMO_DATA=0` (ver operations.md).
+- [ ] **Bolsas reais** importadas, com critérios (`match`) conferidos, e `SEED_DEMO_DATA=0` (ver operations.md).
+- [ ] Pelo menos uma conta de **administração** (`npm --prefix backend run admin:grant -- email`) e a rotina de revisão combinada.
 - [ ] **Serviços pagos** ou outro plano sem "adormecer" (o gratuito leva ~1 minuto no primeiro acesso).
 - [ ] **Monitoramento** do site e de `/api/health` com alerta.
 - [ ] **Domínio próprio** (Render → Settings → Custom Domains) e as variáveis `NEXT_PUBLIC_SITE_URL`, `APP_URL`, `CORS_ORIGIN` atualizadas.

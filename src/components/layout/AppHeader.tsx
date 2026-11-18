@@ -29,10 +29,12 @@ export function AppHeader() {
 
   const links = [
     { href: "/dashboard", label: t.nav.dashboard, match: ["/dashboard"] },
+    { href: "/recommendations", label: t.nav.recommendations, match: ["/recommendations"] },
     { href: "/scholarships", label: t.nav.scholarships, match: ["/scholarships", "/eligibility"] },
     { href: "/applications", label: t.nav.applications, match: ["/applications"] },
     { href: "/profile", label: t.nav.profile, match: ["/profile"] },
-    { href: "/assistant", label: t.nav.assistant, match: ["/assistant"] }
+    { href: "/assistant", label: t.nav.assistant, match: ["/assistant"] },
+    ...(user?.role === "admin" ? [{ href: "/admin", label: t.nav.admin, match: ["/admin"] }] : [])
   ];
   return (
     <header className={styles.header}>

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Lighthouse nas páginas principais (celular e desktop), usando o Chromium do Playwright.
 // Pré-requisito: o site rodando em modo produção. Ex.:
-//   terminal 1: npm run mock-api
-//   terminal 2: npm run build && npm start      (com NEXT_PUBLIC_DATA_MODE=api e NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api)
+//   terminal 1: npm --prefix backend run dev    (backend real, porta 4000)
+//   terminal 2: npm run build && npm start      (com NEXT_PUBLIC_DATA_MODE=api, NEXT_PUBLIC_API_BASE_URL=/api e API_INTERNAL_URL=http://localhost:4000)
 //   terminal 3: npm run lighthouse -- http://localhost:3000
 // Gera docs/lighthouse-report.md (tabela) e os relatórios HTML em lighthouse-reports/ (fora do git).
 import { execFileSync } from "node:child_process";

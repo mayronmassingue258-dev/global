@@ -1,4 +1,8 @@
-// Contratos PROVISÓRIOS. Confirmar o formato real com o backend antes da integração.
+// Contratos com o backend (docs/api-contract.md). Validados em tempo de execução em src/lib/api/guards.ts.
+import type {
+  CompletedLevel, CountryCode, Coverage, Experience, FieldCode, FundingNeed, GpaScale, Group, LanguageCode, LanguageLevel,
+  ScholarshipMode, StudyMode, TargetLevel, TestType
+} from "@/lib/matching";
 
 export type VerificationStatus = "unverified" | "verified";
 
@@ -19,9 +23,35 @@ export type Scholarship = {
   requirements: string[];
   requiredDocuments: string[];
   applicationProcess?: string;
-  eligibleCountries?: string[];
   sourceUrl?: string;
+  /** Critérios de compatibilidade (quem pode se candidatar, o que cobre, idiomas…). */
+  match?: ScholarshipMatch;
+  /** "hidden": fora do ar (prazo vencido, link quebrado, reportada). Só aparece para quem já salvou. */
+  status?: "active" | "hidden";
+  /** "demo" = fictícia; "discovery" = encontrada pela busca automática; "manual" = cadastrada por um admin. */
+  origin?: "manual" | "discovery" | "demo";
+  lastCheckedAt?: string;
   verification: { status: VerificationStatus; verifiedAt?: string };
+};
+
+export type ScholarshipMatch = {
+  levels: TargetLevel[];
+  /** Vazio = qualquer área. */
+  fields: FieldCode[];
+  /** Códigos ISO ou grupos (@AFRICA, @CPLP, @COMMONWEALTH). Vazio = qualquer nacionalidade. */
+  eligibleNationalities: string[];
+  destinations: string[];
+  coverage: Coverage[];
+  languages: { code: LanguageCode; minLevel: LanguageLevel }[];
+  /** Basta um. */
+  tests: { type: TestType; minScore: number }[];
+  minGpaPercent: number | null;
+  requiredCompletedLevel: CompletedLevel | null;
+  maxAge: number | null;
+  minWorkYears: number | null;
+  restrictedTo: Group[];
+  applicationFee: boolean;
+  studyMode: ScholarshipMode;
 };
 
 export type ScholarshipSummary = Pick<Scholarship, "id" | "title" | "institution" | "deadline">;
@@ -66,31 +96,72 @@ export type Application = {
 
 export type EligibilityStatus = "eligible" | "possible" | "not_eligible";
 
-export type EligibilityReason = {
-  /** met = critério atendido; missing = falta informação; failed = requisito obrigatório não atendido. */
-  kind: "met" | "missing" | "failed";
-  text: string;
-};
+/**
+ * Motivo da avaliação, em CÓDIGO (o site escreve a frase em PT/EN: src/features/matching/reasons.ts).
+ * failed = requisito obrigatório não cumprido; gap = cumpre em parte (dá para resolver); missing = falta informar; met = cumpre; info = aviso.
+ */
+export type Reason = { kind: "met" | "gap" | "missing" | "failed" | "info"; code: string; params?: Record<string, string | number | string[]> };
+
+export type Fit = "high" | "medium" | "low";
 
 export type EligibilityResult = {
   scholarshipId: string;
   status: EligibilityStatus;
-  reasons: EligibilityReason[];
+  /** 0–100 (0 quando não elegível). */
+  score: number;
+  fit: Fit;
+  reasons: Reason[];
 };
 
-/** Perfil acadêmico do estudante. Strings vazias significam "não informado". */
-export type Profile = {
-  residence: string;
-  nationality: string;
-  level: string;
-  field: string;
-  grade: string;
-  languages: string;
-  interests: string;
+export type Recommendation = {
+  scholarship: Scholarship;
+  eligibility: "eligible" | "possible";
+  score: number;
+  fit: Fit;
+  reasons: Reason[];
+  saved: boolean;
+};
+
+export type Recommendations = { considered: number; excluded: number; items: Recommendation[] };
+
+/** Perfil do estudante. Listas vazias, "" e null significam "não informado". */
+export type ProfileInput = {
+  nationalities: CountryCode[];
+  residenceCountry: CountryCode | "";
+  completedLevel: CompletedLevel | "";
+  targetLevels: TargetLevel[];
+  fields: FieldCode[];
+  fieldDetail: string;
+  gpa: { value: number; scale: GpaScale } | null;
+  graduationYear: number | null;
+  languages: { code: LanguageCode; level: LanguageLevel }[];
+  tests: { type: TestType; score: number }[];
+  workYears: number | null;
+  experience: Experience[];
+  birthYear: number | null;
+  groups: Group[];
+  fundingNeed: FundingNeed | "";
+  needsCoverage: Coverage[];
+  canPayApplicationFee: boolean | null;
+  destinations: CountryCode[];
+  excludedDestinations: CountryCode[];
+  studyMode: StudyMode | "";
+  startYear: number | null;
+  goals: string;
+};
+
+export type Profile = ProfileInput & {
+  /** Calculada pelo servidor: % dos itens que mais pesam nas recomendações, e quais faltam. */
+  completeness: { percent: number; missing: string[] };
   updatedAt?: string;
 };
 
-export type ProfileInput = Omit<Profile, "updatedAt">;
+export type ReportReason = "broken_link" | "wrong_deadline" | "wrong_info" | "closed" | "scam" | "other";
+
+/** Bolsa vista no painel de administração. */
+export type AdminScholarship = Scholarship & { openReports: number; hiddenReason?: string };
+
+export type AdminReport = { id: number; reason: ReportReason; message: string; createdAt: string; resolvedAt?: string; reporter?: string };
 
 /** Atualização parcial: envie só o que mudou. Em `documents`, só os itens alterados (pelo nome). */
 export type ApplicationUpdate = { status?: ApplicationStatus; notes?: string; documents?: ApplicationDocument[] };
@@ -110,5 +181,5 @@ export type Draft = {
 
 export type DraftInput = Pick<Draft, "type" | "title" | "program" | "sections">;
 
-/** Estudante autenticado (dados públicos da conta). */
-export type User = { id: string; email: string; name: string };
+/** Estudante autenticado (dados públicos da conta). `role` só existe em contas de administração. */
+export type User = { id: string; email: string; name: string; role?: "admin" };

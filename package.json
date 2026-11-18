@@ -1,14 +1,11 @@
 {
   "name": "global-scholarship-frontend",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:api": "node scripts/dev-api.mjs",
     "build": "next build",
     "start": "next start",
-    "mock-api": "node mock-api/server.mjs",
-    "mock-api:reset": "node mock-api/server.mjs --reset",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

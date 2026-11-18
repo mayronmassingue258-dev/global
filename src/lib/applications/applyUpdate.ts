@@ -5,7 +5,7 @@ export const NOTES_MERGE_WINDOW_MS = 10 * 60 * 1000;
 
 /**
  * Aplica uma atualização parcial e registra eventos na linha do tempo.
- * Mesma regra do servidor local (mock-api/server.mjs); usada no modo demonstração e na atualização otimista.
+ * Mesma regra do backend (backend/src/services/applications.ts); usada no modo demonstração e na atualização otimista.
  */
 export function applyApplicationUpdate(app: Application, update: ApplicationUpdate, now: Date = new Date()): Application {
   const at = now.toISOString();

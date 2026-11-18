@@ -25,6 +25,7 @@ const pages = [
   "/applications",
   "/applications/amostra-001",
   "/profile",
+  "/recommendations",
   "/assistant",
   "/account",
   "/reset-password?token=exemplo",
@@ -53,9 +54,28 @@ for (const locale of ["pt", "en"] as const) {
 test.describe("axe · estados", () => {
   test("perfil com erros de validação", async ({ page, api: _api }) => {
     await page.goto("/profile");
-    await page.getByRole("button", { name: "Salvar perfil" }).click();
+    await page.getByRole("navigation", { name: "Etapas do perfil" }).getByRole("button", { name: /Formação/ }).click();
+    await page.getByLabel("Média final").fill("25");
+    await page.getByLabel("Escala da nota").selectOption("20");
+    await page.getByRole("button", { name: "Salvar e continuar" }).click();
     await expect(page.getByRole("alert").filter({ hasText: "Corrija" })).toBeVisible();
     await expectNoViolations(page, "perfil com erros");
+  });
+
+  test("perfil: etapas de idiomas e finanças preenchidas", async ({ page, api }) => {
+    await api.put("/profile", { nationalities: ["MZ"], languages: [{ code: "pt", level: "native" }], tests: [{ type: "ielts", score: 7 }], fundingNeed: "full" });
+    await page.goto("/profile");
+    const steps = page.getByRole("navigation", { name: "Etapas do perfil" });
+    await steps.getByRole("button", { name: /Idiomas/ }).click();
+    await expectNoViolations(page, "perfil · idiomas");
+    await steps.getByRole("button", { name: /Finanças/ }).click();
+    await expectNoViolations(page, "perfil · finanças");
+  });
+
+  test("bolsa com o formulário de reportar erro aberto", async ({ page, api: _api }) => {
+    await page.goto("/scholarships/amostra-001");
+    await page.getByRole("button", { name: "Reportar erro nesta bolsa" }).click();
+    await expectNoViolations(page, "reportar erro");
   });
 
   test("cadastro com erros de validação", async ({ page, api: _api }) => {

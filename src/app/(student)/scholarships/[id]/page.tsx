@@ -6,7 +6,9 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { DeadlineCard } from "@/components/ui/DeadlineCard";
 import { Notice } from "@/components/feedback/States";
 import { BackLink } from "@/components/layout/PageHeading";
+import { ScholarshipCriteria } from "@/features/matching/ScholarshipCriteria";
 import { ProfileChecklist } from "@/features/scholarships/ProfileChecklist";
+import { ReportProblem } from "@/features/scholarships/ReportProblem";
 import { SaveButton } from "@/features/scholarships/SaveButton";
 import { scholarshipService } from "@/lib/services";
 import { getT } from "@/i18n/server";
@@ -64,6 +66,9 @@ export default async function ScholarshipDetailPage({ params }: Props) {
         <h1 className={`t-title ${styles.title}`}>{item.title}</h1>
         <p className="t-secondary">{item.institution}</p>
         {t.detail.dataLanguageNote && <p className="t-meta" lang={t.meta.htmlLang}>{t.detail.dataLanguageNote}</p>}
+        {item.origin === "demo" && <Notice>{t.criteria.demo}</Notice>}
+        {item.status === "hidden" && <Notice>{t.criteria.hidden}</Notice>}
+        {!verified && item.origin !== "demo" && <Notice>{t.criteria.unverified}</Notice>}
       </header>
 
       <div className={styles.grid}>
@@ -99,12 +104,16 @@ export default async function ScholarshipDetailPage({ params }: Props) {
             <p className="t-secondary t-measure"><strong>{t.detail.coverage}</strong> {item.funding}</p>
           </section>
 
+          {item.match && (
+            <section className={patterns.section} aria-labelledby="s-who">
+              <h2 id="s-who" className="t-section">{t.criteria.title}</h2>
+              <ScholarshipCriteria match={item.match} />
+            </section>
+          )}
+
           <section className={patterns.section} aria-labelledby="s-req">
             <h2 id="s-req" className="t-section">{t.detail.requirements}</h2>
             <ul className={patterns.bullets}>{item.requirements.map((r) => <li key={r}>{r}</li>)}</ul>
-            {item.eligibleCountries && item.eligibleCountries.length > 0 && (
-              <p className="t-secondary">{t.detail.countries(item.eligibleCountries.join(", "))}</p>
-            )}
           </section>
 
           <section className={patterns.section} aria-labelledby="s-docs">
@@ -127,7 +136,9 @@ export default async function ScholarshipDetailPage({ params }: Props) {
             <p className="t-secondary">
               {t.detail.lastVerified} {verified && item.verification.verifiedAt ? date(item.verification.verifiedAt) : t.detail.notVerified}
             </p>
+            {item.lastCheckedAt && <p className="t-secondary">{t.criteria.lastChecked} {date(item.lastCheckedAt.slice(0, 10))}</p>}
             <Notice>{t.detail.disclaimer}</Notice>
+            <ReportProblem scholarshipId={item.id} signedIn={Boolean(user)} />
           </section>
         </article>
       </div>

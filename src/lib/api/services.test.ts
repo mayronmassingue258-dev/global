@@ -43,7 +43,7 @@ describe("apiScholarshipService", () => {
   });
 
   it("eligibility valida o formato", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ scholarshipId: "x", status: "eligible", reasons: [] }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ scholarshipId: "x", status: "eligible", score: 90, fit: "high", reasons: [] }));
     await expect(apiScholarshipService.eligibility("x")).resolves.toMatchObject({ status: "eligible" });
     expect(lastCall().url).toBe("http://api.test/api/scholarships/x/eligibility");
   });
@@ -76,12 +76,46 @@ describe("apiApplicationService", () => {
   });
 });
 
+describe("apiRecommendationService", () => {
+  it("lista com limite e reporta erros", async () => {
+    const { apiRecommendationService } = await import("./recommendations");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ considered: 0, excluded: 0, items: [] }));
+    await expect(apiRecommendationService.list(5)).resolves.toEqual({ considered: 0, excluded: 0, items: [] });
+    expect(lastCall().url).toBe("http://api.test/api/recommendations?limit=5");
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await apiRecommendationService.report("a b", "closed", "fechou");
+    expect(lastCall()).toMatchObject({ method: "POST", url: "http://api.test/api/scholarships/a%20b/reports", body: { reason: "closed", message: "fechou" } });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: "x" }));
+    await expect(apiRecommendationService.list()).rejects.toMatchObject({ code: "unexpected_response" });
+  });
+});
+
+describe("apiAdminService", () => {
+  it("lista com filtros, altera, edita e resolve relatos", async () => {
+    const { apiAdminService } = await import("./admin");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ total: 0, items: [] }));
+    await apiAdminService.list({ status: "hidden", verification: "unverified", reported: true, search: "x", page: 2 });
+    expect(lastCall().url).toBe("http://api.test/api/admin/scholarships?status=hidden&verification=unverified&reported=1&search=x&page=2");
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeScholarship()));
+    await apiAdminService.patch("s-1", { verification: "verified" });
+    expect(lastCall()).toMatchObject({ method: "PATCH", url: "http://api.test/api/admin/scholarships/s-1", body: { verification: "verified" } });
+    fetchMock.mockResolvedValueOnce(jsonResponse(makeScholarship()));
+    await apiAdminService.put("s-1", { title: "x" });
+    expect(lastCall().method).toBe("PUT");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: 1, reason: "closed", message: "", createdAt: "2026-01-01T00:00:00Z" }] }));
+    await expect(apiAdminService.reports("s-1")).resolves.toHaveLength(1);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ resolved: 2 }));
+    await expect(apiAdminService.resolveReports("s-1")).resolves.toBe(2);
+  });
+});
+
 describe("apiProfileService", () => {
   it("get e update seguem o contrato", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse(emptyProfile));
-    await expect(apiProfileService.get()).resolves.toEqual(emptyProfile);
-    const input = { ...emptyProfile, residence: "Moçambique", level: "Mestrado" };
-    fetchMock.mockResolvedValueOnce(jsonResponse({ ...input, updatedAt: "2026-11-01T00:00:00Z" }));
+    const stored = { ...emptyProfile, completeness: { percent: 0, missing: [] } };
+    fetchMock.mockResolvedValueOnce(jsonResponse(stored));
+    await expect(apiProfileService.get()).resolves.toEqual(stored);
+    const input = { ...emptyProfile, nationalities: ["MZ" as const], targetLevels: ["master" as const] };
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ...input, completeness: { percent: 17, missing: [] }, updatedAt: "2026-11-01T00:00:00Z" }));
     await apiProfileService.update(input);
     expect(lastCall()).toMatchObject({ method: "PUT", url: "http://api.test/api/profile", body: input });
   });

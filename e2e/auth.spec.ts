@@ -82,7 +82,7 @@ test.describe("contas", () => {
 
   test("cada estudante vê só os próprios dados", async ({ page, api, browser }) => {
     await api.post("/applications", { scholarshipId: "amostra-001" });
-    await api.put("/profile", { residence: "Angola", level: "Mestrado" });
+    await api.put("/profile", { nationalities: ["AO"], residenceCountry: "AO" });
 
     const other = await browser.newContext({ baseURL: "http://localhost:3100" });
     const page2 = await other.newPage();
@@ -90,7 +90,7 @@ test.describe("contas", () => {
     await page2.goto("/applications");
     await expect(page2.getByText("Nenhuma candidatura ainda")).toBeVisible();
     await page2.goto("/profile");
-    await expect(page2.getByLabel("País de residência")).toHaveValue("");
+    await expect(page2.getByLabel("País onde mora hoje")).toHaveValue("");
     await page2.goto("/applications/amostra-001");
     await expect(page2.getByText("Candidatura não encontrada")).toBeVisible();
     await other.close();
@@ -118,7 +118,7 @@ test.describe("contas", () => {
 
 test.describe("conta", () => {
   test("baixar meus dados traz tudo o que o estudante guardou", async ({ page, api }) => {
-    await api.put("/profile", { residence: "Angola", level: "Mestrado" });
+    await api.put("/profile", { nationalities: ["AO"], residenceCountry: "AO" });
     await api.post("/applications", { scholarshipId: "amostra-001" });
     await page.goto("/account");
     await expect(page.getByText(api.user.email)).toBeVisible();
@@ -129,7 +129,7 @@ test.describe("conta", () => {
     const { readFile } = await import("node:fs/promises");
     const data = JSON.parse(await readFile((await file.path())!, "utf8"));
     expect(data.account.email).toBe(api.user.email);
-    expect(data.profile.residence).toBe("Angola");
+    expect(data.profile).toMatchObject({ nationalities: ["AO"], residenceCountry: "AO" });
     expect(data.applications[0].id).toBe("amostra-001");
   });
 

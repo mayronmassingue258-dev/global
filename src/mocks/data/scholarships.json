@@ -24,7 +24,54 @@
     "applicationProcess": "Processo de exemplo: envio online do formulário e dos documentos antes do prazo.",
     "verification": {
       "status": "unverified"
-    }
+    },
+    "match": {
+      "fields": [
+        "computer_science",
+        "mathematics_statistics"
+      ],
+      "eligibleNationalities": [
+        "@COMMONWEALTH",
+        "@CPLP"
+      ],
+      "destinations": [
+        "GB"
+      ],
+      "coverage": [
+        "tuition",
+        "living",
+        "travel",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [
+        {
+          "type": "ielts",
+          "minScore": 6.5
+        },
+        {
+          "type": "toefl_ibt",
+          "minScore": 90
+        }
+      ],
+      "minGpaPercent": 65,
+      "requiredCompletedLevel": null,
+      "maxAge": null,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": false,
+      "studyMode": "onsite",
+      "levels": [
+        "master"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   },
   {
     "id": "amostra-002",
@@ -48,7 +95,42 @@
     ],
     "verification": {
       "status": "unverified"
-    }
+    },
+    "match": {
+      "fields": [
+        "environment_energy",
+        "engineering"
+      ],
+      "eligibleNationalities": [
+        "@AFRICA"
+      ],
+      "destinations": [
+        "DE"
+      ],
+      "coverage": [
+        "tuition",
+        "living"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "C1"
+        }
+      ],
+      "tests": [],
+      "minGpaPercent": 70,
+      "requiredCompletedLevel": "master",
+      "maxAge": 36,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": false,
+      "studyMode": "onsite",
+      "levels": [
+        "phd"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   },
   {
     "id": "amostra-003",
@@ -72,7 +154,40 @@
     ],
     "verification": {
       "status": "unverified"
-    }
+    },
+    "match": {
+      "fields": [
+        "engineering"
+      ],
+      "eligibleNationalities": [],
+      "destinations": [
+        "CA"
+      ],
+      "coverage": [
+        "tuition",
+        "living",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [],
+      "minGpaPercent": 75,
+      "requiredCompletedLevel": null,
+      "maxAge": 25,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": true,
+      "studyMode": "onsite",
+      "levels": [
+        "bachelor"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   },
   {
     "id": "amostra-004",
@@ -95,13 +210,44 @@
     "verification": {
       "status": "unverified"
     },
-    "eligibleCountries": [
-      "Suíça",
-      "Alemanha",
-      "Áustria",
-      "França",
-      "Itália"
-    ]
+    "match": {
+      "fields": [
+        "natural_sciences",
+        "health_medicine"
+      ],
+      "eligibleNationalities": [
+        "CH",
+        "DE",
+        "AT",
+        "FR",
+        "IT"
+      ],
+      "destinations": [
+        "CH"
+      ],
+      "coverage": [
+        "living"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [],
+      "minGpaPercent": null,
+      "requiredCompletedLevel": null,
+      "maxAge": null,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": false,
+      "studyMode": "onsite",
+      "levels": [
+        "master"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   },
   {
     "id": "amostra-005",
@@ -122,7 +268,37 @@
     ],
     "verification": {
       "status": "unverified"
-    }
+    },
+    "match": {
+      "fields": [],
+      "eligibleNationalities": [],
+      "destinations": [
+        "ES"
+      ],
+      "coverage": [
+        "tuition",
+        "accommodation"
+      ],
+      "languages": [
+        {
+          "code": "es",
+          "minLevel": "A2"
+        }
+      ],
+      "tests": [],
+      "minGpaPercent": null,
+      "requiredCompletedLevel": null,
+      "maxAge": null,
+      "minWorkYears": null,
+      "restrictedTo": [],
+      "applicationFee": false,
+      "studyMode": "onsite",
+      "levels": [
+        "short_course"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   },
   {
     "id": "amostra-006",
@@ -146,6 +322,44 @@
     ],
     "verification": {
       "status": "unverified"
-    }
+    },
+    "match": {
+      "fields": [
+        "public_policy",
+        "social_sciences",
+        "business_economics"
+      ],
+      "eligibleNationalities": [],
+      "destinations": [
+        "GB"
+      ],
+      "coverage": [
+        "tuition"
+      ],
+      "languages": [
+        {
+          "code": "en",
+          "minLevel": "B2"
+        }
+      ],
+      "tests": [
+        {
+          "type": "ielts",
+          "minScore": 7
+        }
+      ],
+      "minGpaPercent": null,
+      "requiredCompletedLevel": null,
+      "maxAge": null,
+      "minWorkYears": 2,
+      "restrictedTo": [],
+      "applicationFee": true,
+      "studyMode": "onsite",
+      "levels": [
+        "master"
+      ]
+    },
+    "status": "active",
+    "origin": "demo"
   }
 ]

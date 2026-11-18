@@ -3,8 +3,8 @@ import type { DraftService } from "@/lib/api/drafts";
 import { applyApplicationUpdate } from "@/lib/applications/applyUpdate";
 import type { ProfileService } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
-import { emptyProfile } from "@/lib/validation/profile";
-import type { Application, Draft, Profile, Scholarship } from "@/types";
+import { completenessOf, emptyProfile, toInput } from "@/lib/validation/profile";
+import type { Application, Draft, Profile, ProfileInput, Scholarship } from "@/types";
 
 export function makeScholarship(overrides: Partial<Scholarship> = {}): Scholarship {
   return {
@@ -67,17 +67,18 @@ export function fakeApplicationService(initial: Application[] = [], opts: { fail
   return service;
 }
 
-export function fakeProfileService(initial: Partial<Profile> = {}, opts: { failGet?: boolean; updateError?: ApiError } = {}) {
-  let profile: Profile = { ...emptyProfile, ...initial };
-  const calls: Profile[] = [];
-  const service: ProfileService & { calls: Profile[] } = {
+export function fakeProfileService(initial: Partial<ProfileInput> = {}, opts: { failGet?: boolean; updateError?: ApiError } = {}) {
+  const withMeta = (input: ProfileInput, updatedAt?: string): Profile => ({ ...input, completeness: completenessOf(input), ...(updatedAt ? { updatedAt } : {}) });
+  let profile: Profile = withMeta({ ...emptyProfile, ...initial });
+  const calls: ProfileInput[] = [];
+  const service: ProfileService & { calls: ProfileInput[] } = {
     calls,
-    get: () => (opts.failGet ? Promise.reject(new ApiError(500, "x")) : Promise.resolve({ ...profile })),
+    get: () => (opts.failGet ? Promise.reject(new ApiError(500, "x")) : Promise.resolve(structuredClone(profile))),
     update: (input) => {
-      calls.push(input);
+      calls.push(structuredClone(input));
       if (opts.updateError) return Promise.reject(opts.updateError);
-      profile = { ...input, updatedAt: "2026-11-01T00:00:00.000Z" };
-      return Promise.resolve({ ...profile });
+      profile = withMeta(toInput(input), "2026-11-01T00:00:00.000Z");
+      return Promise.resolve(structuredClone(profile));
     }
   };
   return service;

@@ -43,31 +43,34 @@ test.describe("idiomas", () => {
     await expect(page).toHaveTitle(/GlobalScholar/);
 
     await page.goto("/profile");
-    await page.getByRole("button", { name: "Save profile" }).click();
-    await expect(page.getByLabel("Country of residence")).toHaveAccessibleDescription(/Error: Enter your country of residence/);
+    await expect(page.getByRole("navigation", { name: "Profile steps" }).getByRole("button", { name: /Finances/ })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Nationality (or nationalities)" })).toBeVisible();
+    await expect(page.getByLabel("Country you live in now").getByRole("option", { name: "Mozambique" })).toBeAttached();
 
     await page.getByRole("button", { name: "PT · Português" }).first().click();
-    await expect(page.getByRole("button", { name: "Salvar perfil" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Salvar e continuar" })).toBeVisible();
+    await expect(page.getByLabel("País onde mora hoje").getByRole("option", { name: "Moçambique" })).toBeAttached();
   });
 });
 
 test.describe("formulários", () => {
   test("o perfil não perde o que foi digitado ao sair da página sem salvar", async ({ page, api }) => {
-    await api.put("/profile", { residence: "Angola", level: "Mestrado" });
+    await api.put("/profile", { nationalities: ["AO"] });
     await page.goto("/profile");
-    await page.getByLabel("Idiomas e níveis (opcional)").fill("Inglês C1, Francês B1");
+    await page.getByRole("combobox", { name: "Nacionalidade(s)" }).selectOption("PT");
     await expect(page.getByText("Há alterações não salvas.")).toBeVisible();
 
     await page.getByRole("navigation", { name: "Área do estudante" }).getByRole("link", { name: "Bolsas" }).click();
     await expect(page).toHaveURL(/\/scholarships$/);
     await page.getByRole("navigation", { name: "Área do estudante" }).getByRole("link", { name: "Perfil" }).click();
 
-    await expect(page.getByLabel("Idiomas e níveis (opcional)")).toHaveValue("Inglês C1, Francês B1");
     await expect(page.getByText(/Recuperamos o que você tinha digitado/)).toBeVisible();
-    await page.getByRole("button", { name: "Salvar perfil" }).click();
-    await expect(page.getByText("Perfil salvo.")).toBeVisible();
+    await expect(page.getByRole("list", { name: "Escolhidos em Nacionalidade(s)" })).toContainText("Portugal");
+    await page.getByRole("button", { name: "Salvar e continuar" }).click();
+    await expect(page.getByText("Etapa 2 de 6")).toBeVisible();
     await page.reload();
     await expect(page.getByText(/Recuperamos/)).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Escolhidos em Nacionalidade(s)" })).toContainText("Portugal");
   });
 
   test("login: erros com foco no primeiro campo", async ({ page, api: _api }) => {

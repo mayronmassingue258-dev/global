@@ -1,11 +1,11 @@
 # Contrato da API — GlobalScholar
 
-> **Versão 1.1 · 2026-11-09 · Status: implementado** (frontend + `backend/`). Mudanças entram por pull request neste arquivo,
-> junto com o código e os testes de contrato. Itens ainda em aberto estão na seção "Decisões pendentes".
+> **Versão 2.0 · 2026-11-18 · Status: implementado** (frontend + `backend/`). Mudanças entram por pull request neste arquivo,
+> junto com o código e os testes de contrato. Itens ainda em aberto estão na seção "Decisões".
 
-**Implementação:** o backend real está em [`backend/`](../backend) (Fastify + PostgreSQL), com testes de contrato em
-`backend/test/contract.test.ts`. A API local `mock-api/server.mjs` continua como versão sem base de dados para desenvolvimento rápido.
-Os testes de ponta a ponta do frontend rodam contra o backend real. Se o contrato mudar, os três mudam no mesmo pull request.
+**Implementação:** o backend está em [`backend/`](../backend) (Fastify + PostgreSQL), com testes de contrato em `backend/test/`.
+A documentação interativa (OpenAPI) fica em `/api/docs`; os esquemas do perfil e dos critérios são gerados dos mesmos esquemas
+que validam os pedidos (`backend/src/matching/model.ts`). Os testes de ponta a ponta do frontend rodam contra o backend real.
 
 ---
 
@@ -75,7 +75,7 @@ As páginas renderizadas no servidor repassam o cookie do visitante ao chamar o 
 | `POST /auth/register` | `{ name, email, password }` | `201 { user }` + cookie. `409 email_taken` (`fields.email = "taken"`). `422`: `name` required/too_long (100), `email` required/invalid, `password` required/too_short (8)/too_long (200). |
 | `POST /auth/login` | `{ email, password }` | `200 { user }` + cookie. `401 invalid_credentials` — **igual** para e-mail inexistente e senha errada. |
 | `POST /auth/logout` | — | `204`, encerra a sessão e apaga o cookie. |
-| `GET /auth/me` | — | `200 { user }` ou `401 unauthenticated`. |
+| `GET /auth/me` | — | `200 { user }` ou `401 unauthenticated`. `user = { id, email, name }`, mais `role: "admin"` só em contas de administração. |
 | `POST /auth/forgot-password` | `{ email }` | **Sempre** `204` (não revela se a conta existe). Se existir, envia e-mail com link `APP_URL/reset-password?token=…` válido por 1 hora e uso único. |
 | `POST /auth/reset-password` | `{ token, password }` | `204`: troca a senha e **encerra todas as sessões** da conta. `400 invalid_token` (inexistente, usado ou vencido). |
 | `GET /auth/me/export` | — | JSON para download com conta, perfil, candidaturas (com dados dos arquivos) e rascunhos. Nunca inclui a senha. |
@@ -103,99 +103,157 @@ Limite de **600 requisições/minuto** por sessão (logado) ou por IP (visitante
 | `id` | string | sim | |
 | `title` | string | sim | Pode ser longo; a interface quebra linhas. |
 | `institution` | string | sim | |
-| `country` | string | sim | País de destino, por extenso. |
-| `level` | string | sim | Um de: `Graduação`, `Mestrado`, `Doutorado`, `Curso livre`. **A confirmar:** lista fechada ou códigos (`bachelor`…)? |
-| `fundingType` | string | sim | Rótulo curto: `Integral`, `Parcial`, `Auxílio mensal`… A interface colore `Integral` e `Parcial`. |
-| `funding` | string | sim | Descrição da cobertura. |
+| `country` | string | sim | País de destino, por extenso (exibição e filtro de texto). Os códigos ficam em `match.destinations`. |
+| `level` | string | sim | Rótulo principal: `Graduação`, `Mestrado`, `Doutorado`, `Curso livre` (filtro da busca). Os níveis financiados, em código, ficam em `match.levels`. |
+| `fundingType` | string | sim | Rótulo curto: `Integral`, `Parcial`, `Auxílio mensal`… |
+| `funding` | string | sim | Descrição da cobertura. O que é coberto, em código, fica em `match.coverage`. |
 | `deadline` | string | sim | `AAAA-MM-DD`. |
-| `deadlineTimezone` | string | não | Ex.: `GMT`, `America/Toronto`. Se ausente, a interface avisa "fuso não informado". |
+| `deadlineTimezone` | string | não | Ex.: `GMT`, `America/Toronto`. |
 | `summary` | string | sim | |
-| `requirements` | string[] | sim | Pode ser vazio. |
-| `requiredDocuments` | string[] | sim | Pode ser vazio. |
+| `requirements` | string[] | sim | Texto do edital. Pode ser vazio. |
+| `requiredDocuments` | string[] | sim | Viram o checklist da candidatura. |
 | `applicationProcess` | string | não | |
-| `eligibleCountries` | string[] | não | Países de residência aceitos. Ausente = sem restrição conhecida. |
-| `sourceUrl` | string | não | URL `https://` do provedor oficial. |
-| `verification.status` | `"verified"` \| `"unverified"` | sim | |
+| `sourceUrl` | string | não | URL `https://` do edital oficial. |
+| `match` | `ScholarshipMatch` | sim | Critérios de compatibilidade (abaixo). |
+| `status` | `active` \| `hidden` | sim | `hidden` não aparece na busca nem nas recomendações (prazo vencido, 3 relatos graves, ocultada por um admin). O detalhe continua acessível para quem já salvou. |
+| `origin` | `manual` \| `discovery` \| `demo` | sim | `demo` = fictícia (a interface avisa); `discovery` = encontrada pela busca automática. |
+| `lastCheckedAt` | string | não | ISO 8601: última conferência de link e prazo. |
+| `verification.status` | `"verified"` \| `"unverified"` | sim | Bolsas novas entram `unverified` (publicação automática); um admin marca como `verified` depois de conferir com o edital. |
 | `verification.verifiedAt` | string | não | `AAAA-MM-DD`; só com `verified`. |
+
+### Objeto `ScholarshipMatch` (critérios)
+
+Tudo em **códigos** (a interface traduz para PT/EN); listas vazias significam "sem restrição".
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `levels` | `TargetLevel[]` (≥ 1) | Níveis financiados: `bachelor`, `master`, `phd`, `postdoc`, `short_course`. |
+| `fields` | `Field[]` | Áreas aceitas (lista em `model.ts`: `engineering`, `public_health`, `computer_science`…). Vazio = todas. |
+| `eligibleNationalities` | string[] | Códigos ISO 3166-1 (`MZ`, `AO`…) ou grupos `@AFRICA` (54), `@CPLP` (9), `@COMMONWEALTH` (56). Vazio = qualquer. |
+| `destinations` | string[] | Países onde se estuda (ISO). |
+| `coverage` | string[] | `tuition`, `living`, `travel`, `accommodation`, `insurance`. |
+| `languages` | `{ code, minLevel }[]` | Idiomas exigidos (todos). `minLevel`: `A1`…`C2`, `native`. |
+| `tests` | `{ type, minScore }[]` | Testes aceitos (basta um): `ielts`, `toefl_ibt`, `duolingo`, `pte`, `gre`, `gmat`. |
+| `minGpaPercent` | number \| null | Média mínima em % da escala (o perfil converte 0–20, 0–4, 0–10…). |
+| `requiredCompletedLevel` | `CompletedLevel` \| null | Nulo = deduzido (mestrado e doutorado pedem graduação; pós-doc pede doutorado). |
+| `maxAge` / `minWorkYears` | number \| null | |
+| `restrictedTo` | string[] | Público exclusivo (basta um): `women`, `refugee`, `disability`, `first_generation`, `low_income`. |
+| `applicationFee` | boolean | |
+| `studyMode` | `onsite` \| `online` \| `hybrid` | |
 
 ### `GET /scholarships`
 
-Parâmetros (todos opcionais; o frontend não envia os vazios):
+Parâmetros (todos opcionais; o frontend não envia os vazios). Só bolsas com `status: active`.
 
 | Parâmetro | Tipo | Padrão | Regra |
 |---|---|---|---|
 | `search` | string | — | Busca em título, instituição e país, sem diferenciar maiúsculas. |
 | `country` | string | — | País de destino (contém). |
-| `level` | string | — | Igual a um dos níveis. |
+| `level` | string | — | Igual a um dos rótulos de `level`. |
 | `sort` | `deadline` \| `title` | `deadline` | Prazo mais próximo primeiro / título A–Z. |
 | `page` | inteiro ≥ 1 | 1 | |
 | `pageSize` | inteiro 1–50 | 10 | |
 
-Resposta `200`:
-
-```json
-{ "items": [ { "id": "amostra-001", "title": "…", "…": "…" } ], "total": 6 }
-```
-
-`total` é o total de resultados do filtro (não da página). Parâmetro inválido → `400 invalid_query` com `fields`.
+Resposta `200`: `{ "items": [Scholarship], "total": 6 }`. `total` é o total do filtro. Parâmetro inválido → `400 invalid_query`.
 
 ### `GET /scholarships/{id}`
 
-`200` com um `Scholarship`, ou `404 not_found`.
+`200` com um `Scholarship` (inclusive `hidden`), ou `404 not_found`.
 
-### `GET /scholarships/{id}/eligibility`
+### `GET /scholarships/{id}/eligibility` (login)
 
-Avaliação do **estudante atual** para a bolsa, calculada **pelo backend** com base no perfil salvo.
-O frontend não calcula elegibilidade nem mostra probabilidade.
+Avaliação do **estudante atual**, calculada **pelo backend** (`backend/src/matching/engine.ts`) a partir do perfil salvo.
 
 ```json
 {
-  "scholarshipId": "amostra-004",
+  "scholarshipId": "amostra-001",
   "status": "possible",
+  "score": 72,
+  "fit": "medium",
   "reasons": [
-    { "kind": "met", "text": "Nível de estudo compatível com o programa." },
-    { "kind": "missing", "text": "Falta informar: país de residência." }
+    { "kind": "gap", "code": "test_gap", "params": { "type": "ielts", "min": 7, "yours": 6.5 } },
+    { "kind": "met", "code": "nationality_ok" }
   ]
 }
 ```
 
 | Campo | Valores |
 |---|---|
-| `status` | `eligible` (todos os critérios conhecidos atendidos) · `possible` (faltam informações) · `not_eligible` (algum requisito obrigatório não atendido) |
-| `reasons[].kind` | `met` · `missing` · `failed` |
-| `reasons[].text` | Frase pronta para exibir, em português. |
+| `status` | `eligible` (requisitos conhecidos cumpridos) · `possible` (falta informar ou cumprir um requisito: idioma, nota, idade…) · `not_eligible` (requisito obrigatório não cumprido) |
+| `score` | 0–100 (0 quando `not_eligible`). Pesos: área 25, financiamento 20, idiomas 15, nota 15, destino 10, prazo 5, taxa 5, experiência 5. |
+| `fit` | `high` (≥ 75) · `medium` (≥ 55) · `low` |
+| `reasons[].kind` | `failed` · `gap` (cumpre em parte) · `missing` (falta informar) · `met` · `info` — nesta ordem |
+| `reasons[].code` | Ex.: `nationality_not_eligible`, `level_not_offered`, `prerequisite_failed`, `funding_insufficient`, `language_gap`, `test_needed`, `gpa_gap`, `age_failed`, `deadline_soon`… Lista completa em `engine.ts`; a interface tem uma frase para cada (um teste confere). |
+| `reasons[].params` | Valores para a frase (códigos, números). |
 
-`404 not_found` se a bolsa não existir. **A confirmar:** quando não há avaliação possível, devolver `404` ou `200` com `reasons` vazio?
+**Filtros eliminatórios:** prazo vencido; nacionalidade fora da lista; nível desejado não financiado; nível concluído insuficiente;
+público restrito a que o estudante não pertence; idade; experiência mínima; modalidade incompatível; destino excluído pelo estudante;
+estudante que precisa de bolsa integral e a bolsa não cobre propinas **e** sustento.
+
+### `GET /recommendations?limit=10` (login)
+
+As bolsas ativas com prazo aberto passam pelo motor; ficam as não eliminadas, da maior nota para a menor (empate: prazo mais próximo).
+`limit` 1–30 (padrão 10); fora disso → `400 invalid_query`.
+
+```json
+{ "considered": 42, "excluded": 30, "items": [ { "scholarship": { "…": "…" }, "eligibility": "eligible", "score": 88, "fit": "high", "reasons": [], "saved": false } ] }
+```
+
+### `POST /scholarships/{id}/reports` (login)
+
+Corpo `{ "reason": "broken_link" | "wrong_deadline" | "wrong_info" | "closed" | "scam" | "other", "message": "…" }` (mensagem até 1000).
+`204`. Um relato aberto por estudante e bolsa (repetir atualiza). **Com 3 estudantes diferentes reportando `broken_link`, `closed` ou
+`scam`, a bolsa passa a `hidden` (`hiddenReason: reported`)** até um admin conferir. Limite: 20 relatos por hora por conta.
+
+### Administração (`role: admin`)
+
+Estudante comum recebe `403 forbidden`. Dar acesso: `npm --prefix backend run admin:grant -- email@exemplo.com`.
+
+| Rota | O que faz |
+|---|---|
+| `GET /admin/scholarships?status=all\|active\|hidden&verification=all\|verified\|unverified&reported=0\|1&search=&page=&pageSize=` | Todas as bolsas, reportadas primeiro, com `openReports` e `hiddenReason`. |
+| `PUT /admin/scholarships/{id}` | Cria (`201`) ou substitui (`200`) uma bolsa inteira, no formato do importador (`backend/scholarships.example.json`). |
+| `PATCH /admin/scholarships/{id}` | `{ "verification": "verified" }` (marca a data de hoje), `{ "status": "hidden", "hiddenReason": "…" }` ou `{ "status": "active" }`. |
+| `GET /admin/scholarships/{id}/reports` | Relatos (com o e-mail de quem reportou). |
+| `POST /admin/scholarships/{id}/reports/resolve` | Marca os relatos abertos como resolvidos. |
 
 ---
 
-## 4. Perfil acadêmico
+## 4. Perfil do estudante
 
 ### Objeto `Profile`
 
-Todos os campos são texto; vazio (`""`) significa "não informado". O backend devolve **sempre** todos os campos.
+Tudo opcional (o formulário salva por etapas). Listas vazias, `""` e `null` = "não informado". O backend devolve **sempre** todos os campos.
 
-| Campo | Obrigatório ao salvar | Máx. | Observação |
-|---|---|---|---|
-| `residence` | sim | 80 | País de residência. |
-| `nationality` | não | 80 | |
-| `level` | sim | 40 | Nível de estudo atual (mesma lista de `Scholarship.level`). |
-| `field` | não | 120 | Área de estudo. |
-| `grade` | não | 60 | Resultado acadêmico com a escala, texto livre ("16 em 20"). |
-| `languages` | não | 200 | Texto livre ("Inglês B2"). |
-| `interests` | não | 1000 | |
-| `updatedAt` | — | — | Só na resposta. ISO 8601. |
-
-O backend deve remover espaços nas pontas (`trim`) antes de validar e salvar.
+| Campo | Tipo | Regra |
+|---|---|---|
+| `nationalities` | string[] | Códigos ISO, até 3 (dupla nacionalidade conta). |
+| `residenceCountry` | string | Código ISO ou `""`. |
+| `completedLevel` | `secondary` \| `bachelor` \| `master` \| `phd` \| `""` | Maior nível concluído. |
+| `targetLevels` | `TargetLevel[]` | Níveis que quer cursar. |
+| `fields` | `Field[]` | Até 3. `fieldDetail`: curso por extenso (até 120). |
+| `gpa` | `{ value, scale }` \| null | `scale`: `"4"`, `"5"`, `"10"`, `"20"`, `"100"`; `value` ≤ escala. |
+| `graduationYear` | number \| null | |
+| `languages` | `{ code, level }[]` | Até 8, sem repetir idioma. |
+| `tests` | `{ type, score }[]` | Até 6, nota dentro do máximo do teste (IELTS 9, TOEFL iBT 120…). |
+| `workYears` | number \| null | 0–60. `experience`: `research`, `publications`, `leadership`, `volunteering`, `teaching`. |
+| `birthYear` | number \| null | |
+| `groups` | string[] | Opcional e privado (só para bolsas de público restrito). |
+| `fundingNeed` | `full` \| `partial` \| `none` \| `""` | `needsCoverage`: o que precisa ser coberto (vazio = padrão da necessidade). `canPayApplicationFee`: boolean \| null. |
+| `destinations` / `excludedDestinations` | string[] | Até 10 / 20 códigos ISO. |
+| `studyMode` | `onsite` \| `online` \| `any` \| `""` | `startYear`: ano atual a +6. |
+| `goals` | string | Até 1000. |
+| `completeness` | `{ percent, missing[] }` | Só na resposta: % dos 12 itens que mais pesam nas recomendações. |
+| `updatedAt` | string | Só na resposta. ISO 8601. |
 
 ### `GET /profile`
 
-`200` com o `Profile` (todos os campos vazios se o estudante ainda não salvou nada — **não** `404`).
+`200` com o `Profile` (vazio se o estudante ainda não salvou — **não** `404`).
 
 ### `PUT /profile`
 
-Corpo: todos os campos do perfil (sem `updatedAt`). Substitui o perfil inteiro.
-Resposta `200` com o `Profile` salvo. Erros: `422 validation_failed` com `fields`, ex.: `{ "residence": "required", "interests": "too_long" }`.
+Corpo: o perfil inteiro (campos ausentes voltam ao padrão; campos desconhecidos → `unknown_field`). Resposta `200` com o `Profile`.
+Erros `422 validation_failed` com códigos por campo: `invalid_option`, `invalid_type`, `out_of_range`, `too_long`, `duplicate`, `unknown_field`.
 
 ---
 
@@ -310,9 +368,13 @@ O frontend salva automaticamente cerca de 1 segundo após o estudante parar de d
 id da candidatura = id da bolsa (uma por bolsa e por estudante); limites de requisições (seção "Contas"); sem prefixo de versão por enquanto
 (quando houver uma mudança incompatível, ela entra como `/v2` e a atual continua).
 
+**Decidido na 2.0:** perfil e critérios em códigos estáveis (países ISO, níveis, áreas, idiomas), traduzidos pela interface;
+motivos de elegibilidade em código com parâmetros (a frase é escrita pelo site em PT ou EN); bolsas novas publicadas automaticamente
+como `unverified`, com relatos dos estudantes e ocultação automática.
+
 **Em aberto:**
 
-1. **Níveis de estudo.** Texto em português (como hoje) ou códigos estáveis (`bachelor`, `master`…) que o frontend traduz?
+1. **Rótulo `level`.** Hoje continua em português (filtro da busca); `match.levels` já está em código. Unificar quando a busca usar os critérios.
 2. **Idioma dos dados.** Bolsas e motivos de elegibilidade em mais de um idioma? Proposta: `Accept-Language: pt|en` e a API responde no
    idioma disponível. Hoje, em inglês, a interface avisa que os detalhes da bolsa aparecem como publicados, em português.
 3. **Assistente de IA.** Endpoint futuro (ex.: `POST /drafts/{id}/suggestions`) com resposta em streaming. A chave da IA fica **só** no backend.
@@ -320,12 +382,13 @@ id da candidatura = id da bolsa (uma por bolsa e por estudante); limites de requ
 ## 8. Fora do contrato
 
 - `POST /__reset` e `GET /__emails` existem só com `ALLOW_TEST_RESET=1` (testes automáticos). O backend se recusa a iniciar em produção com isso ligado.
-- `mock-api/criteria.json` são regras fictícias para o servidor local calcular elegibilidade; o backend real terá as suas.
+- A busca automática de bolsas (R2/R3) vai gravar pelo mesmo caminho do importador (`origin: discovery`).
 
 ## Histórico
 
 | Versão | Data | Mudança |
 |---|---|---|
+| 2.0 | 2026-11-18 | Perfil estruturado com completude; critérios das bolsas (`match`), `status`, `origin`; elegibilidade com nota e motivos em código; `GET /recommendations`; relatos de erro; rotas de administração; `role` no usuário. **Incompatível** com a 1.x (perfil e motivos). |
 | 1.1 | 2026-11-09 | Anexos implementados (PostgreSQL, tipo pelo conteúdo); exportar e excluir conta; limites por sessão e por conta. |
 | 1.0 | 2026-11-09 | Contas e sessão por cookie, rotas privadas por estudante, proteções (CSRF, limites). Contrato implementado. |
 | 0.4 | 2026-11-02 | Proposta de envio de arquivos (desligada); proposta de idioma dos dados. |

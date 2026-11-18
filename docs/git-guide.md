@@ -109,7 +109,8 @@ descompacte e abra o `index.html`: há captura de tela e o *trace* (passo a pass
 ## 5. Trabalhando com o seu sócio (backend)
 
 - O contrato da API vive em [`docs/api-contract.md`](./api-contract.md). Toda mudança de contrato entra **por PR** e ele revisa.
-- Quando ele mudar algo, atualize o servidor local (`mock-api/server.mjs`) e os testes dele no **mesmo PR**: assim o frontend continua testado contra o contrato vigente.
+- Mudança de contrato atualiza, no **mesmo PR**: o backend e os testes dele, `backend/src/openapi.ts`, os tipos e validações do frontend
+  (`src/types`, `src/lib/api/guards.ts`) e os testes de ponta a ponta, que rodam contra o backend real.
 - Dê a ele acesso em **Settings → Collaborators**.
 
 ## 6. Situações comuns

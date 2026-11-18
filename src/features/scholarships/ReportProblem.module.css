@@ -1,0 +1,6 @@
+.wrap { display: grid; gap: var(--space-3); }
+.toggle { display: inline-flex; align-items: center; gap: var(--space-2); justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--color-text-2); font: inherit; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.toggle:hover { color: var(--color-text); }
+.panel { display: grid; gap: var(--space-3); }
+.form { display: grid; gap: var(--space-4); }
+.sent { font-size: 0.875rem; font-weight: 500; color: var(--color-success); }

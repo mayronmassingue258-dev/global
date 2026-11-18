@@ -57,7 +57,9 @@ As bolsas de demonstração (`amostra-*`) são fictícias. Para trocar por bolsa
 
 1. Monte um arquivo JSON a partir de [`backend/scholarships.example.json`](../backend/scholarships.example.json): uma entrada por
    bolsa, com os dados copiados do **edital oficial**, `sourceUrl` apontando para ele e `verification.status: "verified"` só quando
-   alguém conferiu (com `verifiedAt`). `criteria` alimenta o "o que falta no seu perfil".
+   alguém conferiu (com `verifiedAt`). O bloco **`match`** (critérios) é o que decide para quem a bolsa é recomendada: níveis,
+   nacionalidades (códigos ISO como `MZ`, ou grupos `@CPLP`, `@AFRICA`, `@COMMONWEALTH`), áreas, o que cobre, idiomas, testes,
+   nota mínima em %, idade máxima, experiência. Critério errado = bolsa recomendada para quem não pode se candidatar: confira com cuidado.
 2. Valide sem gravar (na sua máquina, com a URL externa da base em `backend/.env`):
 
 ```bash
@@ -74,6 +76,29 @@ npm --prefix backend run scholarships:import -- caminho/bolsas.json --remove-dem
 
 Atualizar uma bolsa = importar de novo com o mesmo `id`. Apagar uma bolsa apaga as candidaturas que estudantes salvaram nela:
 prefira manter e deixar o prazo vencer.
+
+## Painel de administração e qualidade das bolsas
+
+**Dar acesso** (a pessoa cria a conta no site primeiro; depois sai e entra de novo para ver o menu **Admin**):
+
+```bash
+npm --prefix backend run admin:grant -- pessoa@exemplo.com
+```
+
+(Da sua máquina, com a URL externa da base em `backend/.env`. `--revoke` tira o acesso.)
+
+Em **/admin**: todas as bolsas, as reportadas primeiro. Para cada uma: **verificar** (alguém conferiu com o edital hoje), **ocultar**
+ou **pôr no ar**, **ver e resolver relatos** e **editar em JSON** (mesmo formato do importador). "Nova bolsa (JSON)" cadastra uma.
+
+**Como as bolsas saem do ar sozinhas** (as novas entram publicadas como "não verificadas"):
+
+| Situação | O que acontece |
+|---|---|
+| Prazo vencido | Fica oculta (`deadline_passed`) na partida da API e a cada 6 horas. Atualize o prazo do próximo ciclo e ponha no ar de novo. |
+| 3 estudantes diferentes reportam link quebrado, bolsa encerrada ou golpe | Fica oculta (`reported`). Confira, corrija, resolva os relatos e ponha no ar. |
+| Ocultada por um admin | Fica oculta até alguém pôr no ar. |
+
+Rotina sugerida (semanal): `/admin` com **Só reportadas** → resolver; depois **Não verificadas** → conferir as mais recentes.
 
 ## Segredos
 

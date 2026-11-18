@@ -21,7 +21,7 @@ export const ACCOUNT_EXPORT_PATH = "/auth/me/export";
 const isUser = (v: unknown): v is User => {
   if (typeof v !== "object" || v === null) return false;
   const u = v as Record<string, unknown>;
-  return typeof u.id === "string" && typeof u.email === "string" && typeof u.name === "string";
+  return typeof u.id === "string" && typeof u.email === "string" && typeof u.name === "string" && (u.role === undefined || u.role === "admin");
 };
 
 const readUser = (data: unknown): User => {

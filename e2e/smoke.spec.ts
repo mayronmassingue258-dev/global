@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures";
 
 // Roda também no perfil "mobile": checa que as telas principais abrem sem erro e sem rolagem horizontal.
-const pages = ["/", "/dashboard", "/scholarships", "/scholarships/amostra-002", "/eligibility/amostra-001", "/applications", "/applications/amostra-003", "/profile", "/assistant", "/login", "/register"];
+const pages = ["/", "/dashboard", "/scholarships", "/scholarships/amostra-002", "/eligibility/amostra-001", "/applications", "/applications/amostra-003", "/profile", "/recommendations", "/assistant", "/login", "/register"];
 
 for (const path of pages) {
   test(`abre ${path}`, async ({ page, api }) => {
