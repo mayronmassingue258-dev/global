@@ -8,6 +8,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { openapiDocument } from "./openapi.js";
 import { randomUUID, timingSafeEqual } from "node:crypto";
+import { isIP } from "node:net";
 import { sql } from "drizzle-orm";
 import { hashToken } from "./auth/tokens.js";
 import { cookieSecure, type Config } from "./config.js";
@@ -30,6 +31,8 @@ import {
 } from "./services/auth.js";
 
 export const SESSION_COOKIE = "gs_session";
+/** Cabeçalho com o IP do visitante, posto pelo repasse /api do site (só vale junto com a chave interna). */
+export const CLIENT_IP_HEADER = "x-gs-client-ip";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -88,7 +91,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     bodyLimit: 512 * 1024,
     // Id único por requisição: aparece nos logs e no cabeçalho x-request-id da resposta (para suporte).
     genReqId: () => randomUUID(),
-    trustProxy: true // atrás do proxy do Render: IP real do cliente para o limite de requisições
+    // Atrás do Render. O IP do visitante vem de clientIp() (abaixo), não do X-Forwarded-For, que o visitante pode forjar.
+    trustProxy: true
   });
   const sender = emailSender ?? createEmailSender({ provider: config.EMAIL_PROVIDER, apiKey: config.RESEND_API_KEY, from: config.EMAIL_FROM, log: (m) => app.log.info(m) });
   const origins = config.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
@@ -107,6 +111,22 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     const buf = Buffer.from(given);
     return buf.length === internalSecret.length && timingSafeEqual(buf, internalSecret);
   };
+  /**
+   * IP do VISITANTE, para os limites de requisições. O navegador fala com /api do próprio site, que repassa para cá:
+   * sem isto, todo pedido pareceria vir do servidor do site e TODOS os estudantes dividiriam o mesmo limite.
+   * 1. Pedido repassado pelo site (com a chave interna): o site informa o IP do visitante em x-gs-client-ip.
+   * 2. Pedido direto: cf-connecting-ip (posto pelo Cloudflare na frente do Render; o visitante não consegue forjar).
+   * 3. Sem nenhum dos dois (desenvolvimento, testes): o IP da conexão.
+   */
+  const clientIp = (req: FastifyRequest): string => {
+    const forwarded = req.headers[CLIENT_IP_HEADER];
+    if (typeof forwarded === "string" && isIP(forwarded) && isInternal(req)) return forwarded;
+    const cf = req.headers["cf-connecting-ip"];
+    if (typeof cf === "string" && isIP(cf)) return cf;
+    return req.ip;
+  };
+  /** Chamada do servidor do site em nome próprio (renderização de páginas), não de um visitante: fora do limite global. */
+  const isServerRender = (req: FastifyRequest) => isInternal(req) && req.headers[CLIENT_IP_HEADER] === undefined;
   await app.register(rateLimit, {
     // Testes de ponta a ponta: tudo vem de 127.0.0.1 em alta velocidade; os limites têm testes próprios.
     max: config.ALLOW_TEST_RESET === "1" ? 100_000 : 600,
@@ -114,9 +134,9 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     // Estudante logado conta pela própria sessão; visitante, pelo IP. O servidor do site (renderização) fica de fora.
     keyGenerator: (req) => {
       const token = req.cookies?.[SESSION_COOKIE];
-      return token ? `s:${hashToken(token).slice(0, 24)}` : `ip:${req.ip}`;
+      return token ? `s:${hashToken(token).slice(0, 24)}` : `ip:${clientIp(req)}`;
     },
-    allowList: (req) => isInternal(req),
+    allowList: (req) => isServerRender(req),
     errorResponseBuilder: (_req, ctx) => ({ statusCode: 429, ...errorBody("rate_limited"), retryAfter: ctx.after })
   });
 
@@ -206,7 +226,7 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   const id = (req: FastifyRequest) => decodeURIComponent((req.params as { id: string }).id);
   const loginThrottle = createLoginThrottle();
   // Rotas de conta: sempre por IP (não por sessão), e sem exceção para a chave interna.
-  const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute", keyGenerator: (req: FastifyRequest) => `auth:${req.ip}`, allowList: () => false } } };
+  const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute", keyGenerator: (req: FastifyRequest) => `auth:${clientIp(req)}`, allowList: () => false } } };
 
   await app.register(async (api) => {
     api.get("/health", async (_req, reply) => {
@@ -298,7 +318,7 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       return getRecommendations(db, userId(req), limit);
     });
     // Estudante reporta um erro na bolsa. Limite por conta: ninguém consegue inundar a fila.
-    const reportLimit = { config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: (req: FastifyRequest) => `report:${req.user?.id ?? req.ip}`, allowList: () => false } } };
+    const reportLimit = { config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: (req: FastifyRequest) => `report:${req.user?.id ?? clientIp(req)}`, allowList: () => false } } };
     api.post("/scholarships/:id/reports", reportLimit, async (req, reply) => {
       await createReport(db, userId(req), id(req), parseReport(req.body));
       return reply.status(204).send();

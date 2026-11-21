@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { PasswordField, TextField } from "@/components/ui/Field";
 import { Notice } from "@/components/feedback/States";
 import { useT } from "@/i18n/I18nProvider";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ApiError } from "@/lib/api/client";
 import type { AuthService } from "@/lib/api/auth";
 import { safeNextPath } from "@/lib/auth/routes";
@@ -25,6 +26,7 @@ const ORDER: AuthField[] = ["name", "email", "password"];
  */
 export function AuthForm({ mode, service = authService }: { mode: AuthMode; service?: AuthService }) {
   const t = useT();
+  const hydrated = useHydrated();
   const router = useRouter();
   const params = useSearchParams();
   const [values, setValues] = useState<Record<AuthField, string>>({ name: "", email: "", password: "" });
@@ -100,7 +102,7 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={submit} noValidate>
+    <form ref={formRef} className={styles.form} onSubmit={submit} noValidate method="post">
       {mode === "register" && <TextField label={t.auth.name} autoComplete="name" required {...bind("name")} />}
       <TextField label={t.auth.email} type="email" autoComplete="email" required {...bind("email")} />
       {mode !== "forgot" && (
@@ -114,7 +116,7 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
       )}
       {hasErrors && <Notice role="alert">{t.auth.fixErrors}</Notice>}
       {formError && <Notice role="alert">{formError}</Notice>}
-      <Button type="submit" loading={busy}>{t.auth.submit[mode]}</Button>
+      <Button type="submit" loading={busy} disabled={!hydrated}>{t.auth.submit[mode]}</Button>
       {message && <Notice role="status">{message}</Notice>}
       <div className={styles.links}>
         {mode === "login" && <><Link href="/forgot-password">{t.auth.forgotLink}</Link><Link href="/register">{t.auth.toRegister}</Link></>}

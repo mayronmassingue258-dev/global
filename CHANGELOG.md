@@ -1,5 +1,19 @@
 # Registro de mudanças
 
+## 3.0.1 — Login que "não passava" (2026-11-21)
+
+### Corrigido
+- **Limite de tentativas de login dividido por todos os estudantes.** O navegador fala com `/api` do site, que repassa ao
+  backend; o backend via só o IP do servidor do site, então as 10 tentativas por minuto valiam para **todo mundo junto** e o login
+  falhava com poucos acessos simultâneos. Agora o repasse é uma rota do Next (`src/app/api/[...path]/route.ts`) que informa o IP do
+  visitante em `x-gs-client-ip`, aceito pelo backend **só** junto com a chave interna; pedidos diretos usam o `cf-connecting-ip`
+  do Cloudflare. O `X-Forwarded-For` (que qualquer um pode forjar) deixou de contar.
+- **Envio antes de o site carregar.** Com o servidor "acordando" ou rede lenta, quem clicava em Entrar antes de o JavaScript
+  carregar fazia o navegador enviar o formulário sozinho: a página recarregava (com a senha no endereço). Os formulários de
+  login, cadastro, nova senha e exclusão de conta agora usam `method="post"` e o botão só fica ativo com a página pronta.
+- Backend fora do ar ou lento demais aparece como `502 backend_unreachable` / `504 backend_timeout`, no envelope de erro.
+
+
 ## 3.0.0 — R1: perfil completo e bolsas para cada estudante (2026-11-18)
 
 ### Novo

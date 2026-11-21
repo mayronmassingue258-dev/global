@@ -9,6 +9,7 @@ import { PasswordField } from "@/components/ui/Field";
 import { Notice } from "@/components/feedback/States";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useT } from "@/i18n/I18nProvider";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ApiError } from "@/lib/api/client";
 import type { AuthService } from "@/lib/api/auth";
 import { authService } from "@/lib/services";
@@ -17,6 +18,7 @@ import styles from "./AuthForm.module.css";
 /** Nova senha a partir do link do e-mail (?token=). O token vale 1 hora e só uma vez. */
 export function ResetPasswordForm({ service = authService }: { service?: AuthService }) {
   const t = useT();
+  const hydrated = useHydrated();
   const token = useSearchParams()?.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -62,7 +64,7 @@ export function ResetPasswordForm({ service = authService }: { service?: AuthSer
   }
 
   return (
-    <form className={styles.form} onSubmit={submit} noValidate>
+    <form className={styles.form} onSubmit={submit} noValidate method="post">
       <PasswordField
         ref={inputRef}
         label={t.auth.newPassword}
@@ -74,7 +76,7 @@ export function ResetPasswordForm({ service = authService }: { service?: AuthSer
         error={error || undefined}
         onChange={(e) => { setPassword(e.target.value); setError(""); }}
       />
-      <Button type="submit" loading={state === "busy"}>{t.auth.resetSubmit}</Button>
+      <Button type="submit" loading={state === "busy"} disabled={!hydrated}>{t.auth.resetSubmit}</Button>
       <div className={styles.links}><Link href="/login">{t.auth.backToLogin}</Link></div>
     </form>
   );

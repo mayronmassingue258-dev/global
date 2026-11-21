@@ -127,3 +127,21 @@ describe("AuthForm — integração com o backend", () => {
     expect(service.calls).toEqual(["forgot:ana@exemplo.com"]);
   });
 });
+
+describe("antes de o JavaScript carregar", () => {
+  it("o HTML do servidor vem com o botão desativado e method=post (a senha nunca vai para o endereço)", async () => {
+    const nav = await import("next/navigation");
+    vi.mocked(nav.useSearchParams).mockReturnValue(new URLSearchParams() as never);
+    vi.mocked(nav.usePathname).mockReturnValue("/login");
+    const { renderToString } = await import("react-dom/server");
+    const html = renderToString(<AuthForm mode="login" service={fakeAuth()} />);
+    expect(html).toMatch(/<form[^>]*method="post"/);
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+  });
+
+  it("depois de carregado, o botão fica ativo", () => {
+    setupTestRouter("/login");
+    render(<AuthForm mode="login" service={fakeAuth()} />);
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
+  });
+});

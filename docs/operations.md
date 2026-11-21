@@ -116,7 +116,7 @@ Nunca coloque segredos no código, no `render.yaml` ou em variáveis `NEXT_PUBLI
 |---|---|
 | Site fora do ar | Render → globalscholar-web → **Events**: deploy com erro? **Rollback** para o anterior. |
 | Páginas abrem, mas "Não foi possível carregar" | `…/api/health` da API. `503` = base fora: projeto pausado no Supabase? Reative no painel. |
-| Ninguém consegue entrar | Logs da API. `CORS_ORIGIN`/`APP_URL` batem com o endereço do site? Cookie bloqueado = site sem o repasse `/api` (`API_INTERNAL_URL`). |
+| Ninguém consegue entrar | Logs da API. `CORS_ORIGIN`/`APP_URL` batem com o endereço do site? Cookie bloqueado = site sem o repasse `/api` (`API_INTERNAL_URL`). Muitos `429` em `/auth/*` para todo mundo = o site não está mandando a chave interna (`INTERNAL_API_SECRET` igual nos dois serviços?): sem ela, o backend não sabe o IP de cada visitante. |
 | Estudantes não recebem e-mail de nova senha | `EMAIL_PROVIDER=resend` e `RESEND_API_KEY` configurados? Domínio verificado no Resend? |
 | Muitos `429` | Ataque ou um robô: veja os IPs nos logs. Os limites estão em `backend/src/app.ts`. |
 | Migração falhou no deploy | A API não sobe (o `start:prod` migra antes). Rollback do deploy; corrija a migração num PR. A base não fica pela metade: cada migração roda numa transação. |

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { PasswordField } from "@/components/ui/Field";
 import { Notice } from "@/components/feedback/States";
 import { useT } from "@/i18n/I18nProvider";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ApiError } from "@/lib/api/client";
 import { ACCOUNT_EXPORT_PATH, type AuthService } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
@@ -18,6 +19,7 @@ import styles from "./AccountPanel.module.css";
 /** Dados da conta, exportação (direito de acesso) e exclusão (direito de apagar). */
 export function AccountPanel({ service = authService }: { service?: AuthService }) {
   const t = useT();
+  const hydrated = useHydrated();
   const user = useSessionUser();
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -68,7 +70,7 @@ export function AccountPanel({ service = authService }: { service?: AuthService 
       <section className={`${styles.panel} ${styles.danger}`} aria-labelledby="acc-delete">
         <h2 id="acc-delete" className={styles.title}>{t.account.deleteTitle}</h2>
         <p className="t-secondary">{t.account.deleteText}</p>
-        <form className={styles.form} onSubmit={deleteAccount} noValidate>
+        <form className={styles.form} onSubmit={deleteAccount} noValidate method="post">
           <PasswordField
             ref={inputRef}
             label={t.account.deleteConfirm}
@@ -79,7 +81,7 @@ export function AccountPanel({ service = authService }: { service?: AuthService 
             onChange={(e) => { setPassword(e.target.value); setError(""); }}
           />
           {error && <Notice role="alert">{error}</Notice>}
-          <div><Button type="submit" variant="destructive" loading={busy}>{t.account.deleteButton}</Button></div>
+          <div><Button type="submit" variant="destructive" loading={busy} disabled={!hydrated}>{t.account.deleteButton}</Button></div>
         </form>
       </section>
     </div>
