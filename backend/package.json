@@ -21,6 +21,7 @@
     "admin:grant": "tsx src/db/grant-admin.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0",
     "@fastify/cookie": "^11.1.5",
     "@fastify/cors": "^11.4.1",
     "@fastify/helmet": "^13.2.0",
