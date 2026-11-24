@@ -98,6 +98,8 @@ test("perfil: Enter salva a etapa, o foco vai para o título da próxima e Tab s
 
 test("assistente: escolher tipo com setas e criar rascunho pelo teclado", async ({ page, api: _api }) => {
   await page.goto("/assistant");
+  // Espera a lista de rascunhos carregar: antes disso a tela troca de conteúdo e o foco se perde.
+  await expect(page.getByRole("group", { name: "Tipo de documento" })).toBeVisible();
   await tabTo(page, (el) => el.tag === "input" && el.name.includes("Carta de motivação"));
   await expectVisibleFocus(page);
   await page.keyboard.press("ArrowRight");

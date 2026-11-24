@@ -1,3 +1,4 @@
+import { fetchWaitingForWake } from "./wake";
 import { API_BASE_URL, SERVER_API_BASE_URL } from "@/lib/config";
 import { isProtectedPath, loginUrl } from "@/lib/auth/routes";
 
@@ -81,14 +82,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (body !== undefined && rawBody === undefined) headers.set("Content-Type", "application/json");
 
   let response: Response;
+  const send = () => fetch(`${base}${path}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+    ...init,
+    headers,
+    body: rawBody ?? (body === undefined ? undefined : JSON.stringify(body))
+  });
   try {
-    response = await fetch(`${base}${path}`, {
-      cache: "no-store",
-      credentials: "same-origin",
-      ...init,
-      headers,
-      body: rawBody ?? (body === undefined ? undefined : JSON.stringify(body))
-    });
+    // No servidor do site (montando páginas), a API pode estar acordando: espera em vez de mostrar erro.
+    // No navegador, quem espera é o repasse /api (lib/api/proxy.ts).
+    response = isBrowser() ? await send() : await fetchWaitingForWake(send);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError(0, safeMessage(0), "network_error");

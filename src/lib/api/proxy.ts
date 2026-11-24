@@ -1,4 +1,5 @@
 import "server-only";
+import { fetchWaitingForWake } from "./wake";
 
 /**
  * Repasse /api/* do site → backend. O navegador só fala com o domínio do site, então o cookie de sessão é de
@@ -31,9 +32,9 @@ export function visitorIp(headers: Headers): string | null {
 const errorResponse = (status: number, code: string) =>
   Response.json({ error: { code, message: code } }, { status, headers: { "cache-control": "no-store" } });
 
-type Options = { backend: string | undefined; secret?: string; timeoutMs?: number; fetchImpl?: typeof fetch };
+type Options = { backend: string | undefined; secret?: string; timeoutMs?: number; wakeWaitMs?: number; fetchImpl?: typeof fetch };
 
-export async function proxyToBackend(request: Request, path: string[], { backend, secret, timeoutMs = 60_000, fetchImpl = fetch }: Options): Promise<Response> {
+export async function proxyToBackend(request: Request, path: string[], { backend, secret, timeoutMs = 90_000, wakeWaitMs = 45_000, fetchImpl = fetch }: Options): Promise<Response> {
   if (!backend) return errorResponse(503, "backend_not_configured");
   const incoming = new URL(request.url);
   const target = `${backend.replace(/\/$/, "")}/api/${path.map(encodeURIComponent).join("/")}${incoming.search}`;
@@ -50,17 +51,12 @@ export async function proxyToBackend(request: Request, path: string[], { backend
   }
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  // Corpo lido uma vez (anexos: até 10 MB) para poder repetir o pedido enquanto a API acorda.
+  const body = hasBody ? await request.arrayBuffer() : undefined;
+  const signal = AbortSignal.timeout(timeoutMs);
   let upstream: Response;
   try {
-    upstream = await fetchImpl(target, {
-      method: request.method,
-      headers,
-      body: hasBody ? request.body : undefined,
-      redirect: "manual",
-      signal: AbortSignal.timeout(timeoutMs),
-      // Corpo em fluxo (anexos de até 10 MB) sem ler tudo na memória.
-      ...(hasBody ? { duplex: "half" } : {})
-    } as RequestInit);
+    upstream = await fetchWaitingForWake(() => fetchImpl(target, { method: request.method, headers, body, redirect: "manual", signal }), { maxWaitMs: wakeWaitMs });
   } catch (error) {
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     return errorResponse(timedOut ? 504 : 502, timedOut ? "backend_timeout" : "backend_unreachable");

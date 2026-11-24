@@ -42,7 +42,7 @@ describe("proxyToBackend", () => {
     expect(headers.get("x-gs-internal")).toBe("segredo");
     expect(headers.get("x-gs-client-ip")).toBe("203.0.113.9");
     expect(headers.get("accept-encoding")).toBe("identity");
-    expect(await new Response(init.body as BodyInit).text()).toBe('{"email":"a@b.c"}');
+    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe('{"email":"a@b.c"}');
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual({ user: 1 });
   });
@@ -68,6 +68,20 @@ describe("proxyToBackend", () => {
     const fetchMock = upstream();
     await proxyToBackend(new Request("https://site.test/api/x"), ["applications", "b-1", "documents", "Carta de motivação", "file"], { backend: `${BACKEND}/`, fetchImpl: fetchMock });
     expect(call(fetchMock).url).toBe("http://api.test/api/applications/b-1/documents/Carta%20de%20motiva%C3%A7%C3%A3o/file");
+  });
+
+  it("enquanto o Render acorda a API, espera e repete o pedido (com o mesmo corpo)", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Too Many Requests", { status: 429, headers: { "x-render-routing": "hibernate-rate-limited" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ user: 1 }), { status: 201, headers: { "content-type": "application/json" } }));
+    vi.useFakeTimers();
+    const pending = proxyToBackend(new Request("https://site.test/api/auth/register", { method: "POST", body: '{"a":1}' }), ["auth", "register"], { backend: BACKEND, fetchImpl: fetchMock });
+    await vi.advanceTimersByTimeAsync(1500);
+    const res = await pending;
+    vi.useRealTimers();
+    expect(res.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const [, init] of fetchMock.mock.calls) expect(new TextDecoder().decode(init!.body as ArrayBuffer)).toBe('{"a":1}');
   });
 
   it("backend fora do ar → 502; lento demais → 504; não configurado → 503 (sempre no envelope de erro)", async () => {

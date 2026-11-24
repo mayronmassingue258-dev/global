@@ -1,5 +1,14 @@
 # Registro de mudanças
 
+## 3.0.3 — Telas que "não carregavam" (2026-11-24)
+
+- No plano gratuito do Render, a API dorme depois de ~15 min sem uso. Enquanto ela acorda, o **próprio Render** recusa os pedidos
+  do servidor do site com `429` e `x-render-routing: hibernate-rate-limited`, sem que cheguem à API. As telas mostravam
+  "Não foi possível carregar". Agora o repasse `/api` e as chamadas feitas ao montar as páginas **esperam a API acordar** e
+  repetem o pedido (até ~45 s; seguro mesmo em gravações, porque o pedido não tinha chegado). Erros da própria API não são repetidos.
+- Teste de teclado do assistente esperava a tela carregar antes de navegar (falhava às vezes).
+
+
 ## 3.0.2 — Conta bloqueada explicada (2026-11-24)
 
 - Depois de 10 senhas erradas para o mesmo e-mail, o login dele fica bloqueado por 15 minutos (proteção contra adivinhação).
