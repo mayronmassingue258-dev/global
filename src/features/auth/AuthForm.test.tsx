@@ -145,3 +145,15 @@ describe("antes de o JavaScript carregar", () => {
     expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
   });
 });
+
+describe("conta bloqueada", () => {
+  it("explica o bloqueio e sugere 'Esqueci a senha'", async () => {
+    setupTestRouter("/login");
+    const service = fakeAuth({ login: async () => { throw new ApiError(429, "x", "account_locked"); } });
+    render(<AuthForm mode="login" service={service} />);
+    await userEvent.type(screen.getByLabelText("E-mail"), "ana@exemplo.com");
+    await userEvent.type(screen.getByLabelText("Senha", { exact: true }), "senha-errada-1");
+    await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/bloqueado por 15 minutos.*Esqueci a senha/);
+  });
+});

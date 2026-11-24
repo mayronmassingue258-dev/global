@@ -34,7 +34,15 @@ describe("limites na API", () => {
     }
     const blocked = await t.call("/auth/login", { method: "POST", body: { email: "ana@exemplo.com", password: "senha-certa-123" }, cookie: null });
     expect(blocked.status).toBe(429);
-    expect(blocked.json.error.code).toBe("rate_limited");
+    expect(blocked.json.error.code).toBe("account_locked");
+  });
+
+  it("definir uma senha nova pelo link do e-mail desbloqueia a conta na hora", async () => {
+    // (continua do teste anterior: ana@exemplo.com está bloqueada)
+    await t.call("/auth/forgot-password", { method: "POST", body: { email: "ana@exemplo.com" }, cookie: null });
+    const token = new URL(t.emails.at(-1)!.text.match(/https?:\/\/\S+/)![0]).searchParams.get("token")!;
+    expect((await t.call("/auth/reset-password", { method: "POST", body: { token, password: "senha-nova-456" }, cookie: null })).status).toBe(204);
+    expect((await t.call("/auth/login", { method: "POST", body: { email: "ana@exemplo.com", password: "senha-nova-456" }, cookie: null })).status).toBe(200);
   });
 
   it("o servidor do site, com a chave interna, não entra no limite global", async () => {

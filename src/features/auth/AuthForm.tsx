@@ -91,6 +91,8 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
         setFormError(t.auth.invalidCredentials);
         setValues((v) => ({ ...v, password: "" }));
         focusField("password");
+      } else if (error instanceof ApiError && error.code === "account_locked") {
+        setFormError(t.auth.locked);
       } else if (error instanceof ApiError && error.status === 429) {
         setFormError(t.auth.tooMany);
       } else {

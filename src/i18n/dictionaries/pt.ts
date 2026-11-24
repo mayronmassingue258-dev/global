@@ -159,6 +159,7 @@ const pt = {
     fixErrors: "Corrija os campos destacados para continuar.",
     invalidCredentials: "E-mail ou senha incorretos.",
     emailTaken: "Já existe uma conta com este e-mail. Entre ou recupere a senha.",
+    locked: "Muitas senhas erradas para este e-mail: por segurança, o login dele fica bloqueado por 15 minutos. Para entrar agora, use \"Esqueci a senha\" e defina uma senha nova.",
     tooMany: "Muitas tentativas. Aguarde um minuto e tente de novo.",
     failed: "Não foi possível concluir agora. Tente novamente em instantes.",
     forgotSent: "Se houver uma conta com este e-mail, enviamos um link para criar uma nova senha. Confira também o spam.",

@@ -1,5 +1,13 @@
 # Registro de mudanças
 
+## 3.0.2 — Conta bloqueada explicada (2026-11-24)
+
+- Depois de 10 senhas erradas para o mesmo e-mail, o login dele fica bloqueado por 15 minutos (proteção contra adivinhação).
+  Antes, a tela dizia só "Muitas tentativas. Aguarde um minuto"; agora explica o bloqueio e indica **"Esqueci a senha"**
+  (código `account_locked` na API, separado do limite por visitante `rate_limited`).
+- **Definir uma senha nova pelo link do e-mail desbloqueia a conta na hora.**
+
+
 ## 3.0.1 — Login que "não passava" (2026-11-21)
 
 ### Corrigido

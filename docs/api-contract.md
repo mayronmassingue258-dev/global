@@ -73,7 +73,7 @@ As páginas renderizadas no servidor repassam o cookie do visitante ao chamar o 
 | Rota | Corpo | Resposta |
 |---|---|---|
 | `POST /auth/register` | `{ name, email, password }` | `201 { user }` + cookie. `409 email_taken` (`fields.email = "taken"`). `422`: `name` required/too_long (100), `email` required/invalid, `password` required/too_short (8)/too_long (200). |
-| `POST /auth/login` | `{ email, password }` | `200 { user }` + cookie. `401 invalid_credentials` — **igual** para e-mail inexistente e senha errada. |
+| `POST /auth/login` | `{ email, password }` | `200 { user }` + cookie. `401 invalid_credentials` — **igual** para e-mail inexistente e senha errada. `429 account_locked`: 10 senhas erradas para o e-mail em 15 min (desbloqueia sozinho, ou na hora com `reset-password`). `429 rate_limited`: 10 tentativas por minuto do mesmo visitante. |
 | `POST /auth/logout` | — | `204`, encerra a sessão e apaga o cookie. |
 | `GET /auth/me` | — | `200 { user }` ou `401 unauthenticated`. `user = { id, email, name }`, mais `role: "admin"` só em contas de administração. |
 | `POST /auth/forgot-password` | `{ email }` | **Sempre** `204` (não revela se a conta existe). Se existir, envia e-mail com link `APP_URL/reset-password?token=…` válido por 1 hora e uso único. |

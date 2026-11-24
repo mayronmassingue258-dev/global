@@ -156,6 +156,7 @@ const en: Dictionary = {
     fixErrors: "Fix the highlighted fields to continue.",
     invalidCredentials: "Incorrect email or password.",
     emailTaken: "An account with this email already exists. Sign in or reset your password.",
+    locked: "Too many wrong passwords for this email: for security, its sign-in is locked for 15 minutes. To sign in now, use \"Forgot password\" and set a new one.",
     tooMany: "Too many attempts. Wait a minute and try again.",
     failed: "Couldn't complete this right now. Try again in a moment.",
     forgotSent: "If there's an account with this email, we've sent a link to create a new password. Check your spam folder too.",

@@ -162,10 +162,11 @@ export async function requestPasswordReset(db: Database, email: string, sender: 
 }
 
 /** Troca a senha, marca o link como usado e encerra TODAS as sessões abertas da conta. */
-export async function resetPassword(db: Database, input: ReturnType<typeof parseReset>) {
+/** Troca a senha pelo link do e-mail. Devolve o e-mail da conta (para desbloquear o login dela). */
+export async function resetPassword(db: Database, input: ReturnType<typeof parseReset>): Promise<string> {
   const id = hashToken(input.token);
   const passwordHash = await hashPassword(input.password);
-  await db.transaction(async (tx) => {
+  return db.transaction(async (tx) => {
     const [reset] = await tx.select().from(passwordResets)
       .where(and(eq(passwordResets.id, id), isNull(passwordResets.usedAt), gt(passwordResets.expiresAt, new Date())))
       .for("update").limit(1);
@@ -173,6 +174,8 @@ export async function resetPassword(db: Database, input: ReturnType<typeof parse
     await tx.update(users).set({ passwordHash }).where(eq(users.id, reset.userId));
     await tx.update(passwordResets).set({ usedAt: new Date() }).where(eq(passwordResets.id, id));
     await tx.delete(sessions).where(eq(sessions.userId, reset.userId));
+    const [user] = await tx.select({ email: users.email }).from(users).where(eq(users.id, reset.userId)).limit(1);
+    return user?.email.toLowerCase() ?? "";
   });
 }
 

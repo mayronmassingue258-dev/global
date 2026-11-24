@@ -246,7 +246,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     });
     api.post("/auth/login", authLimit, async (req, reply) => {
       const input = parseLogin(req.body);
-      if (loginThrottle.blocked(input.email)) throw new HttpError(429, "rate_limited");
+      // Conta bloqueada (10 senhas erradas em 15 min): código próprio, para o site explicar e sugerir "Esqueci a senha".
+      if (loginThrottle.blocked(input.email)) throw new HttpError(429, "account_locked");
       let user: PublicUser;
       try {
         user = await login(db, input);
@@ -291,7 +292,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       return reply.status(204).send();
     });
     api.post("/auth/reset-password", authLimit, async (req, reply) => {
-      await resetPassword(db, parseReset(req.body));
+      const email = await resetPassword(db, parseReset(req.body));
+      loginThrottle.reset(email); // senha nova = conta desbloqueada na hora
       clearSessionCookie(reply);
       return reply.status(204).send();
     });
