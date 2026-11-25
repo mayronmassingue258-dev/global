@@ -1,0 +1,75 @@
+name: "Bolsas: busca automática"
+
+# Procura bolsas reais nas fontes oficiais (backend/src/discovery) e publica as novas como "não verificadas".
+# Precisa de dois segredos em Settings → Secrets and variables → Actions:
+#   ANTHROPIC_API_KEY  chave da API do Claude (com limite de gasto definido no console da Anthropic)
+#   DATABASE_URL       URL do Session pooler do Supabase (a mesma da API no Render)
+# Sem eles, a execução avisa e termina sem fazer nada.
+on:
+  schedule:
+    - cron: "23 4 * * 1" # segunda-feira, 04:23 UTC (metade das fontes por semana, em rodízio)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Ensaio: só mostrar o que publicaria (não grava)"
+        type: boolean
+        default: true
+      sources:
+        description: "Só estas fontes (ids separados por vírgula; vazio = rodízio da semana; 'all' = todas)"
+        default: ""
+      max_usd:
+        description: "Teto de gasto desta execução, em USD"
+        default: "5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Conferir segredos
+        id: secrets
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_DB: ${{ secrets.DATABASE_URL != '' }}
+        working-directory: .
+        run: |
+          if [ "$HAS_KEY" != "true" ] || [ "$HAS_DB" != "true" ]; then
+            echo "::warning::Faltam os segredos ANTHROPIC_API_KEY e/ou DATABASE_URL. Nada foi feito."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ok == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        if: steps.secrets.outputs.ok == 'true'
+      - name: Buscar bolsas
+        if: steps.secrets.outputs.ok == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_SSL: require
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          SOURCES: ${{ inputs.sources }}
+          MAX_USD: ${{ inputs.max_usd || '5' }}
+        run: |
+          ARGS="--max-usd=$MAX_USD"
+          if [ "$DRY_RUN" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ "$SOURCES" = "all" ]; then ARGS="$ARGS --all"; elif [ -n "$SOURCES" ]; then ARGS="$ARGS --only=$SOURCES"; fi
+          npm run discovery -- $ARGS

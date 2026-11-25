@@ -77,6 +77,47 @@ npm --prefix backend run scholarships:import -- caminho/bolsas.json --remove-dem
 Atualizar uma bolsa = importar de novo com o mesmo `id`. Apagar uma bolsa apaga as candidaturas que estudantes salvaram nela:
 prefira manter e deixar o prazo vencer.
 
+## Busca automática de bolsas (R2)
+
+O Claude pesquisa e lê **só os sites oficiais** das fontes em `backend/src/discovery/sources.ts` (Chevening, Commonwealth, DAAD,
+Erasmus Mundus, Gulbenkian, Camões, PEC-G/PEC-PG, Stipendium Hungaricum, Türkiye Bursları, MEXT, China, Coreia, Suécia, Mastercard
+Foundation, Fulbright, Australia Awards, Aga Khan, Gates Cambridge, Itália, Banco Mundial, AfDB, Nova Zelândia) e devolve as bolsas
+no formato da plataforma. Uma bolsa só entra no ar se:
+
+- o link do edital é do site oficial da fonte (https);
+- tem prazo exato, entre 3 dias e 2 anos a partir de hoje;
+- aceita pelo menos um país lusófono (ou qualquer nacionalidade);
+- passa na mesma validação do importador.
+
+Entra como **"não verificada"** (`origin: discovery`). A busca **nunca** mexe em bolsa verificada, cadastrada à mão ou ocultada por
+um admin ou por relatos; reativa só as que tinham saído do ar por prazo vencido (ciclo novo).
+
+**Onde roda:** GitHub Actions, workflow **"Bolsas: busca automática"**: toda segunda-feira (metade das fontes por semana, em rodízio) e
+quando você mandar (**Actions → Bolsas: busca automática → Run workflow**; por padrão é um **ensaio**, que só mostra o que publicaria).
+
+**Configurar uma vez** (GitHub → Settings → Secrets and variables → Actions → New repository secret):
+
+| Segredo | Valor |
+|---|---|
+| `ANTHROPIC_API_KEY` | chave da API do Claude (console.anthropic.com → API Keys). **Defina um limite de gasto mensal** em Billing. |
+| `DATABASE_URL` | a mesma URL do Session pooler do Supabase usada na API do Render |
+
+**Gasto:** cada fonte custa em média 0,30–0,60 USD (pesquisas + leitura das páginas); cada execução tem teto (`max_usd`, padrão 5 USD)
+e para antes de passar dele. Com o rodízio semanal, estimativa de 10–20 USD por mês.
+
+Da sua máquina (com `ANTHROPIC_API_KEY` e `DATABASE_URL` em `backend/.env`):
+
+```bash
+npm --prefix backend run discovery -- --dry-run --only=chevening
+```
+
+```bash
+npm --prefix backend run discovery -- --all --max-usd=10
+```
+
+**Depois de cada execução:** em `/admin`, filtre **Não verificadas**, confira as bolsas novas com o edital e marque como verificadas
+(ou oculte as erradas). Fonte nova: um item em `sources.ts`, sempre com o domínio do site oficial do programa.
+
 ## Painel de administração e qualidade das bolsas
 
 **Dar acesso** (a pessoa cria a conta no site primeiro; depois sai e entra de novo para ver o menu **Admin**):

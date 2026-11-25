@@ -1,5 +1,17 @@
 # Registro de mudanças
 
+## 3.1.0 — R2: busca automática de bolsas reais (2026-11-25)
+
+- **Busca de bolsas nas fontes oficiais com o Claude** (`backend/src/discovery/`, `npm --prefix backend run discovery`): 22 fontes
+  (governos, universidades e fundações) relevantes para estudantes lusófonos. Pesquisa e leitura restritas aos domínios oficiais de
+  cada fonte (`web_search`/`web_fetch` com `allowed_domains`), resposta em JSON estruturado.
+- **Filtros antes de publicar:** link oficial, prazo exato e aberto, aceita país lusófono, validação do importador. Publica como
+  "não verificada"; nunca altera bolsas verificadas, cadastradas à mão ou ocultadas por um admin.
+- **Teto de gasto por execução**, modo **ensaio** (`--dry-run`), escolha de fontes (`--only`, `--all`).
+- **GitHub Actions** ("Bolsas: busca automática"): toda segunda-feira, metade das fontes em rodízio; manual quando quiser.
+  Precisa dos segredos `ANTHROPIC_API_KEY` e `DATABASE_URL` (ver `docs/operations.md`).
+
+
 ## 3.0.3 — Telas que "não carregavam" (2026-11-24)
 
 - No plano gratuito do Render, a API dorme depois de ~15 min sem uso. Enquanto ela acorda, o **próprio Render** recusa os pedidos
