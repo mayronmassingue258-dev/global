@@ -243,6 +243,26 @@ const ptMatching = {
     signIn: "Entre na sua conta para reportar um erro."
   },
 
+  discovery: {
+    title: "Busca automática de bolsas",
+    text: "O Gemini pesquisa as fontes oficiais e lê os editais. Bolsas novas entram como \"não verificadas\" (link oficial, prazo aberto e país lusófono são conferidos antes). Comece por um ensaio.",
+    notConfigured: (key: string) => `Falta configurar a chave ${key} no Render (globalscholar-api-demo → Environment). Depois de salvar, espere a API reiniciar.`,
+    sources: "Fontes",
+    week: (n: number) => `Rodízio desta semana (${n} fontes)`,
+    all: (n: number) => `Todas (${n} fontes)`,
+    dryRun: "Ensaio (só mostra, não grava)",
+    run: "Buscar e publicar",
+    running: "Buscando… pode levar alguns minutos. Pode sair desta página: a busca continua.",
+    alreadyRunning: "Já há uma busca rodando. Espere ela terminar.",
+    failed: "Não foi possível começar a busca.",
+    history: "Últimas execuções",
+    none: "Nenhuma execução ainda.",
+    status: { running: "Rodando", done: "Concluída", failed: "Falhou" } as Record<string, string>,
+    kind: (dry: boolean): string => (dry ? "ensaio" : "publicação"),
+    result: (created: number, updated: number, skipped: number) => `${created} novas · ${updated} atualizadas · ${skipped} ignoradas`,
+    showLog: "Ver registro",
+    hideLog: "Esconder registro"
+  },
   admin: {
     eyebrow: "Administração",
     title: "Bolsas",

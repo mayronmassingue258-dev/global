@@ -1,5 +1,15 @@
 # Registro de mudanças
 
+## 3.3.0 — Busca de bolsas pelo painel, rodando no Render (2026-11-26)
+
+- **Painel /admin → "Busca automática de bolsas"**: escolher fontes (rodízio da semana, todas ou uma), fazer um **ensaio** ou
+  **buscar e publicar**. A busca roda em segundo plano dentro da API (no Render, sem serviço extra); o painel acompanha o andamento
+  e guarda o histórico com resumo e registro (tabela `discovery_runs`, migração `0005`). Uma execução por vez.
+- Chave do Gemini no **Environment** do Render (`GEMINI_API_KEY`); sem ela, o painel explica o que falta.
+- API: `GET /admin/discovery`, `POST /admin/discovery/runs` (202), `GET /admin/discovery/runs/{id}`.
+- O agendamento pelo GitHub Actions continua como opção.
+
+
 ## 3.2.0 — Busca de bolsas com o Gemini (gratuito) (2026-11-26)
 
 - A busca automática passa a usar a **API do Gemini** por padrão (nível gratuito, segredo `GEMINI_API_KEY`). Duas chamadas por fonte:

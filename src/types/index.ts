@@ -183,3 +183,24 @@ export type DraftInput = Pick<Draft, "type" | "title" | "program" | "sections">;
 
 /** Estudante autenticado (dados públicos da conta). `role` só existe em contas de administração. */
 export type User = { id: string; email: string; name: string; role?: "admin" };
+
+/** Execução da busca automática de bolsas (painel de administração). */
+export type DiscoveryRun = {
+  id: number;
+  status: "running" | "done" | "failed";
+  dryRun: boolean;
+  provider: string;
+  sources: string[];
+  startedAt: string;
+  finishedAt?: string;
+  summary?: { created?: number; updated?: number; skipped?: number; requests?: number; costUsd?: number; stoppedForBudget?: boolean; problems?: string[] };
+  log?: string;
+};
+
+export type DiscoveryState = {
+  provider: string;
+  configured: boolean;
+  sources: { id: string; name: string }[];
+  weekSources: string[];
+  items: DiscoveryRun[];
+};

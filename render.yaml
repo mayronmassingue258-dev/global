@@ -43,6 +43,12 @@ services:
         value: "1"
       - key: LOG_LEVEL
         value: info
+      # Busca automática de bolsas (botão em /admin). Chave gratuita do Gemini: aistudio.google.com → Get API key.
+      # Preencha no painel do Render (nunca no código). Sem ela, o botão avisa que falta configurar.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DISCOVERY_PROVIDER
+        value: gemini
 
   - type: web
     name: globalscholar-web

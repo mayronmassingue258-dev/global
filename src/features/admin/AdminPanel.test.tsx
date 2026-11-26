@@ -15,7 +15,10 @@ function fakeAdmin(items: AdminScholarship[]) {
     patch: vi.fn(() => Promise.resolve(makeScholarship())),
     put: vi.fn((_id: string, _b: unknown) => Promise.resolve(makeScholarship())),
     reports: vi.fn(() => Promise.resolve([{ id: 1, reason: "broken_link" as const, message: "dá 404", createdAt: "2026-11-10T10:00:00Z", reporter: "a@b.c" }])),
-    resolveReports: vi.fn(() => Promise.resolve(1))
+    resolveReports: vi.fn(() => Promise.resolve(1)),
+    discovery: vi.fn(() => Promise.resolve({ provider: "gemini", configured: true, sources: [], weekSources: [], items: [] })),
+    startDiscovery: vi.fn(() => Promise.reject(new Error("não usado"))),
+    discoveryRun: vi.fn(() => Promise.reject(new Error("não usado")))
   };
   return service satisfies AdminService;
 }

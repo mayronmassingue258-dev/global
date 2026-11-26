@@ -17,6 +17,7 @@ import { createEmailSender, sentEmails, type EmailSender } from "./auth/email.js
 import { HttpError, errorBody, notFound } from "./lib/errors.js";
 import { parseApplicationCreate, parseApplicationPatch, parseDraft, parseListQuery, parseProfile } from "./lib/validation.js";
 import { getEligibility, getRecommendations, getScholarshipRow, listScholarships, toScholarship } from "./services/scholarships.js";
+import { engineFromConfig, getDiscoveryRun, listDiscoveryRuns, parseStart, startDiscovery, type EngineFactory } from "./services/discovery.js";
 import {
   adminListReports, adminListScholarships, adminPatchScholarship, adminPutScholarship, adminResolveReports, createReport, parseReport
 } from "./services/admin.js";
@@ -53,6 +54,8 @@ type Deps = {
   emailSender?: EmailSender;
   /** Tentativas por minuto e por IP nas rotas de login/cadastro/senha. */
   authRateLimit?: number;
+  /** Motor da busca automática de bolsas (padrão: a partir da configuração). */
+  discoveryEngine?: EngineFactory;
 };
 
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -85,7 +88,7 @@ export function createLoginThrottle(maxFailures = 10, windowMs = 15 * 60 * 1000)
 }
 
 /** Monta a aplicação sem abrir porta (os testes usam `app.inject`). */
-export async function buildApp({ config, db, resetDatabase, emailSender, authRateLimit = 10 }: Deps): Promise<FastifyInstance> {
+export async function buildApp({ config, db, resetDatabase, emailSender, authRateLimit = 10, discoveryEngine }: Deps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: config.LOG_LEVEL === "silent" ? false : { level: config.LOG_LEVEL, redact: ["req.headers.authorization", "req.headers.cookie", "res.headers[\"set-cookie\"]"] },
     bodyLimit: 512 * 1024,
@@ -384,6 +387,22 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     });
     api.patch("/admin/scholarships/:id", async (req) => { requireAdmin(req); return adminPatchScholarship(db, id(req), req.body); });
     api.get("/admin/scholarships/:id/reports", async (req) => { requireAdmin(req); return adminListReports(db, id(req)); });
+    // Busca automática de bolsas: o painel dispara e acompanha (a busca roda em segundo plano nesta API).
+    const engine = discoveryEngine ?? engineFromConfig(config);
+    api.get("/admin/discovery", async (req) => { requireAdmin(req); return listDiscoveryRuns(db, config); });
+    api.post("/admin/discovery/runs", async (req, reply) => {
+      requireAdmin(req);
+      const { run, done } = await startDiscovery(db, config, engine, userId(req), parseStart(req.body));
+      done.catch((error) => req.log.error(error));
+      return reply.status(202).send(run);
+    });
+    api.get("/admin/discovery/runs/:id", async (req) => {
+      requireAdmin(req);
+      const runId = Number(id(req));
+      const run = Number.isInteger(runId) ? await getDiscoveryRun(db, runId) : null;
+      if (!run) throw notFound();
+      return run;
+    });
     api.post("/admin/scholarships/:id/reports/resolve", async (req) => { requireAdmin(req); return adminResolveReports(db, id(req)); });
 
     api.get("/drafts", async (req) => ({ items: await listDrafts(db, userId(req)) }));

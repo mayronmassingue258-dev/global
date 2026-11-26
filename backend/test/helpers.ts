@@ -8,18 +8,18 @@ import type { Email, EmailSender } from "../src/auth/email.js";
 type CallInit = { method?: string; body?: unknown; raw?: string; cookie?: string | null; headers?: Record<string, string> };
 
 /** Aplicação ligada à base de teste, com e-mails capturados e atalhos para contas e chamadas JSON. */
-export async function setupTestApp(options: { authRateLimit?: number; env?: Record<string, string> } = {}) {
+export async function setupTestApp(options: { authRateLimit?: number; env?: Record<string, string>; discoveryEngine?: Parameters<typeof buildApp>[0]["discoveryEngine"] } = {}) {
   const config = loadConfig({ ...process.env, ALLOW_TEST_RESET: "0", CORS_ORIGIN: "http://localhost:3000", ...options.env });
   const { db, sql: connection } = createDb(config.DATABASE_URL, { max: 2 });
   const emails: Email[] = [];
   const emailSender: EmailSender = { send: async (email) => { emails.push(email); } };
-  const app = await buildApp({ config, db, emailSender, authRateLimit: options.authRateLimit ?? 10_000 });
+  const app = await buildApp({ config, db, emailSender, authRateLimit: options.authRateLimit ?? 10_000, discoveryEngine: options.discoveryEngine });
 
   /** Cookie usado por padrão nas chamadas (o "estudante logado" do teste). */
   let defaultCookie: string | null = null;
 
   const reset = async () => {
-    await db.execute(sql`truncate users, sessions, password_resets, profiles, applications, application_documents, document_files, application_events, drafts, scholarship_reports, scholarships restart identity cascade`);
+    await db.execute(sql`truncate users, sessions, password_resets, profiles, applications, application_documents, document_files, application_events, drafts, scholarship_reports, discovery_runs, scholarships restart identity cascade`);
     await seed(db);
     emails.length = 0;
     defaultCookie = null;

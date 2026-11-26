@@ -125,6 +125,16 @@ export const openapiDocument = {
           }
         }]
       },
+      DiscoveryRun: {
+        type: "object",
+        required: ["id", "status", "dryRun", "provider", "sources", "startedAt"],
+        properties: {
+          id: { type: "integer" }, status: { enum: ["running", "done", "failed"] }, dryRun: { type: "boolean" }, provider: { type: "string" },
+          sources: { type: "array", items: { type: "string" } }, startedAt: { type: "string", format: "date-time" }, finishedAt: { type: "string", format: "date-time" },
+          summary: { type: "object", description: "created, updated, skipped, requests, costUsd, stoppedForBudget, problems" },
+          log: { type: "string", description: "Só no detalhe da execução" }
+        }
+      },
       AdminScholarship: { allOf: [ref("Scholarship"), { type: "object", required: ["openReports"], properties: { openReports: { type: "integer" }, hiddenReason: { type: "string" } } }] },
       AttachedFile: { type: "object", required: ["name", "size", "type", "uploadedAt"], properties: { ...strings("name", "type"), size: { type: "integer" }, uploadedAt: { type: "string", format: "date-time" } } },
       TimelineEvent: {
@@ -234,6 +244,23 @@ export const openapiDocument = {
     },
     "/admin/scholarships/{id}/reports": {
       get: { tags: ["Administração"], summary: "Relatos de erro da bolsa", security: session, parameters: [idParam], responses: { 200: ok("Relatos (mais recentes primeiro)", { type: "object" }), ...common401, 403: error("Não é administrador") } }
+    },
+    "/admin/discovery": {
+      get: {
+        tags: ["Administração"], summary: "Busca automática: configuração, fontes e últimas execuções", security: session,
+        responses: { 200: ok("Estado da busca", { type: "object", properties: { provider: { enum: ["gemini", "claude"] }, configured: { type: "boolean" }, sources: { type: "array" }, weekSources: { type: "array", items: { type: "string" } }, items: { type: "array", items: ref("DiscoveryRun") } } }), ...common401, 403: error("Não é administrador") }
+      }
+    },
+    "/admin/discovery/runs": {
+      post: {
+        tags: ["Administração"], summary: "Começar uma busca (roda em segundo plano)", security: session,
+        description: "Ensaio (`dryRun: true`) só mostra o que publicaria. `sources`: \"week\" (rodízio da semana, padrão), \"all\" ou lista de ids. Uma execução por vez.",
+        requestBody: json({ type: "object", required: ["dryRun"], properties: { dryRun: { type: "boolean" }, sources: { anyOf: [{ enum: ["week", "all"] }, { type: "array", items: { type: "string" } }] } } }),
+        responses: { 202: ok("Execução criada", ref("DiscoveryRun")), ...common401, 403: error("Não é administrador"), 409: error("Já há uma busca rodando (`discovery_running`) ou falta a chave (`discovery_not_configured`)"), ...common422 }
+      }
+    },
+    "/admin/discovery/runs/{id}": {
+      get: { tags: ["Administração"], summary: "Execução com o registro (log)", security: session, parameters: [idParam], responses: { 200: ok("Execução", ref("DiscoveryRun")), ...common401, 403: error("Não é administrador"), 404: error("Não encontrada") } }
     },
     "/admin/scholarships/{id}/reports/resolve": {
       post: { tags: ["Administração"], summary: "Marcar relatos abertos como resolvidos", security: session, parameters: [idParam], responses: { 200: ok("Quantos foram resolvidos", { type: "object", properties: { resolved: { type: "integer" } } }), ...common401, 403: error("Não é administrador") } }

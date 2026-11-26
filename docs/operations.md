@@ -92,15 +92,16 @@ no formato da plataforma. Uma bolsa só entra no ar se:
 Entra como **"não verificada"** (`origin: discovery`). A busca **nunca** mexe em bolsa verificada, cadastrada à mão ou ocultada por
 um admin ou por relatos; reativa só as que tinham saído do ar por prazo vencido (ciclo novo).
 
-**Onde roda:** GitHub Actions, workflow **"Bolsas: busca automática"**: toda segunda-feira (metade das fontes por semana, em rodízio) e
-quando você mandar (**Actions → Bolsas: busca automática → Run workflow**; por padrão é um **ensaio**, que só mostra o que publicaria).
+**Onde roda (principal): na própria API, no Render**, pelo painel **/admin → Busca automática de bolsas**. Escolha as fontes (rodízio
+da semana, todas, ou uma), faça um **ensaio** (só mostra) e depois **Buscar e publicar**. A busca roda em segundo plano (alguns
+minutos); o painel mostra o andamento, o resumo e o registro de cada execução. Uma busca por vez.
 
-**Configurar uma vez** (GitHub → Settings → Secrets and variables → Actions → New repository secret):
+**Configurar uma vez:** Render → **globalscholar-api-demo** → **Environment** → `GEMINI_API_KEY` = a chave gratuita do Gemini
+(**aistudio.google.com → Get API key → Create API key**; sem ativar faturamento, o custo é zero) → **Save, rebuild and deploy**.
 
-| Segredo | Valor |
-|---|---|
-| `GEMINI_API_KEY` | chave da API do Gemini: **aistudio.google.com → Get API key → Create API key** (gratuita; não ative faturamento se quiser custo zero) |
-| `DATABASE_URL` | a mesma URL do Session pooler do Supabase usada na API do Render |
+No plano gratuito do Render a API dorme, então lá não há agendamento automático confiável: rode pelo painel quando quiser
+(ex.: toda segunda-feira). **Opcional:** agendamento semanal pelo GitHub Actions (workflow "Bolsas: busca automática"), com os
+segredos `GEMINI_API_KEY` e `DATABASE_URL` em GitHub → Settings → Secrets and variables → Actions.
 
 **Gasto:** no nível gratuito do Gemini, **zero** (o Google limita quantas chamadas por minuto e por dia; a busca faz uma pausa entre
 chamadas e espera quando o limite chega). Cada fonte usa 2 chamadas; cada execução tem teto de chamadas (`max_requests`, padrão 40).

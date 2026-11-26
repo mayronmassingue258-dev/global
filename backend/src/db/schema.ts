@@ -172,3 +172,22 @@ export const scholarshipReports = pgTable("scholarship_reports", {
   index("scholarship_reports_open_idx").on(t.scholarshipId).where(sql`${t.resolvedAt} is null`),
   check("scholarship_reports_reason_chk", sql`${t.reason} in ('broken_link','wrong_deadline','wrong_info','closed','scam','other')`)
 ]);
+
+/** Execuções da busca automática de bolsas (disparadas pelo painel de administração). */
+export const discoveryRuns = pgTable("discovery_runs", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  status: text("status").notNull().default("running"),
+  dryRun: boolean("dry_run").notNull(),
+  provider: text("provider").notNull(),
+  sources: text("sources").array().notNull(),
+  startedBy: uuid("started_by").references(() => users.id, { onDelete: "set null" }),
+  /** Contagens e uso, no fim: { created, updated, skipped, requests, costUsd, problems: [...] }. */
+  summary: jsonb("summary").$type<Record<string, unknown>>(),
+  /** Registro linha a linha (o que foi encontrado, publicado ou ignorado, e por quê). */
+  log: text("log").notNull().default("")
+}, (t) => [
+  index("discovery_runs_started_idx").on(t.startedAt),
+  check("discovery_runs_status_chk", sql`${t.status} in ('running','done','failed')`)
+]);

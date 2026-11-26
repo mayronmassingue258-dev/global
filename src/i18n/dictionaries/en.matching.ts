@@ -242,6 +242,26 @@ const enMatching: typeof ptMatching = {
     signIn: "Sign in to report a problem."
   },
 
+  discovery: {
+    title: "Automatic scholarship search",
+    text: "Gemini searches the official sources and reads the calls. New scholarships go live as \"unverified\" (official link, open deadline and Portuguese-speaking eligibility are checked first). Start with a dry run.",
+    notConfigured: (key: string) => `The ${key} key isn't configured on Render (globalscholar-api-demo → Environment). After saving it, wait for the API to restart.`,
+    sources: "Sources",
+    week: (n: number) => `This week's rotation (${n} sources)`,
+    all: (n: number) => `All (${n} sources)`,
+    dryRun: "Dry run (show only, don't save)",
+    run: "Search and publish",
+    running: "Searching… this can take a few minutes. You can leave this page: the search keeps going.",
+    alreadyRunning: "A search is already running. Wait for it to finish.",
+    failed: "We couldn't start the search.",
+    history: "Latest runs",
+    none: "No runs yet.",
+    status: { running: "Running", done: "Finished", failed: "Failed" },
+    kind: (dry: boolean) => (dry ? "dry run" : "publish"),
+    result: (created: number, updated: number, skipped: number) => `${created} new · ${updated} updated · ${skipped} skipped`,
+    showLog: "Show log",
+    hideLog: "Hide log"
+  },
   admin: {
     eyebrow: "Administration",
     title: "Scholarships",

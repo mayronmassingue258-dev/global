@@ -18,7 +18,7 @@ const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATA
 
 /** Apaga TODAS as contas e dados de estudantes e recria as bolsas de demonstração. Só registrado com ALLOW_TEST_RESET=1. */
 async function resetDatabase() {
-  await db.execute(sql`truncate users, sessions, password_resets, profiles, scholarship_reports, applications, application_documents, document_files, application_events, drafts restart identity cascade`);
+  await db.execute(sql`truncate users, sessions, password_resets, profiles, scholarship_reports, discovery_runs, applications, application_documents, document_files, application_events, drafts restart identity cascade`);
   await seed(db);
 }
 

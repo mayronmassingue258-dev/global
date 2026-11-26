@@ -177,3 +177,107 @@ describe("administração", () => {
     expect((await t.call("/admin/scholarships/nao-existe", { method: "PATCH", body: { status: "active" }, cookie: admin })).status).toBe(404);
   });
 });
+
+describe("busca automática pelo painel", () => {
+  const item = JSON.parse(readFileSync(new URL("../scholarships.example.json", import.meta.url), "utf8"))[0];
+  let d: Awaited<ReturnType<typeof setupTestApp>>;
+  let release: () => void = () => {};
+  beforeAll(async () => {
+    d = await setupTestApp({
+      discoveryEngine: async () => ({
+        provider: "teste",
+        costPerSource: 0,
+        research: async (source) => {
+          if (source.id === "fonte-lenta") await new Promise<void>((r) => { release = r; });
+          return {
+            scholarships: source.id === "gulbenkian" ? [{
+              programKey: "palop-mestrado", title: "Bolsa Gulbenkian PALOP", institution: "Fundação Calouste Gulbenkian", country: "Portugal", level: "Mestrado",
+              fundingType: "Integral", funding: "Propinas e subsídio.", deadline: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10), deadlineEvidence: "x",
+              summary: "Bolsa para estudantes dos PALOP.", requirements: [], requiredDocuments: [], applicationProcess: "", sourceUrl: "https://gulbenkian.pt/bolsas/",
+              match: { ...item.match, eligibleNationalities: ["MZ"] }
+            }] : [],
+            notes: "",
+            usage: { inputTokens: 10, outputTokens: 5, searches: 0, fetches: 0, requests: 2, costUsd: 0 }
+          };
+        }
+      })
+    });
+  });
+  afterAll(async () => { await d.close(); });
+  beforeEach(async () => { await d.reset(); });
+
+  const admin = async () => {
+    const cookie = await d.signUp("admin@exemplo.com");
+    await setRole(d.db, "admin@exemplo.com", "admin");
+    return cookie;
+  };
+  const waitDone = async (cookie: string, runId: number) => {
+    for (let i = 0; i < 50; i += 1) {
+      const run = (await d.call(`/admin/discovery/runs/${runId}`, { cookie })).json;
+      if (run.status !== "running") return run;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    throw new Error("a busca não terminou");
+  };
+
+  it("só admin; mostra fontes, rodízio e se está configurada", async () => {
+    const student = await d.signUp("aluna@exemplo.com");
+    expect((await d.call("/admin/discovery", { cookie: student })).status).toBe(403);
+    expect((await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true }, cookie: student })).status).toBe(403);
+    const cookie = await admin();
+    const state = (await d.call("/admin/discovery", { cookie })).json;
+    expect(state).toMatchObject({ provider: "gemini", configured: false, items: [] });
+    expect(state.sources.length).toBeGreaterThan(10);
+    expect(state.weekSources.length).toBeGreaterThan(0);
+  });
+
+  it("ensaio não grava; busca de verdade publica como não verificada e registra o resumo", async () => {
+    const cookie = await admin();
+    const dry = await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true, sources: ["gulbenkian"] }, cookie });
+    expect(dry.status).toBe(202);
+    expect(dry.json).toMatchObject({ status: "running", dryRun: true, provider: "teste", sources: ["gulbenkian"] });
+    const dryDone = await waitDone(cookie, dry.json.id);
+    expect(dryDone).toMatchObject({ status: "done", summary: { created: 1, requests: 2 } });
+    expect(dryDone.log).toContain("Bolsa Gulbenkian PALOP");
+    expect(dryDone.log).toContain("ensaio");
+    expect((await d.call("/scholarships/gulbenkian-palop-mestrado", { cookie: null })).status).toBe(404);
+
+    const real = await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: false, sources: ["gulbenkian"] }, cookie });
+    await waitDone(cookie, real.json.id);
+    expect((await d.call("/scholarships/gulbenkian-palop-mestrado", { cookie: null })).json).toMatchObject({ origin: "discovery", verification: { status: "unverified" } });
+    expect((await d.call("/admin/discovery", { cookie })).json.items.map((r: { id: number }) => r.id)).toEqual([real.json.id, dry.json.id]);
+  });
+
+  it("valida o pedido e não deixa duas buscas ao mesmo tempo", async () => {
+    const cookie = await admin();
+    expect((await d.call("/admin/discovery/runs", { method: "POST", body: {}, cookie })).json.error.fields).toEqual({ dryRun: "required" });
+    expect((await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true, sources: ["nao-existe"] }, cookie })).json.error.fields).toEqual({ sources: "invalid_option" });
+    // Fonte lenta (só existe no teste): a 1ª execução fica rodando até liberarmos.
+    const { SOURCES } = await import("../src/discovery/sources.js");
+    SOURCES.push({ id: "fonte-lenta", name: "Lenta", domains: ["exemplo.org"], hint: "" });
+    try {
+      const first = await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true, sources: ["fonte-lenta"] }, cookie });
+      expect(first.status).toBe(202);
+      const second = await d.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true }, cookie });
+      expect(second.status).toBe(409);
+      expect(second.json.error.code).toBe("discovery_running");
+      release();
+      await waitDone(cookie, first.json.id);
+    } finally {
+      SOURCES.pop();
+    }
+  });
+
+  it("sem a chave configurada: 409 discovery_not_configured", async () => {
+    const plain = await setupTestApp();
+    try {
+      const cookie = await plain.signUp("admin2@exemplo.com");
+      await setRole(plain.db, "admin2@exemplo.com", "admin");
+      const res = await plain.call("/admin/discovery/runs", { method: "POST", body: { dryRun: true }, cookie });
+      expect(res.status).toBe(409);
+      expect(res.json.error).toMatchObject({ code: "discovery_not_configured", fields: { GEMINI_API_KEY: "required" } });
+    } finally {
+      await plain.close();
+    }
+  });
+});

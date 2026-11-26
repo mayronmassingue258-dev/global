@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeading } from "@/components/layout/PageHeading";
 import { Notice } from "@/components/feedback/States";
 import { AdminPanel } from "@/features/admin/AdminPanel";
+import { DiscoveryPanel } from "@/features/admin/DiscoveryPanel";
 import { getT } from "@/i18n/server";
 import { getCurrentUser } from "@/lib/api/serverAuth";
 import { IS_MOCK_MODE } from "@/lib/config";
@@ -18,7 +19,7 @@ export default async function AdminPage() {
   return (
     <>
       <PageHeading eyebrow={t.admin.eyebrow} title={t.admin.title} description={t.admin.text} />
-      {IS_MOCK_MODE ? <Notice>{t.admin.demo}</Notice> : user?.role === "admin" ? <AdminPanel /> : <Notice role="alert">{t.admin.forbidden}</Notice>}
+      {IS_MOCK_MODE ? <Notice>{t.admin.demo}</Notice> : user?.role === "admin" ? <><DiscoveryPanel /><AdminPanel /></> : <Notice role="alert">{t.admin.forbidden}</Notice>}
     </>
   );
 }

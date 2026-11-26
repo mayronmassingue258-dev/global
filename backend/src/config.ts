@@ -34,7 +34,16 @@ const schema = z.object({
    * "0" desliga "prepared statements": necessário no pooler do Supabase em modo TRANSACTION (porta 6543).
    * No modo SESSION (porta 5432, recomendado) e em PostgreSQL comum, deixe "1".
    */
-  DATABASE_PREPARE: z.enum(["0", "1"]).default("1")
+  DATABASE_PREPARE: z.enum(["0", "1"]).default("1"),
+  /** Busca automática de bolsas (botão no painel /admin). Motor: gemini (padrão, nível gratuito) ou claude. */
+  DISCOVERY_PROVIDER: z.enum(["gemini", "claude"]).default("gemini"),
+  /** Chave da API do Gemini (aistudio.google.com → Get API key). Sem ela, o botão avisa que falta configurar. */
+  GEMINI_API_KEY: z.string().min(10).optional(),
+  GEMINI_MODEL: z.string().min(3).default("gemini-flash-latest"),
+  ANTHROPIC_API_KEY: z.string().min(10).optional(),
+  /** Tetos de cada execução: chamadas à API (2 por fonte) e gasto estimado em USD (só o Claude cobra). */
+  DISCOVERY_MAX_REQUESTS: z.coerce.number().int().min(2).max(500).default(40),
+  DISCOVERY_MAX_USD: z.coerce.number().positive().max(50).default(5)
 });
 
 export type Config = z.infer<typeof schema>;
