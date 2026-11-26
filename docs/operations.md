@@ -79,7 +79,7 @@ prefira manter e deixar o prazo vencer.
 
 ## Busca automática de bolsas (R2)
 
-O Claude pesquisa e lê **só os sites oficiais** das fontes em `backend/src/discovery/sources.ts` (Chevening, Commonwealth, DAAD,
+O **Gemini** (padrão, com nível gratuito; o Claude é opcional) pesquisa e lê os sites oficiais das fontes em `backend/src/discovery/sources.ts` (Chevening, Commonwealth, DAAD,
 Erasmus Mundus, Gulbenkian, Camões, PEC-G/PEC-PG, Stipendium Hungaricum, Türkiye Bursları, MEXT, China, Coreia, Suécia, Mastercard
 Foundation, Fulbright, Australia Awards, Aga Khan, Gates Cambridge, Itália, Banco Mundial, AfDB, Nova Zelândia) e devolve as bolsas
 no formato da plataforma. Uma bolsa só entra no ar se:
@@ -99,20 +99,24 @@ quando você mandar (**Actions → Bolsas: busca automática → Run workflow**;
 
 | Segredo | Valor |
 |---|---|
-| `ANTHROPIC_API_KEY` | chave da API do Claude (console.anthropic.com → API Keys). **Defina um limite de gasto mensal** em Billing. |
+| `GEMINI_API_KEY` | chave da API do Gemini: **aistudio.google.com → Get API key → Create API key** (gratuita; não ative faturamento se quiser custo zero) |
 | `DATABASE_URL` | a mesma URL do Session pooler do Supabase usada na API do Render |
 
-**Gasto:** cada fonte custa em média 0,30–0,60 USD (pesquisas + leitura das páginas); cada execução tem teto (`max_usd`, padrão 5 USD)
-e para antes de passar dele. Com o rodízio semanal, estimativa de 10–20 USD por mês.
+**Gasto:** no nível gratuito do Gemini, **zero** (o Google limita quantas chamadas por minuto e por dia; a busca faz uma pausa entre
+chamadas e espera quando o limite chega). Cada fonte usa 2 chamadas; cada execução tem teto de chamadas (`max_requests`, padrão 40).
+No nível gratuito, o Google pode usar o conteúdo enviado para melhorar os produtos dele: aqui só vão páginas públicas de bolsas.
+Diferença para o Claude: no Gemini a pesquisa não pode ser restrita aos domínios oficiais; a garantia vem do filtro de publicação
+(link do edital tem de ser do site oficial). Para usar o Claude: segredo `ANTHROPIC_API_KEY` e variável do repositório
+`DISCOVERY_PROVIDER=claude` (custo estimado 0,30–0,60 USD por fonte, teto `DISCOVERY_MAX_USD`).
 
-Da sua máquina (com `ANTHROPIC_API_KEY` e `DATABASE_URL` em `backend/.env`):
+Da sua máquina (com `GEMINI_API_KEY` e `DATABASE_URL` em `backend/.env`):
 
 ```bash
 npm --prefix backend run discovery -- --dry-run --only=chevening
 ```
 
 ```bash
-npm --prefix backend run discovery -- --all --max-usd=10
+npm --prefix backend run discovery -- --all --max-requests=50
 ```
 
 **Depois de cada execução:** em `/admin`, filtre **Não verificadas**, confira as bolsas novas com o edital e marque como verificadas

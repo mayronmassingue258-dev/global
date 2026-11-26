@@ -1,5 +1,15 @@
 # Registro de mudanças
 
+## 3.2.0 — Busca de bolsas com o Gemini (gratuito) (2026-11-26)
+
+- A busca automática passa a usar a **API do Gemini** por padrão (nível gratuito, segredo `GEMINI_API_KEY`). Duas chamadas por fonte:
+  pesquisa com Google Search + leitura das páginas (URL context), depois conversão para o JSON da plataforma com esquema.
+- O Claude continua disponível (`DISCOVERY_PROVIDER=claude`). Teto de chamadas por execução (`--max-requests`, padrão 40),
+  pausa entre chamadas e nova tentativa quando o limite gratuito do Google é atingido (429).
+- Os filtros de publicação não mudaram (link oficial, prazo aberto, país lusófono, validação completa); no Gemini eles são a
+  garantia de "só sites oficiais", já que a pesquisa não pode ser restrita a domínios.
+
+
 ## 3.1.0 — R2: busca automática de bolsas reais (2026-11-25)
 
 - **Busca de bolsas nas fontes oficiais com o Claude** (`backend/src/discovery/`, `npm --prefix backend run discovery`): 22 fontes

@@ -3,7 +3,7 @@ import type { Database } from "../db/client.js";
 import { scholarships } from "../db/schema.js";
 import { scholarshipInput, upsertScholarship, type ScholarshipInput } from "../db/import-scholarships.js";
 import { expandCountries, COUNTRY_GROUPS } from "../matching/countries.js";
-import type { ExtractedScholarship } from "./extract.js";
+import type { ExtractedScholarship } from "./schema.js";
 import { isOfficialUrl, type DiscoverySource } from "./sources.js";
 
 /**
