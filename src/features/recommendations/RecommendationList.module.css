@@ -16,3 +16,6 @@
   .head { grid-template-columns: 36px 1fr 13rem; }
   .score { grid-column: 3; }
 }
+.search { display: grid; gap: var(--space-3); padding: var(--space-5); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-card); }
+.searchTitle { font-size: 1rem; font-weight: 600; margin-bottom: var(--space-1); }
+.searchActions { display: flex; flex-wrap: wrap; gap: var(--space-3); }

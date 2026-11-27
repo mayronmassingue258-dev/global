@@ -4,11 +4,13 @@ import { eq } from "drizzle-orm";
 import { scholarships } from "../src/db/schema.js";
 import type { GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 import { claudeResearcher, extractFromSource, type SendMessage } from "../src/discovery/claude.js";
-import { geminiResearcher } from "../src/discovery/gemini.js";
+import { chooseFlashModel, geminiResearcher } from "../src/discovery/gemini.js";
+import { profileReady, profileSource } from "../src/discovery/profile.js";
+import { profileSchema } from "../src/matching/model.js";
 import type { ExtractedScholarship } from "../src/discovery/schema.js";
 import { decide, publish, scholarshipId } from "../src/discovery/publish.js";
 import { runDiscovery } from "../src/discovery/run.js";
-import { isOfficialUrl, sourcesForWeek, SOURCES, type DiscoverySource } from "../src/discovery/sources.js";
+import { isBroadOfficialHost, isOfficialUrl, sourcesForWeek, SOURCES, type DiscoverySource } from "../src/discovery/sources.js";
 import { setupTestApp } from "./helpers.js";
 
 const TODAY = new Date("2026-11-25T12:00:00Z");
@@ -55,6 +57,43 @@ describe("fontes", () => {
   it("rodízio: duas semanas seguidas cobrem todas as fontes, sem repetir", () => {
     const a = sourcesForWeek(TODAY), b = sourcesForWeek(new Date(TODAY.getTime() + 7 * 86_400_000));
     expect([...a, ...b].map((s) => s.id).sort()).toEqual(SOURCES.map((s) => s.id).sort());
+  });
+});
+
+describe("modelo do Gemini e busca aberta", () => {
+  it("escolhe o Flash estável mais recente que a chave pode usar", () => {
+    const models = [
+      { name: "models/gemini-2.5-flash", supportedActions: ["generateContent"] },
+      { name: "models/gemini-3.8-flash", supportedActions: ["generateContent"] },
+      { name: "models/gemini-3.8-flash-lite", supportedActions: ["generateContent"] },
+      { name: "models/gemini-4.0-flash-preview-09", supportedActions: ["generateContent"] },
+      { name: "models/gemini-3.10-flash", supportedActions: ["embedContent"] },
+      { name: "models/gemini-3.9-pro", supportedActions: ["generateContent"] }
+    ];
+    expect(chooseFlashModel(models)).toBe("gemini-3.8-flash");
+    expect(chooseFlashModel([{ name: "models/gemini-3.10-flash" }, { name: "models/gemini-3.9-flash" }])).toBe("gemini-3.10-flash");
+    expect(chooseFlashModel([{ name: "models/text-embedding" }])).toBeNull();
+  });
+
+  it("sites claramente oficiais: governos, universidades, organismos e fontes cadastradas", () => {
+    for (const host of ["www.gov.br", "studyinjapan.go.jp", "www.education.gouv.fr", "scholarships.gov.in", "www.ox.ac.uk", "mit.edu", "www.unimelb.edu.au", "eacea.ec.europa.eu", "au.int", "www.chevening.org"]) {
+      expect(isBroadOfficialHost(host), host).toBe(true);
+    }
+    for (const host of ["opportunitiesforafricans.com", "scholarshipdb.net", "bolsas.blogspot.com", "gov.br.golpe.com", "edu-bolsas.org"]) {
+      expect(isBroadOfficialHost(host), host).toBe(false);
+    }
+    const broad: DiscoverySource = { id: "web", name: "web", domains: [], hint: "", broad: true };
+    expect(isOfficialUrl("https://www.unimelb.edu.au/scholarships/x", broad)).toBe(true);
+    expect(isOfficialUrl("https://www.unimelb.edu.au/x", SOURCE)).toBe(false); // fonte normal continua restrita
+  });
+
+  it("busca pelo perfil: precisa de nacionalidade e nível, e descreve o estudante", () => {
+    const p = profileSchema.parse({ nationalities: ["MZ"], targetLevels: ["master"], fields: ["engineering"], destinations: ["PT"], fundingNeed: "full" });
+    expect(profileReady(p)).toBe(true);
+    expect(profileReady(profileSchema.parse({ nationalities: ["MZ"] }))).toBe(false);
+    const source = profileSource(p);
+    expect(source).toMatchObject({ id: "web", broad: true });
+    expect(source.hint).toMatch(/MZ.*master.*engineering.*PT.*integral/s);
   });
 });
 

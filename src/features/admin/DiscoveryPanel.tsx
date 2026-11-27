@@ -107,7 +107,7 @@ export function DiscoveryPanel({ service = adminService, pollMs = 4000, onFinish
             <li key={run.id}>
               <div className={styles.runHead}>
                 <Badge tone={run.status === "done" ? "success" : run.status === "failed" ? "danger" : "warning"}>{d.status[run.status] ?? run.status}</Badge>
-                <span>{formatDateTime(run.startedAt, t.meta.dateLocale)} · {d.kind(run.dryRun)} · {run.sources.length}</span>
+                <span>{formatDateTime(run.startedAt, t.meta.dateLocale)} · {d.kind(run.dryRun)} · {d.sourcesCount(run.sources.length)}</span>
                 {run.summary && <span className="t-meta">{d.result(run.summary.created ?? 0, run.summary.updated ?? 0, run.summary.skipped ?? 0)}</span>}
                 <Button variant="tertiary" size="sm" aria-expanded={open?.id === run.id} onClick={() => void toggleLog(run)}>{open?.id === run.id ? d.hideLog : d.showLog}</Button>
               </div>

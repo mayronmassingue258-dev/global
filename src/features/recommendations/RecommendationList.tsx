@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -19,6 +19,7 @@ import { countryName } from "@/lib/matching";
 import { profileService, recommendationService } from "@/lib/services";
 import { formatDate } from "@/lib/utils/date";
 import type { Recommendation, Recommendations } from "@/types";
+import { ProfileSearch } from "./ProfileSearch";
 import styles from "./RecommendationList.module.css";
 
 type Props = {
@@ -57,6 +58,9 @@ export function RecommendationList({ limit = 10, compact = false, services = DEF
     return () => controller.abort();
   }, [services, limit, reloadKey]);
 
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+  const searchBox = !compact && <ProfileSearch service={services.recommendations} onFinished={reload} />;
+
   if (state === "loading") return <ListSkeleton rows={compact ? 3 : 4} label={t.recommendations.loading} variant="card" />;
   if (state === "error" || !data) return <ErrorState title={t.recommendations.loadFailed} onRetry={() => setReloadKey((k) => k + 1)} />;
 
@@ -77,6 +81,7 @@ export function RecommendationList({ limit = 10, compact = false, services = DEF
           description={t.recommendations.emptyText}
           action={<ButtonLink href="/scholarships" variant="secondary" size="sm">{t.recommendations.exploreAll}</ButtonLink>}
         />
+        {searchBox}
       </div>
     );
   }
@@ -89,6 +94,7 @@ export function RecommendationList({ limit = 10, compact = false, services = DEF
       <ol className={styles.list}>
         {data.items.map((item, index) => <RecommendationCard key={item.scholarship.id} item={item} rank={index + 1} compact={compact} />)}
       </ol>
+      {searchBox}
       {!compact && <p className="t-meta">{t.recommendations.disclaimer}</p>}
     </div>
   );

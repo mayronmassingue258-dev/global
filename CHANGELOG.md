@@ -1,5 +1,15 @@
 # Registro de mudanças
 
+## 3.4.0 — Busca sem admin e botão para o estudante (2026-11-27)
+
+- **Corrigido:** a busca falhava com "models/gemini-flash-latest is not found for API version v1". Agora usa a API `v1beta`
+  (necessária para pesquisa no Google e leitura de páginas) e **escolhe sozinha** o Flash estável mais recente disponível para a chave.
+- **"Procurar novas bolsas para mim"** em "Para você": busca na web guiada pelo perfil, sem depender de admin; acompanha o andamento
+  e recarrega as recomendações ao terminar. Limites: 1 por estudante por dia e um total diário.
+- **Busca semanal automática**: roda o rodízio quando alguém usa o site e a última busca tem mais de 7 dias.
+- Painel: "11 fontes · 0 novas" no histórico (antes aparecia "110 novas").
+
+
 ## 3.3.0 — Busca de bolsas pelo painel, rodando no Render (2026-11-26)
 
 - **Painel /admin → "Busca automática de bolsas"**: escolher fontes (rodízio da semana, todas ou uma), fazer um **ensaio** ou

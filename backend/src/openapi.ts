@@ -220,6 +220,23 @@ export const openapiDocument = {
         responses: { 200: ok("Da maior nota para a menor", ref("Recommendations")), 400: error("`limit` fora de 1–30"), ...common401 }
       }
     },
+    "/recommendations/search": {
+      post: {
+        tags: ["Recomendações"], summary: "Procurar novas bolsas para mim (busca na web guiada pelo perfil, em segundo plano)", security: session,
+        description: "Precisa de nacionalidade e nível desejado no perfil. Limites: 1 por estudante a cada 24 h e um total por dia. As bolsas encontradas passam pelos filtros de publicação e ficam para todos.",
+        responses: {
+          202: ok("Busca começou", { type: "object", properties: { id: { type: "integer" }, status: { const: "running" }, startedAt: { type: "string", format: "date-time" } } }),
+          ...common401,
+          409: error("Outra busca rodando (`discovery_running`) ou busca não configurada (`discovery_not_configured`)"),
+          422: error("Perfil incompleto (`fields.profile = incomplete`)"),
+          429: error("Limite: `search_limit_user` (1 por dia) ou `search_limit_daily` (total do dia)")
+        }
+      },
+      get: {
+        tags: ["Recomendações"], summary: "Minha busca mais recente", security: session,
+        responses: { 200: ok("Busca ou null", { type: "object", properties: { search: { anyOf: [{ type: "null" }, { type: "object", properties: { id: { type: "integer" }, status: { enum: ["running", "done", "failed"] }, startedAt: { type: "string" }, finishedAt: { type: "string" }, summary: { type: "object" } } }] } } }), ...common401 }
+      }
+    },
     "/admin/scholarships": {
       get: {
         tags: ["Administração"], summary: "Todas as bolsas (inclusive ocultas), reportadas primeiro", security: session,

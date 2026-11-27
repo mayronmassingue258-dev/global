@@ -77,10 +77,18 @@ Regras:
 - No máximo 15 bolsas por fonte. Se não achar nenhuma que cumpra as regras, devolva a lista vazia e explique em notes.`;
 
 export function userPrompt(source: DiscoverySource, known: { id: string; title: string }[], today: string): string {
+  const where = source.broad
+    ? [
+        "Pesquise na web bolsas que combinem com o estudante abaixo. Use SÓ páginas oficiais: governos, universidades, fundações e organismos internacionais (ex.: domínios .gov, .edu, .ac.xx, europa.eu). Nunca use agregadores, blogs ou sites de notícias como fonte.",
+        `Programas oficiais conhecidos, por onde também pode começar: ${source.domains.slice(0, 25).join(", ")}`
+      ]
+    : [
+        `Sites oficiais permitidos (use SÓ páginas destes domínios; na pesquisa, use site:${source.domains[0]}): ${source.domains.join(", ")}`,
+        `Comece por: ${source.domains.map((d) => `https://${d}/`).join(" ")}`
+      ];
   return [
     `Fonte: ${source.name}`,
-    `Sites oficiais permitidos (use SÓ páginas destes domínios; na pesquisa, use site:${source.domains[0]}): ${source.domains.join(", ")}`,
-    `Comece por: ${source.domains.map((d) => `https://${d}/`).join(" ")}`,
+    ...where,
     `O que procurar: ${source.hint}`,
     `Data de hoje: ${today}.`,
     known.length > 0

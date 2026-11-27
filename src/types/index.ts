@@ -204,3 +204,6 @@ export type DiscoveryState = {
   weekSources: string[];
   items: DiscoveryRun[];
 };
+
+/** Busca guiada pelo perfil ("Procurar novas bolsas para mim"). */
+export type ProfileSearch = { id: number; status: "running" | "done" | "failed"; startedAt?: string; finishedAt?: string; summary?: { created: number; updated: number } };

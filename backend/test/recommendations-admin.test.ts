@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { scholarships } from "../src/db/schema.js";
 import { setRole } from "../src/db/grant-admin.js";
 import { hideExpired } from "../src/services/scholarships.js";
+import { __resetAutoCheck } from "../src/services/discovery.js";
+import { discoveryRuns } from "../src/db/schema.js";
 import { setupTestApp } from "./helpers.js";
 
 let t: Awaited<ReturnType<typeof setupTestApp>>;
@@ -279,5 +281,89 @@ describe("busca automática pelo painel", () => {
     } finally {
       await plain.close();
     }
+  });
+});
+
+describe("busca sem admin", () => {
+  let e: Awaited<ReturnType<typeof setupTestApp>>;
+  const seen: string[] = [];
+  beforeAll(async () => {
+    e = await setupTestApp({
+      env: { DISCOVERY_STUDENT_DAILY: "2" },
+      discoveryEngine: async () => ({
+        provider: "teste", costPerSource: 0,
+        research: async (source) => {
+          seen.push(source.id);
+          return { scholarships: [], notes: "", usage: { inputTokens: 0, outputTokens: 0, searches: 0, fetches: 0, requests: 2, costUsd: 0 } };
+        }
+      })
+    });
+  });
+  afterAll(async () => { await e.close(); });
+  beforeEach(async () => { await e.reset(); seen.length = 0; __resetAutoCheck(); });
+
+  const waitIdle = async () => {
+    for (let i = 0; i < 50; i += 1) {
+      const running = await e.db.select({ id: discoveryRuns.id }).from(discoveryRuns).where(eq(discoveryRuns.status, "running"));
+      if (running.length === 0) return;
+      await new Promise((r) => setTimeout(r, 30));
+    }
+  };
+  const ready = { nationalities: ["MZ"], targetLevels: ["master"], fields: ["engineering"] };
+
+  it("estudante pede a busca pelo perfil e acompanha; perfil incompleto é recusado", async () => {
+    await e.signUpAndUse("ana@exemplo.com");
+    expect((await e.call("/recommendations/search")).json).toEqual({ search: null });
+    const incomplete = await e.call("/recommendations/search", { method: "POST" });
+    expect(incomplete.status).toBe(422);
+    expect(incomplete.json.error.fields).toEqual({ profile: "incomplete" });
+
+    await e.call("/profile", { method: "PUT", body: ready });
+    const started = await e.call("/recommendations/search", { method: "POST" });
+    expect(started.status).toBe(202);
+    expect(started.json.status).toBe("running");
+    await waitIdle();
+    expect(seen).toEqual(["web"]);
+    expect((await e.call("/recommendations/search")).json.search).toMatchObject({ id: started.json.id, status: "done", summary: { created: 0, updated: 0 } });
+  });
+
+  it("limites: 1 por estudante por dia e um total diário", async () => {
+    const ana = await e.signUp("ana@exemplo.com");
+    await e.call("/profile", { method: "PUT", body: ready, cookie: ana });
+    expect((await e.call("/recommendations/search", { method: "POST", cookie: ana })).status).toBe(202);
+    await waitIdle();
+    const again = await e.call("/recommendations/search", { method: "POST", cookie: ana });
+    expect(again.status).toBe(429);
+    expect(again.json.error.code).toBe("search_limit_user");
+
+    const bia = await e.signUp("bia@exemplo.com");
+    await e.call("/profile", { method: "PUT", body: ready, cookie: bia });
+    expect((await e.call("/recommendations/search", { method: "POST", cookie: bia })).status).toBe(202);
+    await waitIdle();
+    const caio = await e.signUp("caio@exemplo.com");
+    await e.call("/profile", { method: "PUT", body: ready, cookie: caio });
+    const daily = await e.call("/recommendations/search", { method: "POST", cookie: caio });
+    expect(daily.status).toBe(429);
+    expect(daily.json.error.code).toBe("search_limit_daily");
+  });
+
+  it("ao abrir as recomendações, roda o rodízio semanal se a última busca for antiga (sem admin) — e não repete", async () => {
+    await e.signUpAndUse("ana@exemplo.com");
+    expect((await e.call("/recommendations")).status).toBe(200);
+    // A busca começa logo depois da resposta (em segundo plano): espera ela aparecer e terminar.
+    let runs = await e.db.select().from(discoveryRuns);
+    for (let i = 0; i < 60 && !(runs.length > 0 && runs[0]!.status !== "running"); i += 1) {
+      await new Promise((r) => setTimeout(r, 30));
+      runs = await e.db.select().from(discoveryRuns);
+    }
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ startedBy: null, dryRun: false, status: "done" });
+    expect(seen.length).toBeGreaterThan(5);
+    expect(runs[0]!.log).toContain("sem admin");
+
+    __resetAutoCheck();
+    await e.call("/recommendations");
+    await waitIdle();
+    expect(await e.db.select().from(discoveryRuns)).toHaveLength(1); // a última é recente: não roda de novo
   });
 });

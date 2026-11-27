@@ -12,8 +12,13 @@ export type DiscoverySource = {
   name: string;
   /** Domínios oficiais (subdomínios incluídos). */
   domains: string[];
-  /** Onde começar e o que procurar (orienta a busca; o Claude decide as páginas). */
+  /** Onde começar e o que procurar (orienta a busca; o modelo decide as páginas). */
   hint: string;
+  /**
+   * Busca aberta na web (a pesquisa pelo perfil do estudante): aceita, além dos domínios listados, sites
+   * claramente oficiais (governos, universidades, organismos internacionais). Ver isBroadOfficialHost.
+   */
+  broad?: boolean;
 };
 
 export const SOURCES: DiscoverySource[] = [
@@ -41,7 +46,24 @@ export const SOURCES: DiscoverySource[] = [
   { id: "manaaki-nz", name: "Manaaki New Zealand Scholarships", domains: ["nzscholarships.govt.nz"], hint: "Bolsas do governo da Nova Zelândia para países elegíveis (confira se há países africanos de língua portuguesa)." }
 ];
 
-/** O endereço é de um dos domínios da fonte (ou de um subdomínio)? */
+const onDomain = (host: string, domain: string) => host === domain || host.endsWith(`.${domain}`);
+
+/** Domínios de todas as fontes oficiais cadastradas. */
+export const OFFICIAL_DOMAINS = [...new Set(SOURCES.flatMap((s) => s.domains))];
+
+/**
+ * Site claramente oficial: governo (.gov, .gov.xx, .gob.xx, .gouv.xx, .go.xx, .govt.xx), universidade (.edu, .edu.xx, .ac.xx),
+ * União Europeia (europa.eu), organismos internacionais (.int e alguns conhecidos), ou uma das fontes cadastradas.
+ * Ficam de fora universidades com domínio comum (ex.: tum.de): nesses casos a bolsa entra pelas fontes cadastradas.
+ */
+export function isBroadOfficialHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (OFFICIAL_DOMAINS.some((d) => onDomain(h, d))) return true;
+  if (["europa.eu", "un.org", "unesco.org", "oecd.org", "au.int", "commonwealth.int", "oas.org"].some((d) => onDomain(h, d))) return true;
+  return /\.(gov|edu|int)$/.test(h) || /\.(gov|gob|gouv|go|govt|edu|ac)\.[a-z]{2}$/.test(h);
+}
+
+/** O endereço é de um dos domínios da fonte (ou de um subdomínio)? Busca aberta: qualquer site oficial. */
 export function isOfficialUrl(url: string, source: DiscoverySource): boolean {
   let host: string;
   try {
@@ -51,7 +73,7 @@ export function isOfficialUrl(url: string, source: DiscoverySource): boolean {
   } catch {
     return false;
   }
-  return source.domains.some((d) => host === d || host.endsWith(`.${d}`));
+  return source.domains.some((d) => onDomain(host, d)) || (source.broad === true && isBroadOfficialHost(host));
 }
 
 /** Rodízio: cada fonte entra numa semana sim, outra não (metade das fontes por execução, para conter o gasto). */

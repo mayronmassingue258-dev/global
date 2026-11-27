@@ -39,11 +39,16 @@ const schema = z.object({
   DISCOVERY_PROVIDER: z.enum(["gemini", "claude"]).default("gemini"),
   /** Chave da API do Gemini (aistudio.google.com → Get API key). Sem ela, o botão avisa que falta configurar. */
   GEMINI_API_KEY: z.string().min(10).optional(),
-  GEMINI_MODEL: z.string().min(3).default("gemini-flash-latest"),
+  /** Modelo do Gemini. Vazio = escolhido sozinho (o Flash estável mais recente que a chave pode usar). */
+  GEMINI_MODEL: z.string().min(3).optional(),
   ANTHROPIC_API_KEY: z.string().min(10).optional(),
   /** Tetos de cada execução: chamadas à API (2 por fonte) e gasto estimado em USD (só o Claude cobra). */
   DISCOVERY_MAX_REQUESTS: z.coerce.number().int().min(2).max(500).default(40),
-  DISCOVERY_MAX_USD: z.coerce.number().positive().max(50).default(5)
+  DISCOVERY_MAX_USD: z.coerce.number().positive().max(50).default(5),
+  /** Busca automática sem admin: roda o rodízio quando alguém usa o site e a última busca tem mais que N dias (0 = desliga). */
+  DISCOVERY_AUTO_DAYS: z.coerce.number().int().min(0).max(60).default(7),
+  /** Buscas pelo perfil ("Procurar novas bolsas para mim"): no máximo 1 por estudante por dia e este total por dia. */
+  DISCOVERY_STUDENT_DAILY: z.coerce.number().int().min(0).max(500).default(20)
 });
 
 export type Config = z.infer<typeof schema>;

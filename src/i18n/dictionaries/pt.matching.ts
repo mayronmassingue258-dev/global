@@ -197,6 +197,20 @@ const ptMatching = {
   },
 
   recommendations: {
+    searchTitle: "Não achou o que procura?",
+    searchText: "Procuramos na web, em sites oficiais (governos, universidades, fundações), bolsas para o seu perfil. Leva alguns minutos; as que passarem nos nossos filtros aparecem aqui.",
+    searchButton: "Procurar novas bolsas para mim",
+    searchRunning: "Procurando bolsas para o seu perfil… pode levar alguns minutos. Pode sair desta página.",
+    searchDone: (created: number, updated: number) => (created + updated === 0 ? "Busca concluída: nenhuma bolsa nova para o seu perfil desta vez." : `Busca concluída: ${created} ${created === 1 ? "bolsa nova" : "bolsas novas"}${updated ? ` e ${updated} ${updated === 1 ? "atualizada" : "atualizadas"}` : ""}.`),
+    searchFailed: "A última busca não terminou. Tente de novo mais tarde.",
+    searchErrors: {
+      incomplete: "Complete o perfil (nacionalidade e nível que quer cursar) para procurarmos bolsas para você.",
+      user: "Você já fez uma busca nas últimas 24 horas. Tente de novo amanhã.",
+      daily: "Muitas buscas hoje. Tente de novo amanhã.",
+      running: "Já há uma busca em andamento. Tente de novo em alguns minutos.",
+      unavailable: "A busca não está disponível agora.",
+      failed: "Não foi possível começar a busca. Tente de novo."
+    },
     eyebrow: "Para você",
     title: "As bolsas que mais combinam com você.",
     text: "Ordenadas pela compatibilidade com o seu perfil. Cada uma explica o que você já cumpre e o que falta.",
@@ -260,6 +274,7 @@ const ptMatching = {
     status: { running: "Rodando", done: "Concluída", failed: "Falhou" } as Record<string, string>,
     kind: (dry: boolean): string => (dry ? "ensaio" : "publicação"),
     result: (created: number, updated: number, skipped: number) => `${created} novas · ${updated} atualizadas · ${skipped} ignoradas`,
+    sourcesCount: (n: number) => `${n} ${n === 1 ? "fonte" : "fontes"}`,
     showLog: "Ver registro",
     hideLog: "Esconder registro"
   },

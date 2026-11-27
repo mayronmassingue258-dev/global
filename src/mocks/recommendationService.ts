@@ -11,5 +11,11 @@ export const mockRecommendationService: RecommendationService = {
   },
   async report() {
     // nada a fazer na demonstração
+  },
+  async search() {
+    return { id: 1, status: "done", summary: { created: 0, updated: 0 } };
+  },
+  async latestSearch() {
+    return null;
   }
 };

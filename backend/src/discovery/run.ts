@@ -117,8 +117,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       process.exit(1);
     }
     const { GoogleGenAI } = await import("@google/genai");
-    const { geminiResearcher, realGenerate, DEFAULT_GEMINI_MODEL } = await import("./gemini.js");
-    research = geminiResearcher(realGenerate(new GoogleGenAI({})), { model: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL });
+    const { geminiResearcher, realGenerate, pickGeminiModel, GEMINI_API_VERSION } = await import("./gemini.js");
+    const ai = new GoogleGenAI({ apiVersion: GEMINI_API_VERSION });
+    const model = process.env.GEMINI_MODEL || (await pickGeminiModel(ai));
+    console.log(`Modelo do Gemini: ${model}`);
+    research = geminiResearcher(realGenerate(ai), { model });
   } else {
     console.error(`DISCOVERY_PROVIDER desconhecido: ${provider} (use gemini ou claude).`);
     process.exit(1);

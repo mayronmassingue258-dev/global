@@ -13,8 +13,42 @@ import { EXTRACTION_SCHEMA, SYSTEM, emptyUsage, parseExtraction, userPrompt, typ
  * (publish.ts recusa qualquer bolsa cujo link não seja do site oficial da fonte).
  */
 
-/** Apelido do Google que sempre aponta para o modelo Flash mais recente (troque com GEMINI_MODEL). */
-export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
+/** Usado só se não der para consultar a lista de modelos da chave (troque com GEMINI_MODEL). */
+export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+/** Pesquisa no Google e leitura de páginas são recursos da versão v1beta da API. */
+export const GEMINI_API_VERSION = "v1beta";
+
+type ModelInfo = { name?: string; supportedActions?: string[] };
+
+/**
+ * Escolhe, entre os modelos que ESTA chave pode usar, o Flash estável mais recente (ex.: gemini-3.8-flash).
+ * Evita depender de um nome fixo, que o Google troca com o tempo. Fora: lite, imagem, áudio, prévias e experimentais.
+ */
+export function chooseFlashModel(models: ModelInfo[]): string | null {
+  const candidates = models
+    .filter((m) => (m.supportedActions ?? ["generateContent"]).includes("generateContent"))
+    .map((m) => (m.name ?? "").replace(/^models\//, ""))
+    .filter((n) => /^gemini-[\d.]+-flash$/.test(n));
+  if (candidates.length === 0) return null;
+  const version = (n: string) => (n.match(/^gemini-([\d.]+)-/)?.[1] ?? "0").split(".").map(Number);
+  candidates.sort((a, b) => {
+    const [va, vb] = [version(a), version(b)];
+    for (let i = 0; i < Math.max(va.length, vb.length); i += 1) if ((va[i] ?? 0) !== (vb[i] ?? 0)) return (vb[i] ?? 0) - (va[i] ?? 0);
+    return 0;
+  });
+  return candidates[0]!;
+}
+
+export async function pickGeminiModel(ai: GoogleGenAI): Promise<string> {
+  try {
+    const pager = await ai.models.list({ config: { pageSize: 100 } });
+    const models: ModelInfo[] = [];
+    for await (const m of pager) models.push(m);
+    return chooseFlashModel(models) ?? DEFAULT_GEMINI_MODEL;
+  } catch {
+    return DEFAULT_GEMINI_MODEL;
+  }
+}
 
 /** Uma chamada à API. Injetável para os testes (sem rede, sem custo). */
 export type Generate = (params: GenerateContentParameters) => Promise<GenerateContentResponse>;

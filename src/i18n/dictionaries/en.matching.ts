@@ -196,6 +196,20 @@ const enMatching: typeof ptMatching = {
   },
 
   recommendations: {
+    searchTitle: "Can't find what you're looking for?",
+    searchText: "We search the web, on official sites (governments, universities, foundations), for scholarships for your profile. It takes a few minutes; the ones that pass our checks show up here.",
+    searchButton: "Find new scholarships for me",
+    searchRunning: "Searching for scholarships for your profile… this can take a few minutes. You can leave this page.",
+    searchDone: (created: number, updated: number) => (created + updated === 0 ? "Search finished: no new scholarships for your profile this time." : `Search finished: ${created} new ${created === 1 ? "scholarship" : "scholarships"}${updated ? ` and ${updated} updated` : ""}.`),
+    searchFailed: "The last search didn't finish. Try again later.",
+    searchErrors: {
+      incomplete: "Complete your profile (nationality and level you want to study) so we can search for you.",
+      user: "You already searched in the last 24 hours. Try again tomorrow.",
+      daily: "Too many searches today. Try again tomorrow.",
+      running: "A search is already running. Try again in a few minutes.",
+      unavailable: "Search isn't available right now.",
+      failed: "We couldn't start the search. Please try again."
+    },
     eyebrow: "For you",
     title: "The scholarships that suit you best.",
     text: "Sorted by how well they match your profile. Each one explains what you already meet and what's missing.",
@@ -259,6 +273,7 @@ const enMatching: typeof ptMatching = {
     status: { running: "Running", done: "Finished", failed: "Failed" },
     kind: (dry: boolean) => (dry ? "dry run" : "publish"),
     result: (created: number, updated: number, skipped: number) => `${created} new · ${updated} updated · ${skipped} skipped`,
+    sourcesCount: (n: number) => `${n} ${n === 1 ? "source" : "sources"}`,
     showLog: "Show log",
     hideLog: "Hide log"
   },

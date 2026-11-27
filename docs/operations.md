@@ -99,8 +99,16 @@ minutos); o painel mostra o andamento, o resumo e o registro de cada execução.
 **Configurar uma vez:** Render → **globalscholar-api-demo** → **Environment** → `GEMINI_API_KEY` = a chave gratuita do Gemini
 (**aistudio.google.com → Get API key → Create API key**; sem ativar faturamento, o custo é zero) → **Save, rebuild and deploy**.
 
-No plano gratuito do Render a API dorme, então lá não há agendamento automático confiável: rode pelo painel quando quiser
-(ex.: toda segunda-feira). **Opcional:** agendamento semanal pelo GitHub Actions (workflow "Bolsas: busca automática"), com os
+**Sem admin, de duas formas:**
+
+- **Busca semanal automática:** quando um estudante abre "Para você" e a última busca completa tem mais de 7 dias
+  (`DISCOVERY_AUTO_DAYS`; 0 desliga), a API roda o rodízio da semana em segundo plano.
+- **"Procurar novas bolsas para mim"** (botão em "Para você"): busca aberta na web guiada pelo perfil do estudante (nacionalidade,
+  nível, áreas, destinos, situação financeira). Aceita links de sites claramente oficiais (governos, universidades — `.gov`, `.edu`,
+  `.ac.xx`… —, União Europeia, organismos internacionais e as fontes cadastradas) e passa pelos mesmos filtros. As bolsas encontradas
+  ficam para todos. Limites para proteger a cota gratuita: 1 por estudante a cada 24 h e `DISCOVERY_STUDENT_DAILY` (padrão 20) por dia.
+
+O modelo do Gemini é escolhido sozinho: o Flash estável mais recente que a chave pode usar (`GEMINI_MODEL` fixa outro). **Opcional:** agendamento semanal pelo GitHub Actions (workflow "Bolsas: busca automática"), com os
 segredos `GEMINI_API_KEY` e `DATABASE_URL` em GitHub → Settings → Secrets and variables → Actions.
 
 **Gasto:** no nível gratuito do Gemini, **zero** (o Google limita quantas chamadas por minuto e por dia; a busca faz uma pausa entre

@@ -18,7 +18,7 @@ const rec = (id: string, score: number, extra: Partial<Recommendation> = {}): Re
 });
 
 function service(data: Recommendations | Error): RecommendationService {
-  return { list: () => (data instanceof Error ? Promise.reject(data) : Promise.resolve(data)), report: () => Promise.resolve() };
+  return { list: () => (data instanceof Error ? Promise.reject(data) : Promise.resolve(data)), report: () => Promise.resolve(), search: () => Promise.reject(new Error("x")), latestSearch: async () => null };
 }
 
 function renderList(recs: RecommendationService, profilePct: Parameters<typeof fakeProfileService>[0] = {}, props: { compact?: boolean } = {}) {
@@ -66,7 +66,9 @@ describe("RecommendationList", () => {
     let calls = 0;
     const flaky: RecommendationService = {
       list: () => (++calls === 1 ? Promise.reject(new ApiError(503, "x")) : Promise.resolve({ considered: 1, excluded: 0, items: [rec("a", 70)] })),
-      report: () => Promise.resolve()
+      report: () => Promise.resolve(),
+      search: () => Promise.reject(new Error("x")),
+      latestSearch: async () => null
     };
     renderList(flaky);
     await userEvent.click(await screen.findByRole("button", { name: "Tentar novamente" }));

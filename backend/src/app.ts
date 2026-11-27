@@ -17,7 +17,10 @@ import { createEmailSender, sentEmails, type EmailSender } from "./auth/email.js
 import { HttpError, errorBody, notFound } from "./lib/errors.js";
 import { parseApplicationCreate, parseApplicationPatch, parseDraft, parseListQuery, parseProfile } from "./lib/validation.js";
 import { getEligibility, getRecommendations, getScholarshipRow, listScholarships, toScholarship } from "./services/scholarships.js";
-import { engineFromConfig, getDiscoveryRun, listDiscoveryRuns, parseStart, startDiscovery, type EngineFactory } from "./services/discovery.js";
+import {
+  engineFromConfig, getDiscoveryRun, latestProfileSearch, listDiscoveryRuns, maybeAutoRun, parseStart, startDiscovery, startProfileSearch, type EngineFactory
+} from "./services/discovery.js";
+import { loadProfile } from "./services/profile.js";
 import {
   adminListReports, adminListScholarships, adminPatchScholarship, adminPutScholarship, adminResolveReports, createReport, parseReport
 } from "./services/admin.js";
@@ -231,6 +234,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
   // Rotas de conta: sempre por IP (não por sessão), e sem exceção para a chave interna.
   const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute", keyGenerator: (req: FastifyRequest) => `auth:${clientIp(req)}`, allowList: () => false } } };
 
+  const engine = discoveryEngine ?? engineFromConfig(config);
+
   await app.register(async (api) => {
     api.get("/health", async (_req, reply) => {
       try {
@@ -320,8 +325,19 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
       const raw = (req.query as Record<string, unknown>).limit;
       const limit = raw === undefined ? 10 : Number(raw);
       if (!Number.isInteger(limit) || limit < 1 || limit > 30) throw new HttpError(400, "invalid_query", { limit: "out_of_range" });
-      return getRecommendations(db, userId(req), limit);
+      const result = await getRecommendations(db, userId(req), limit);
+      // Busca semanal sem admin: aproveita o uso do site para rodar o rodízio quando a última busca já é antiga.
+      void maybeAutoRun(db, config, engine).then((started) => started?.done.catch((error) => req.log.error(error))).catch((error) => req.log.error(error));
+      return result;
     });
+    // "Procurar novas bolsas para mim": busca guiada pelo perfil (segundo plano; limites por estudante e por dia).
+    api.post("/recommendations/search", async (req, reply) => {
+      const owner = userId(req);
+      const { run, done } = await startProfileSearch(db, config, engine, owner, await loadProfile(db, owner));
+      done.catch((error) => req.log.error(error));
+      return reply.status(202).send({ id: run.id, status: run.status, startedAt: run.startedAt });
+    });
+    api.get("/recommendations/search", async (req) => ({ search: await latestProfileSearch(db, userId(req)) }));
     // Estudante reporta um erro na bolsa. Limite por conta: ninguém consegue inundar a fila.
     const reportLimit = { config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: (req: FastifyRequest) => `report:${req.user?.id ?? clientIp(req)}`, allowList: () => false } } };
     api.post("/scholarships/:id/reports", reportLimit, async (req, reply) => {
@@ -388,7 +404,6 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     api.patch("/admin/scholarships/:id", async (req) => { requireAdmin(req); return adminPatchScholarship(db, id(req), req.body); });
     api.get("/admin/scholarships/:id/reports", async (req) => { requireAdmin(req); return adminListReports(db, id(req)); });
     // Busca automática de bolsas: o painel dispara e acompanha (a busca roda em segundo plano nesta API).
-    const engine = discoveryEngine ?? engineFromConfig(config);
     api.get("/admin/discovery", async (req) => { requireAdmin(req); return listDiscoveryRuns(db, config); });
     api.post("/admin/discovery/runs", async (req, reply) => {
       requireAdmin(req);
