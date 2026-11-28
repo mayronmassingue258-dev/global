@@ -38,8 +38,13 @@ export function engineFromConfig(config: Config): EngineFactory {
   };
 }
 
-/** Uma execução "rodando" há mais que isto morreu no meio (o servidor reiniciou ou adormeceu). */
-const STALE_MS = 2 * 60 * 60 * 1000;
+/**
+ * Uma execução "rodando" há mais que 2 horas morreu no meio (o servidor reiniciou ou adormeceu).
+ * As comparações de tempo usam o relógio da BASE (now()), o mesmo que grava started_at: relógios diferentes entre a API
+ * e a base não bagunçam os limites.
+ */
+const staleBefore = sql`now() - interval '2 hours'`;
+const dayAgo = sql`now() - interval '1 day'`;
 const LOG_MAX = 200_000;
 
 type StartInput = { dryRun: boolean; sources: "week" | "all" | string[] };
@@ -71,13 +76,13 @@ const toRun = (r: typeof discoveryRuns.$inferSelect, withLog = false) => ({
 async function closeStale(db: Database) {
   await db.update(discoveryRuns)
     .set({ status: "failed", finishedAt: new Date(), log: sql`${discoveryRuns.log} || ${"\n(interrompida: o servidor reiniciou ou adormeceu no meio da busca)"}` })
-    .where(and(eq(discoveryRuns.status, "running"), lt(discoveryRuns.startedAt, new Date(Date.now() - STALE_MS))));
+    .where(and(eq(discoveryRuns.status, "running"), lt(discoveryRuns.startedAt, staleBefore)));
 }
 
 async function isRunning(db: Database) {
   await closeStale(db);
   const [running] = await db.select({ id: discoveryRuns.id }).from(discoveryRuns)
-    .where(and(eq(discoveryRuns.status, "running"), gt(discoveryRuns.startedAt, new Date(Date.now() - STALE_MS)))).limit(1);
+    .where(and(eq(discoveryRuns.status, "running"), gt(discoveryRuns.startedAt, staleBefore))).limit(1);
   return Boolean(running);
 }
 
@@ -98,7 +103,6 @@ export async function startDiscovery(db: Database, config: Config, engineFactory
   return launch(db, config, engine, userId, input.dryRun, sources);
 }
 
-const DAY_MS = 86_400_000;
 let lastAutoCheck = 0;
 
 /**
@@ -110,10 +114,14 @@ export async function maybeAutoRun(db: Database, config: Config, engineFactory: 
   lastAutoCheck = now;
   const engine = await engineFactory();
   if ("missing" in engine || (await isRunning(db))) return null;
-  const [last] = await db.select({ startedAt: discoveryRuns.startedAt }).from(discoveryRuns)
-    .where(and(eq(discoveryRuns.dryRun, false), sql`not (${discoveryRuns.sources} @> array[${PROFILE_SOURCE_ID}]::text[])`))
-    .orderBy(desc(discoveryRuns.startedAt)).limit(1);
-  if (last && now - last.startedAt.getTime() < config.DISCOVERY_AUTO_DAYS * DAY_MS) return null;
+  // Houve uma busca completa (não ensaio, não pelo perfil) nos últimos N dias? Relógio da base, como o resto.
+  const [recent] = await db.select({ id: discoveryRuns.id }).from(discoveryRuns)
+    .where(and(
+      eq(discoveryRuns.dryRun, false),
+      sql`not (${discoveryRuns.sources} @> array[${PROFILE_SOURCE_ID}]::text[])`,
+      sql`${discoveryRuns.startedAt} > now() - make_interval(days => ${config.DISCOVERY_AUTO_DAYS})`
+    )).limit(1);
+  if (recent) return null;
   return launch(db, config, engine, null, false, sourcesForWeek(new Date(now)));
 }
 
@@ -129,7 +137,7 @@ export function __resetAutoCheck() {
 export async function startProfileSearch(db: Database, config: Config, engineFactory: EngineFactory, userId: string, profile: StudentProfile) {
   if (!profileReady(profile)) throw validationFailed({ profile: "incomplete" });
   const engine = await readyEngine(engineFactory);
-  const since = new Date(Date.now() - DAY_MS);
+  const since = dayAgo;
   const isProfileRun = sql`${discoveryRuns.sources} @> array[${PROFILE_SOURCE_ID}]::text[]`;
   const [mine] = await db.select({ id: discoveryRuns.id }).from(discoveryRuns)
     .where(and(isProfileRun, eq(discoveryRuns.startedBy, userId), gt(discoveryRuns.startedAt, since))).limit(1);

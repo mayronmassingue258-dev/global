@@ -1,5 +1,16 @@
 # Registro de mudanças
 
+## 3.4.1 — Consolidação: datas e carregamento das páginas (2026-11-28)
+
+- **Páginas de bolsa, elegibilidade e candidatura podiam não abrir** ("Não foi possível carregar esta página"): o arquivo de
+  JavaScript delas tinha colchetes e parênteses no nome (`app/(student)/scholarships/[id]/page-….js`), que alguns proxies e redes
+  tratam de forma diferente (404). Agora esses caracteres viram `_` no nome dos arquivos (`next.config.ts`).
+- **Bombas-relógio removidas:** as bolsas de demonstração têm prazo relativo a hoje (nunca vencem); perfis de teste com ano fixo
+  passaram a usar o ano seguinte. Toda a bateria passa com o relógio em 2027 e em 2028.
+- **"Próximos prazos" no painel** não mostra mais prazos já vencidos.
+- Limites da busca automática (1 por dia, execução travada, rodízio semanal) usam só o relógio da base de dados.
+
+
 ## 3.4.0 — Busca sem admin e botão para o estudante (2026-11-27)
 
 - **Corrigido:** a busca falhava com "models/gemini-flash-latest is not found for API version v1". Agora usa a API `v1beta`

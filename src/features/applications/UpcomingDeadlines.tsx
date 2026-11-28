@@ -20,7 +20,12 @@ export function UpcomingDeadlines() {
   if (status === "loading") return <ListSkeleton rows={2} label={t.dashboard.loadingDeadlines} />;
   if (status === "error") return <ErrorState title={t.dashboard.deadlinesFailed} onRetry={reload} />;
 
-  const upcoming = [...applications].sort((a, b) => a.scholarship.deadline.localeCompare(b.scholarship.deadline)).slice(0, 3);
+  // Só prazos que ainda não passaram (hoje conta), do mais próximo ao mais distante.
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = applications
+    .filter((a) => a.scholarship.deadline >= today)
+    .sort((a, b) => a.scholarship.deadline.localeCompare(b.scholarship.deadline))
+    .slice(0, 3);
 
   if (upcoming.length === 0) {
     return (

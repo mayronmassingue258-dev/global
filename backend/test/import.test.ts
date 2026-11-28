@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { importScholarships, validateScholarships, type ScholarshipInput } from "../src/db/import-scholarships.js";
 import { setupTestApp } from "./helpers.js";
 
+// O arquivo-modelo tem um prazo fixo; nos testes de gravação ele vai para daqui a 90 dias (o teste não pode vencer).
 const example = JSON.parse(readFileSync(new URL("../scholarships.example.json", import.meta.url), "utf8"));
+const future = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
 
 describe("validação do arquivo de bolsas", () => {
   it("o arquivo de exemplo é válido", () => {
@@ -49,7 +51,7 @@ describe("importação", () => {
   beforeEach(async () => { await t.reset(); });
 
   it("grava, atualiza e pode remover as bolsas de demonstração; a bolsa nova funciona na API", async () => {
-    const result = validateScholarships(example);
+    const result = validateScholarships(example.map((e: { deadline: string }) => ({ ...e, deadline: future })));
     if (!result.ok) throw new Error(result.errors.join("; "));
     const items: ScholarshipInput[] = result.items;
     expect(await importScholarships(t.db, items)).toEqual({ imported: 1, removed: 0 });

@@ -20,7 +20,9 @@ describe("bolsas", () => {
     expect(status).toBe(200);
     expect(json.items).toHaveLength(2);
     expect(json.total).toBe(6);
-    expect(json.items.map((s: { deadline: string }) => s.deadline)).toEqual(["2026-12-03", "2027-01-28"]);
+    // Prazo mais próximo primeiro (as amostras vencem em 25 e 95 dias a partir de hoje).
+    expect(json.items.map((s: { id: string }) => s.id)).toEqual(["amostra-002", "amostra-006"]);
+    expect(json.items[0].deadline < json.items[1].deadline).toBe(true);
   });
 
   it("filtra por texto (sem diferenciar maiúsculas), país e nível, e ordena por título", async () => {
@@ -121,7 +123,7 @@ describe("candidaturas", () => {
       id: "amostra-001",
       status: "Saved",
       notes: "",
-      scholarship: { id: "amostra-001", title: "Bolsa de Mestrado em Ciência de Dados", institution: "Universidade Exemplo Internacional", deadline: "2027-02-15" },
+      scholarship: { id: "amostra-001", title: "Bolsa de Mestrado em Ciência de Dados", institution: "Universidade Exemplo Internacional", deadline: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       documents: [
         { name: "Diploma", done: false },
         { name: "Histórico acadêmico", done: false },

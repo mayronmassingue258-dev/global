@@ -12,7 +12,7 @@ const codes = (r: { reasons: { code: string }[] }) => r.reasons.map((x) => x.cod
 const ana = profile({
   nationalities: ["MZ"], residenceCountry: "MZ", completedLevel: "bachelor", targetLevels: ["master"], fields: ["public_health"],
   gpa: { value: 15, scale: "20" }, languages: [{ code: "pt", level: "native" }, { code: "en", level: "B2" }], tests: [{ type: "ielts", score: 6.5 }],
-  fundingNeed: "full", canPayApplicationFee: false, birthYear: 1999, workYears: 2, studyMode: "onsite", startYear: 2027
+  fundingNeed: "full", canPayApplicationFee: false, birthYear: 1999, workYears: 2, studyMode: "onsite", startYear: new Date().getUTCFullYear() + 1
 });
 
 describe("países", () => {

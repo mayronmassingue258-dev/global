@@ -12,6 +12,22 @@ const nextConfig: NextConfig = {
   // pré-visualização de links (WhatsApp, LinkedIn…) e o Lighthouse não o encontram.
   htmlLimitedBots: /.*/,
   // /api/* do site é repassado ao backend por src/app/api/[...path]/route.ts (com o IP de cada visitante).
+  /**
+   * Nomes dos arquivos de JavaScript SEM colchetes nem parênteses. Por padrão o Next usa o caminho da rota
+   * ("app/(student)/scholarships/[id]/page-….js"); alguns proxies, CDNs e filtros de rede tratam esses caracteres
+   * de forma diferente e devolvem 404, e a página da bolsa não carregava. Viram "_" (só no build de produção do navegador).
+   */
+  webpack(config, { isServer, dev }) {
+    if (!isServer && !dev && config.output) {
+      const original = config.output.filename;
+      config.output.filename = (pathData: { chunk?: { name?: string | null } }) => {
+        const name = pathData.chunk?.name;
+        if (typeof name === "string" && /[[\]()]/.test(name)) return `static/chunks/${name.replace(/[[\]()]/g, "_")}-[contenthash].js`;
+        return typeof original === "function" ? original(pathData) : original;
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       {

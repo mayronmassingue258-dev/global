@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { fakeApplicationService, makeApplication, makeScholarship } from "@/test/fakes";
@@ -60,6 +60,19 @@ describe("ApplicationsBoard", () => {
 });
 
 describe("UpcomingDeadlines", () => {
+  beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-12-15T12:00:00Z")); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("não mostra prazos que já venceram", async () => {
+    const apps = ["2026-12-01", "2027-01-10"].map((deadline, i) =>
+      makeApplication({ id: `b${i}`, scholarship: { id: `b${i}`, title: `Bolsa ${deadline}`, institution: "I", deadline } })
+    );
+    renderWith(<UpcomingDeadlines />, fakeApplicationService(apps));
+    const links = await screen.findAllByRole("link");
+    expect(links.map((l) => l.textContent)).toContain("Bolsa 2027-01-10");
+    expect(links.map((l) => l.textContent)).not.toContain("Bolsa 2026-12-01");
+  });
+
   it("mostra no máximo 3 prazos, do mais próximo ao mais distante", async () => {
     const apps = ["2027-05-01", "2027-01-01", "2027-03-01", "2027-02-01"].map((deadline, i) =>
       makeApplication({ id: `a${i}`, scholarship: { id: `a${i}`, title: `Bolsa ${deadline}`, institution: "I", deadline } })

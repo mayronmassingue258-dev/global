@@ -21,7 +21,7 @@ const ids = (items: { scholarship: { id: string } }[]) => items.map((i) => i.sch
 const mozambican = {
   nationalities: ["MZ"], residenceCountry: "MZ", completedLevel: "bachelor", targetLevels: ["master"], fields: ["computer_science"],
   gpa: { value: 16, scale: "20" }, languages: [{ code: "pt", level: "native" }, { code: "en", level: "C1" }], tests: [{ type: "ielts", score: 7 }],
-  fundingNeed: "full", canPayApplicationFee: false, birthYear: 2000, workYears: 1, studyMode: "onsite", startYear: 2027
+  fundingNeed: "full", canPayApplicationFee: false, birthYear: 2000, workYears: 1, studyMode: "onsite", startYear: new Date().getUTCFullYear() + 1
 };
 
 describe("recomendações", () => {
