@@ -1,5 +1,13 @@
 # Registro de mudanças
 
+## 3.4.3 — O que se digita antes de a página carregar não se perde (2026-11-28)
+
+- **Corrigido:** em internet lenta, o e-mail e a senha digitados antes de o JavaScript terminar de carregar eram apagados
+  quando a página "acordava", e o envio mostrava "Corrija os campos destacados". Os formulários de entrar, cadastro,
+  recuperação, nova senha e excluir conta passam a deixar o navegador guardar o que é digitado e só leem os valores ao enviar.
+- Teste novo `e2e/slow-network.spec.ts`: atrasa o JavaScript em 3 s, preenche o cadastro antes disso e confirma que os dados
+  ficam e que a conta é criada.
+
 ## 3.4.2 — Consolidação: revisão de código e testes das telas novas (2026-11-28)
 
 - **Corrigido:** identificadores e nomes de documento com `%` (ex.: "Declaração 100%") derrubavam a API com erro 500 (decodificação

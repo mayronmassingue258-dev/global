@@ -29,7 +29,6 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
   const hydrated = useHydrated();
   const router = useRouter();
   const params = useSearchParams();
-  const [values, setValues] = useState<Record<AuthField, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<AuthErrors>({});
   const [formError, setFormError] = useState("");
   const [message, setMessage] = useState("");
@@ -47,12 +46,20 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
   const focusField = (field: AuthField) =>
     requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>(`[name="${field}"]`)?.focus());
 
+  /**
+   * Campos NÃO controlados: o navegador guarda o que é digitado. Com campos controlados, o que a pessoa digitava
+   * antes de o JavaScript carregar (rede lenta, servidor acordando) era apagado quando o React assumia a página.
+   * Os valores são lidos do formulário na hora de enviar.
+   */
+  const read = (): Record<AuthField, string> => {
+    const get = (field: AuthField) => (formRef.current?.elements.namedItem(field) as HTMLInputElement | null)?.value ?? "";
+    return { name: get("name"), email: get("email"), password: get("password") };
+  };
+
   const bind = (field: AuthField) => ({
     name: field,
-    value: values[field],
     error: messageFor(field),
-    onChange: (e: { target: { value: string } }) => {
-      setValues((v) => ({ ...v, [field]: e.target.value }));
+    onChange: () => {
       if (errors[field]) setErrors(({ [field]: _removed, ...rest }) => rest);
       setFormError("");
     }
@@ -60,6 +67,7 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const values = read();
     const next = validateAuth(mode, values);
     setErrors(next);
     setFormError("");
@@ -89,7 +97,8 @@ export function AuthForm({ mode, service = authService }: { mode: AuthMode; serv
         focusField("email");
       } else if (error instanceof ApiError && error.code === "invalid_credentials") {
         setFormError(t.auth.invalidCredentials);
-        setValues((v) => ({ ...v, password: "" }));
+        const passwordInput = formRef.current?.elements.namedItem("password") as HTMLInputElement | null;
+        if (passwordInput) passwordInput.value = "";
         focusField("password");
       } else if (error instanceof ApiError && error.code === "account_locked") {
         setFormError(t.auth.locked);

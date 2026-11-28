@@ -22,13 +22,13 @@ export function AccountPanel({ service = authService }: { service?: AuthService 
   const hydrated = useHydrated();
   const user = useSessionUser();
   const router = useRouter();
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function deleteAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const password = inputRef.current?.value ?? "";
     if (!password) {
       setError(t.auth.errors.passwordRequired);
       inputRef.current?.focus();
@@ -41,7 +41,7 @@ export function AccountPanel({ service = authService }: { service?: AuthService 
       router.refresh();
     } catch (err) {
       setBusy(false);
-      setPassword("");
+      if (inputRef.current) inputRef.current.value = "";
       setError(err instanceof ApiError && err.fields?.password === "incorrect" ? t.account.deleteWrongPassword : t.account.deleteFailed);
       inputRef.current?.focus();
     }
@@ -76,9 +76,8 @@ export function AccountPanel({ service = authService }: { service?: AuthService 
             label={t.account.deleteConfirm}
             name="password"
             autoComplete="current-password"
-            value={password}
             error={error || undefined}
-            onChange={(e) => { setPassword(e.target.value); setError(""); }}
+            onChange={() => setError("")}
           />
           {error && <Notice role="alert">{error}</Notice>}
           <div><Button type="submit" variant="destructive" loading={busy} disabled={!hydrated}>{t.account.deleteButton}</Button></div>

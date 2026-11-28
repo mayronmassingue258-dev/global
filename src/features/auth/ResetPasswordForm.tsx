@@ -20,13 +20,13 @@ export function ResetPasswordForm({ service = authService }: { service?: AuthSer
   const t = useT();
   const hydrated = useHydrated();
   const token = useSearchParams()?.get("token") ?? "";
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done" | "invalid">(token ? "idle" : "invalid");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const password = inputRef.current?.value ?? "";
     if (password.length < 8) {
       setError(t.auth.errors.passwordShort);
       inputRef.current?.focus();
@@ -72,9 +72,8 @@ export function ResetPasswordForm({ service = authService }: { service?: AuthSer
         autoComplete="new-password"
         helper={t.auth.passwordHelper}
         required
-        value={password}
         error={error || undefined}
-        onChange={(e) => { setPassword(e.target.value); setError(""); }}
+        onChange={() => setError("")}
       />
       <Button type="submit" loading={state === "busy"} disabled={!hydrated}>{t.auth.resetSubmit}</Button>
       <div className={styles.links}><Link href="/login">{t.auth.backToLogin}</Link></div>
