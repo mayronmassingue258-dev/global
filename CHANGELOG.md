@@ -1,5 +1,16 @@
 # Registro de mudanças
 
+## 3.4.2 — Consolidação: revisão de código e testes das telas novas (2026-11-28)
+
+- **Corrigido:** identificadores e nomes de documento com `%` (ex.: "Declaração 100%") derrubavam a API com erro 500 (decodificação
+  dupla do endereço). Endereços malformados agora respondem `400 invalid_url` no envelope de erro do contrato.
+- **Testes de ponta a ponta novos** (navegador real + backend + PostgreSQL): painel de administração (acesso, verificar, ocultar,
+  pôr no ar, relatos, cadastro em JSON, acessibilidade), anexo com `%`, `/` e acento no nome do documento através do repasse `/api`,
+  e "Procurar novas bolsas para mim" (perfil incompleto, busca não configurada).
+- Rota só de testes `POST /api/__grant-admin` (existe apenas com `ALLOW_TEST_RESET=1`, proibido em produção).
+- Verificado em produção: as páginas de bolsa, elegibilidade e candidatura abrem no navegador que antes recebia 404.
+
+
 ## 3.4.1 — Consolidação: datas e carregamento das páginas (2026-11-28)
 
 - **Páginas de bolsa, elegibilidade e candidatura podiam não abrir** ("Não foi possível carregar esta página"): o arquivo de

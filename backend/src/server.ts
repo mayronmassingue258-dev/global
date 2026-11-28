@@ -16,9 +16,9 @@ try {
 const config = loadConfig();
 const { db, sql: connection } = createDb(config.DATABASE_URL, { ssl: config.DATABASE_SSL === "require", prepare: config.DATABASE_PREPARE === "1" });
 
-/** Apaga TODAS as contas e dados de estudantes e recria as bolsas de demonstração. Só registrado com ALLOW_TEST_RESET=1. */
+/** Apaga TODAS as contas, dados de estudantes e bolsas, e recria as de demonstração. Só registrado com ALLOW_TEST_RESET=1. */
 async function resetDatabase() {
-  await db.execute(sql`truncate users, sessions, password_resets, profiles, scholarship_reports, discovery_runs, applications, application_documents, document_files, application_events, drafts restart identity cascade`);
+  await db.execute(sql`truncate users, sessions, password_resets, profiles, scholarship_reports, discovery_runs, applications, application_documents, document_files, application_events, drafts, scholarships restart identity cascade`);
   await seed(db);
 }
 

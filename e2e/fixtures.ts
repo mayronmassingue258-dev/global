@@ -6,6 +6,8 @@ type Api = {
   post: (path: string, body: unknown) => Promise<void>;
   /** Estudante logado neste teste. */
   user: { email: string; password: string; name: string };
+  /** Torna o estudante deste teste administrador (rota só de testes). */
+  makeAdmin: () => Promise<void>;
 };
 
 export const TEST_PASSWORD = "senha-de-teste-123";
@@ -35,6 +37,9 @@ export const test = base.extend<{ api: Api; anonymous: void }>({
       },
       post: async (path, body) => {
         expect((await session.post(`/api${path}`, { data: body })).ok()).toBe(true);
+      },
+      makeAdmin: async () => {
+        expect((await request.post(`${API_URL}/__grant-admin`, { data: { email: user.email } })).status()).toBe(204);
       }
     });
   },

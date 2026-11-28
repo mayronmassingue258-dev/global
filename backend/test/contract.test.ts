@@ -226,8 +226,10 @@ describe("HTTP", () => {
     expect((await t.call("/scholarships", { headers: { origin: "https://malicioso.example" } })).headers["access-control-allow-origin"]).toBeUndefined();
   });
 
-  it("rota de reset não existe sem ALLOW_TEST_RESET", async () => {
+  it("rotas de teste (reset, e-mails, virar admin) não existem sem ALLOW_TEST_RESET", async () => {
     expect((await t.call("/__reset", { method: "POST" })).status).toBe(404);
+    expect((await t.call("/__emails")).status).toBe(404);
+    expect((await t.call("/__grant-admin", { method: "POST", body: { email: "ana@exemplo.com" } })).status).toBe(404);
   });
 });
 
@@ -237,5 +239,40 @@ describe("base de dados", () => {
     const rows = (await t.db.execute(sql`select relname, relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'`)) as unknown as { relname: string; relrowsecurity: boolean }[];
     expect(rows.length).toBeGreaterThanOrEqual(11);
     expect(rows.filter((r) => !r.relrowsecurity).map((r) => r.relname)).toEqual([]);
+  });
+});
+
+describe("endereços com caracteres especiais", () => {
+  let u: Awaited<ReturnType<typeof setupTestApp>>;
+  beforeAll(async () => { u = await setupTestApp(); await u.reset(); });
+  afterAll(async () => { await u.close(); });
+
+  it("id com % não derruba a API (404 no envelope); endereço malformado → 400 invalid_url", async () => {
+    for (const path of ["/scholarships/abc%25", "/scholarships/100%25%20bolsa"]) {
+      const r = await u.call(path, { cookie: null });
+      expect(r.status, path).toBe(404);
+      expect(r.json).toEqual({ error: { code: "not_found", message: "not_found" } });
+    }
+    const bad = await u.call("/scholarships/%E0%A4%A", { cookie: null });
+    expect(bad.status).toBe(400);
+    expect(bad.json).toEqual({ error: { code: "invalid_url", message: "invalid_url" } });
+  });
+
+  it("documento com %, espaço, acento e barra no nome: o checklist e o arquivo funcionam", async () => {
+    const cookie = await u.signUp("docs@exemplo.com");
+    const { upsertScholarship, scholarshipInput } = await import("../src/db/import-scholarships.js");
+    const example = (await import("../scholarships.example.json", { with: { type: "json" } })).default[0];
+    const name = "Declaração 100% / certificado";
+    await upsertScholarship(u.db, scholarshipInput.parse({ ...example, id: "bolsa-especial", deadline: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10), requiredDocuments: [name] }));
+    expect((await u.call("/applications", { method: "POST", body: { scholarshipId: "bolsa-especial" }, cookie })).status).toBe(201);
+    const boundary = "----b";
+    const pdf = Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.alloc(100, 0x20)]);
+    const body = Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="a.pdf"\r\nContent-Type: application/pdf\r\n\r\n`), pdf, Buffer.from(`\r\n--${boundary}--\r\n`)]);
+    const path = `/api/applications/bolsa-especial/documents/${encodeURIComponent(name)}/file`;
+    const up = await u.app.inject({ method: "PUT", url: path, headers: { cookie, "content-type": `multipart/form-data; boundary=${boundary}`, origin: "http://localhost:3000" }, payload: body });
+    expect(up.statusCode).toBe(200);
+    const down = await u.app.inject({ method: "GET", url: path, headers: { cookie } });
+    expect(down.statusCode).toBe(200);
+    expect(Buffer.from(down.rawPayload).equals(pdf)).toBe(true);
   });
 });

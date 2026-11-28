@@ -14,7 +14,7 @@ import { hashToken } from "./auth/tokens.js";
 import { cookieSecure, type Config } from "./config.js";
 import type { Database } from "./db/client.js";
 import { createEmailSender, sentEmails, type EmailSender } from "./auth/email.js";
-import { HttpError, errorBody, notFound } from "./lib/errors.js";
+import { HttpError, errorBody, notFound, validationFailed } from "./lib/errors.js";
 import { parseApplicationCreate, parseApplicationPatch, parseDraft, parseListQuery, parseProfile } from "./lib/validation.js";
 import { getEligibility, getRecommendations, getScholarshipRow, listScholarships, toScholarship } from "./services/scholarships.js";
 import {
@@ -97,6 +97,11 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     bodyLimit: 512 * 1024,
     // Id único por requisição: aparece nos logs e no cabeçalho x-request-id da resposta (para suporte).
     genReqId: () => randomUUID(),
+    // Endereço malformado (ex.: "%E0%A4%A") responde no envelope de erro do contrato, como todo o resto.
+    frameworkErrors: (error, _req, reply) => {
+      const code = (error as { code?: string }).code;
+      void (reply as unknown as FastifyReply).status(400).send(errorBody(code === "FST_ERR_BAD_URL" ? "invalid_url" : "bad_request"));
+    },
     // Atrás do Render. O IP do visitante vem de clientIp() (abaixo), não do X-Forwarded-For, que o visitante pode forjar.
     trustProxy: true
   });
@@ -229,7 +234,8 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     return reply.status(500).send(errorBody("internal_error"));
   });
 
-  const id = (req: FastifyRequest) => decodeURIComponent((req.params as { id: string }).id);
+  // O Fastify já decodifica os parâmetros do caminho: decodificar de novo quebrava ids com "%" (erro 500).
+  const id = (req: FastifyRequest) => (req.params as { id: string }).id;
   const loginThrottle = createLoginThrottle();
   // Rotas de conta: sempre por IP (não por sessão), e sem exceção para a chave interna.
   const authLimit = { config: { rateLimit: { max: authRateLimit, timeWindow: "1 minute", keyGenerator: (req: FastifyRequest) => `auth:${clientIp(req)}`, allowList: () => false } } };
@@ -367,7 +373,7 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
     // Arquivo de um item do checklist: multipart/form-data, campo "file" (até 10 MB; PDF, JPG, PNG ou DOCX pelo conteúdo).
     const fileParams = (req: FastifyRequest) => {
       const p = req.params as { id: string; name: string };
-      return { scholarshipId: decodeURIComponent(p.id), documentName: decodeURIComponent(p.name) };
+      return { scholarshipId: p.id, documentName: p.name };
     };
     api.put("/applications/:id/documents/:name/file", async (req) => {
       const owner = userId(req);
@@ -439,6 +445,14 @@ export async function buildApp({ config, db, resetDatabase, emailSender, authRat
         });
       }
       api.get("/__emails", async () => ({ items: sentEmails }));
+      // Torna uma conta administradora (para testar o painel /admin no navegador).
+      api.post("/__grant-admin", async (req, reply) => {
+        const email = (req.body as { email?: unknown } | null)?.email;
+        if (typeof email !== "string") throw validationFailed({ email: "required" });
+        const { setRole } = await import("./db/grant-admin.js");
+        if (!(await setRole(db, email, "admin"))) throw notFound();
+        return reply.status(204).send();
+      });
     }
   }, { prefix: "/api" });
 
